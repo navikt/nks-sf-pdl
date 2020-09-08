@@ -370,6 +370,7 @@ internal fun work(ws: WorkSettings): Triple<WorkSettings, ExitReason, Cache.Exis
 
             exitReason = ExitReason.Work
             val results = cRecords.map { cr ->
+
                 if (cr.value() == null) {
                     val personTombestone = PersonTombestone(aktoerId = cr.key())
                     workMetrics.noOfTombestone.inc()

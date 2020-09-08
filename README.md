@@ -1,4 +1,4 @@
-# nks sf pdl 
+# nks sf pdl
 
 Imports relevant persons from kafka pdl compaction log and filter process relevant data to a Salesforce person compaction log topic.
 This topic is used as a cach to only process new and updated data. Consumer of this topic is the application sf-person.
