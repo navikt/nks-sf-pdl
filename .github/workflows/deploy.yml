@@ -3,7 +3,7 @@ name: Build, push, and deploy
 on: [push, pull_request]
 
 env:
-  IMAGE: docker.pkg.github.com/${{ github.repository }}/sf-pdl:${{ github.sha }}
+  IMAGE: docker.pkg.github.com/${{ github.repository }}/nks-sf-pdl:${{ github.sha }}
 jobs:
   test:
     name: Run tests
@@ -62,19 +62,19 @@ jobs:
           docker build . --pull --tag ${IMAGE}
           echo "$GITHUB_TOKEN" | docker login --username "$GITHUB_REPOSITORY" --password-stdin https://docker.pkg.github.com
           docker push ${IMAGE}
-  deploy-dev:
-    name: Deploy to NAIS dev
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: nais/deploy/actions/deploy@v1
-        env:
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          CLUSTER: dev-sbs
-          RESOURCE: .nais/dev.yaml
+#  deploy-dev:
+#    name: Deploy to GCP dev
+#    needs: build
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v1
+#      - uses: nais/deploy/actions/deploy@v1
+#        env:
+#          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+#          CLUSTER: dev-gcp
+#          RESOURCE: .nais/dev.yaml
 #  deploy-prod:
-#    name: Deploy to NAIS prod
+#    name: Deploy to GCP prod
 #    needs: deploy-dev
 #    if: github.ref == 'refs/heads/master'
 #    runs-on: ubuntu-latest
@@ -83,5 +83,5 @@ jobs:
 #      - uses: nais/deploy/actions/deploy@v1
 #        env:
 #          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-#          CLUSTER: prod-sbs
+#          CLUSTER: prod-gcp
 #          RESOURCE: .nais/prod.yaml
