@@ -26,7 +26,8 @@ object Bootstrap {
     fun start(ws: WorkSettings = WorkSettings()) {
         log.info { "Starting" }
         enableNAISAPI {
-            if (ws.initialLoad || FilterBase.filterSettingsDiffer(ws.filterEnabled, ws.filter, ws.prevEnabled, ws.prevFilter)) {
+//            if (ws.initialLoad || FilterBase.filterSettingsDiffer(ws.filterEnabled, ws.filter, ws.prevEnabled, ws.prevFilter)) {
+            if (ws.initialLoad) {
                 if (ws.initialLoad) {
                     log.info { "Initial load flag set will trigger initial load - will build populationCache from beginning of pdl topic and post latest to sf-person" }
                 } else {
@@ -65,8 +66,8 @@ object Bootstrap {
                 loop(work(ws)
                     .let { prevWS ->
                         prevWS.first.copy(
-                                prevFilter = FilterBase.fromS3(), // Fetch filter from last successful work session
-                                prevEnabled = FilterBase.flagFromS3(),
+//                                prevFilter = FilterBase.fromS3(), // Fetch filter from last successful work session
+//                                prevEnabled = FilterBase.flagFromS3(),
                                 cache = prevWS.third,
                                 startUpOffset = -1L // Only seek to startUpOffset on first work session
                         )

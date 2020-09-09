@@ -24,8 +24,8 @@ fun InitPopulation.Exist.isValid(): Boolean {
 fun <K, V> getInitPopulation(
     lastDigit: Int,
     config: Map<String, Any>,
-    filter: FilterBase.Exists,
-    filterEnabled: Boolean,
+//    filter: FilterBase.Exists,
+//    filterEnabled: Boolean,
     topics: List<String> = listOf(kafkaPDLTopic)
 ): InitPopulation =
         try {
@@ -83,7 +83,8 @@ fun <K, V> getInitPopulation(
                                             }
                                         }
                                     }.filter {
-                                        p -> p.second is PersonTombestone || (p.second is PersonSf && !((p.second as PersonSf).doed) && (!filterEnabled || filter.approved(p.second as PersonSf, true)))
+//                                        p -> p.second is PersonTombestone || (p.second is PersonSf && !((p.second as PersonSf).doed) && (!filterEnabled || filter.approved(p.second as PersonSf, true)))
+                                        p -> p.second is PersonTombestone || (p.second is PersonSf && !((p.second as PersonSf).doed))
                                     }))
                                 }
                             }

@@ -1,7 +1,6 @@
 package no.nav.sf.pdl
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer
-import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -12,7 +11,6 @@ import no.nav.sf.library.AnEnvironment
 import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.library.PROGNAME
 import no.nav.sf.library.getAllRecords
-import no.nav.sf.library.json
 import no.nav.sf.library.send
 import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -35,20 +33,20 @@ val kafkaSchemaReg = AnEnvironment.getEnvOrDefault(EV_kafkaSchemaReg, "http://lo
 val kafkaPersonTopic = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopic, "$PROGNAME-producer")
 val kafkaPDLTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopic, "$PROGNAME-consumer")
 
-interface ABucket {
-    companion object {
-        fun getOrDefault(d: String) =
-                runCatching { return S3Client.loadFromS3().bufferedReader().readLine() ?: "" }
-                        .onSuccess { log.info { "Successfully retrieved value from s3" } }
-                        .onFailure { log.error { "Failed to retrieve value from s3" } }
-                        .getOrDefault(d)
-        fun getFlagOrDefault(b: Boolean) =
-                runCatching { return (S3Client.loadFlagFromS3().bufferedReader().readLine() ?: "") == true.toString() }
-                        .onSuccess { log.info { "Successfully retrieved flag value from s3" } }
-                        .onFailure { log.error { "Failed to retrieve flag value from s3" } }
-                        .getOrDefault(b)
-    }
-}
+// interface ABucket {
+//    companion object {
+//        fun getOrDefault(d: String) =
+//                runCatching { return S3Client.loadFromS3().bufferedReader().readLine() ?: "" }
+//                        .onSuccess { log.info { "Successfully retrieved value from s3" } }
+//                        .onFailure { log.error { "Failed to retrieve value from s3" } }
+//                        .getOrDefault(d)
+//        fun getFlagOrDefault(b: Boolean) =
+//                runCatching { return (S3Client.loadFlagFromS3().bufferedReader().readLine() ?: "") == true.toString() }
+//                        .onSuccess { log.info { "Successfully retrieved flag value from s3" } }
+//                        .onFailure { log.error { "Failed to retrieve flag value from s3" } }
+//                        .getOrDefault(b)
+//    }
+// }
 
 data class WorkSettings(
     val kafkaConsumerPerson: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
@@ -64,13 +62,13 @@ data class WorkSettings(
     ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
     "schema.registry.url" to kafkaSchemaReg
 ),
-    val filter: FilterBase = FilterBase.fromJson(AVault.getSecretOrDefault(VAULT_workFilter)),
-
-    val filterEnabled: Boolean = AVault.getSecretOrDefault(VAULT_filterEnabled) == true.toString(),
-
-    val prevFilter: FilterBase = FilterBase.fromS3(),
-
-    val prevEnabled: Boolean = FilterBase.flagFromS3(),
+//    val filter: FilterBase = FilterBase.fromJson(AVault.getSecretOrDefault(VAULT_workFilter)),
+//
+//    val filterEnabled: Boolean = AVault.getSecretOrDefault(VAULT_filterEnabled) == true.toString(),
+//
+//    val prevFilter: FilterBase = FilterBase.fromS3(),
+//
+//    val prevEnabled: Boolean = FilterBase.flagFromS3(),
 
     val initialLoad: Boolean = AVault.getSecretOrDefault(VAULT_initialLoad) == true.toString(),
 
@@ -92,73 +90,73 @@ sealed class ExitReason {
     fun isOK(): Boolean = this is Work || this is NoEvents
 }
 
-/**
- * Filter persons
- * Only LIVING persons in listed regions and related municipals will be transferred to Salesforce
- * iff empty list of municipal  - all living persons in that region
- * iff non-empty municipals - only living person in given region AND municipals will be transferred
- */
-sealed class FilterBase {
-    object Missing : FilterBase()
-
-    @Serializable
-    data class Exists(
-        val regions: List<Region>
-    ) : FilterBase() {
-
-        fun approved(p: PersonSf, initial: Boolean = false): Boolean {
-            val approved = regions.any {
-                it.region == p.region && (it.municipals.isEmpty() || it.municipals.contains(p.kommunenummer))
-            }
-            if (!initial) {
-                if (approved) workMetrics.filterApproved.inc() else workMetrics.filterDisproved.inc()
-            }
-            return approved
-        }
-    }
-
-    @Serializable
-    data class Region(
-        val region: String,
-        val municipals: List<String> = emptyList()
-    )
-
-    companion object {
-        fun fromJson(data: String, srcText: String = "vault"): FilterBase = runCatching {
-            log.info { "Ready to parse filter from $srcText as json - $data" }
-            json.parse(Exists.serializer(), data)
-        }
-                .onFailure { log.error { "Parsing of person filter from $srcText failed - ${it.localizedMessage}" } }
-                .getOrDefault(Missing)
-
-        fun fromS3(): FilterBase =
-                ABucket.getOrDefault("").let { storedFilterJson ->
-                    if (storedFilterJson.isEmpty()) {
-                        Missing
-                    } else {
-                        fromJson(storedFilterJson, "S3")
-                    }
-                }
-
-        fun flagFromS3(): Boolean =
-                ABucket.getFlagOrDefault(false)
-
-        fun filterSettingsDiffer(
-            currentFilterEnabled: Boolean,
-            currentFilter: FilterBase,
-            prevFilterEnabled: Boolean,
-            prevFilter: FilterBase
-        ): Boolean {
-            return if (!currentFilterEnabled && !prevFilterEnabled) {
-                false // Filter still turned off
-            } else if (currentFilterEnabled != prevFilterEnabled) {
-                true // Filter has been toggled on or off
-            } else {
-                currentFilter.hashCode() != prevFilter.hashCode() // Has the filter been changed
-            }
-        }
-    }
-}
+// /**
+// * Filter persons
+// * Only LIVING persons in listed regions and related municipals will be transferred to Salesforce
+// * iff empty list of municipal  - all living persons in that region
+// * iff non-empty municipals - only living person in given region AND municipals will be transferred
+// */
+// sealed class FilterBase {
+//    object Missing : FilterBase()
+//
+//    @Serializable
+//    data class Exists(
+//        val regions: List<Region>
+//    ) : FilterBase() {
+//
+//        fun approved(p: PersonSf, initial: Boolean = false): Boolean {
+//            val approved = regions.any {
+//                it.region == p.region && (it.municipals.isEmpty() || it.municipals.contains(p.kommunenummer))
+//            }
+//            if (!initial) {
+//                if (approved) workMetrics.filterApproved.inc() else workMetrics.filterDisproved.inc()
+//            }
+//            return approved
+//        }
+//    }
+//
+//    @Serializable
+//    data class Region(
+//        val region: String,
+//        val municipals: List<String> = emptyList()
+//    )
+//
+//    companion object {
+//        fun fromJson(data: String, srcText: String = "vault"): FilterBase = runCatching {
+//            log.info { "Ready to parse filter from $srcText as json - $data" }
+//            json.parse(Exists.serializer(), data)
+//        }
+//                .onFailure { log.error { "Parsing of person filter from $srcText failed - ${it.localizedMessage}" } }
+//                .getOrDefault(Missing)
+//
+//        fun fromS3(): FilterBase =
+//                ABucket.getOrDefault("").let { storedFilterJson ->
+//                    if (storedFilterJson.isEmpty()) {
+//                        Missing
+//                    } else {
+//                        fromJson(storedFilterJson, "S3")
+//                    }
+//                }
+//
+//        fun flagFromS3(): Boolean =
+//                ABucket.getFlagOrDefault(false)
+//
+//        fun filterSettingsDiffer(
+//            currentFilterEnabled: Boolean,
+//            currentFilter: FilterBase,
+//            prevFilterEnabled: Boolean,
+//            prevFilter: FilterBase
+//        ): Boolean {
+//            return if (!currentFilterEnabled && !prevFilterEnabled) {
+//                false // Filter still turned off
+//            } else if (currentFilterEnabled != prevFilterEnabled) {
+//                true // Filter has been toggled on or off
+//            } else {
+//                currentFilter.hashCode() != prevFilter.hashCode() // Has the filter been changed
+//            }
+//        }
+//    }
+// }
 
 /**
  * A minimum cache as a map of persons aktørId and hash code of person details
@@ -218,34 +216,37 @@ sealed class Cache {
 
 internal fun initLoad(ws: WorkSettings): ExitReason {
     workMetrics.clearAll()
-    /**
-     * Check - no filter means nothing to transfer, leaving
-     */
-    if (ws.filter is FilterBase.Missing) {
-        log.warn { "initLoad - No filter for activities, leaving" }
-        return ExitReason.NoFilter
-    }
-    val personFilter = ws.filter as FilterBase.Exists
-    val filterEnabled = ws.filterEnabled
-    log.info { "initLoad - Continue work with filter enabled: $filterEnabled" }
+//    /**
+//     * Check - no filter means nothing to transfer, leaving
+//     */
+//    if (ws.filter is FilterBase.Missing) {
+//        log.warn { "initLoad - No filter for activities, leaving" }
+//        return ExitReason.NoFilter
+//    }
+//    val personFilter = ws.filter as FilterBase.Exists
+//    val filterEnabled = ws.filterEnabled
+//    log.info { "initLoad - Continue work with filter enabled: $filterEnabled" }
 
     for (lastDigit in 0..9) {
         log.info { "Commencing pdl topic read for population initialization batch ${lastDigit + 1}/10..." }
         workMetrics.latestInitBatch.set((lastDigit + 1).toDouble())
-        val exitReason = initLoadPortion(lastDigit, ws, personFilter, filterEnabled)
+//        val exitReason = initLoadPortion(lastDigit, ws, personFilter, filterEnabled)
+        val exitReason = initLoadPortion(lastDigit, ws)
         if (exitReason != ExitReason.Work) {
             return exitReason
         }
     }
-    log.info { "Successful init session finished, will persist filter settings as current cache base" }
-    S3Client.persistToS3(json.toJson(FilterBase.Exists.serializer(), personFilter).toString())
-    S3Client.persistFlagToS3(filterEnabled)
+//    log.info { "Successful init session finished, will persist filter settings as current cache base" }
+//    S3Client.persistToS3(json.toJson(FilterBase.Exists.serializer(), personFilter).toString())
+//    S3Client.persistFlagToS3(filterEnabled)
     return ExitReason.Work
 }
 
-fun initLoadPortion(lastDigit: Int, ws: WorkSettings, personFilter: FilterBase.Exists, filterEnabled: Boolean): ExitReason {
+// fun initLoadPortion(lastDigit: Int, ws: WorkSettings, personFilter: FilterBase.Exists, filterEnabled: Boolean): ExitReason {
+fun initLoadPortion(lastDigit: Int, ws: WorkSettings): ExitReason {
 
-    val initTmp = getInitPopulation<String, String>(lastDigit, ws.kafkaConsumerPdl, personFilter, filterEnabled)
+//    val initTmp = getInitPopulation<String, String>(lastDigit, ws.kafkaConsumerPdl, personFilter, filterEnabled)
+    val initTmp = getInitPopulation<String, String>(lastDigit, ws.kafkaConsumerPdl)
 
     if (initTmp !is InitPopulation.Exist) {
         log.error { "initLoad (portion ${lastDigit + 1} of 10) - could not create init population" }
@@ -298,16 +299,16 @@ internal fun work(ws: WorkSettings): Triple<WorkSettings, ExitReason, Cache.Exis
 
     workMetrics.clearAll()
 
-    /**
-     * Check - no filter means nothing to transfer, leaving
-     */
-    if (ws.filter is FilterBase.Missing) {
-        log.warn { "No filter for activities, leaving" }
-        return Triple(ws, ExitReason.NoFilter, ws.cache)
-    }
-    val personFilter = ws.filter as FilterBase.Exists
-    val filterEnabled = ws.filterEnabled
-    log.info { "Continue work with filter enabled: $filterEnabled" }
+//    /**
+//     * Check - no filter means nothing to transfer, leaving
+//     */
+//    if (ws.filter is FilterBase.Missing) {
+//        log.warn { "No filter for activities, leaving" }
+//        return Triple(ws, ExitReason.NoFilter, ws.cache)
+//    }
+//    val personFilter = ws.filter as FilterBase.Exists
+//    val filterEnabled = ws.filterEnabled
+//    log.info { "Continue work with filter enabled: $filterEnabled" }
 
     /**
      * Check - no cache means no answer for a new event;
@@ -345,12 +346,12 @@ internal fun work(ws: WorkSettings): Triple<WorkSettings, ExitReason, Cache.Exis
 
         if (cache.isEmpty) {
             log.info { "Cache is empty - will consume from beginning of pdl topic" }
-        } else if (FilterBase.filterSettingsDiffer(ws.filterEnabled, ws.filter, ws.prevEnabled, ws.prevFilter)) {
-            if (ws.prevFilter is FilterBase.Missing) {
-                log.info { "No filter found in S3 - will consume from beginning of topic" }
-            } else {
-                log.info { "Difference between filter settings in vault and filter on S3. Vault filter: ${ws.filter} enabled ${ws.filterEnabled}, S3 filter: ${ws.prevFilter as FilterBase.Exists} enabled: ${ws.prevEnabled} - will consume from beginning of topic" }
-            }
+//        } else if (FilterBase.filterSettingsDiffer(ws.filterEnabled, ws.filter, ws.prevEnabled, ws.prevFilter)) {
+//            if (ws.prevFilter is FilterBase.Missing) {
+//                log.info { "No filter found in S3 - will consume from beginning of topic" }
+//            } else {
+//                log.info { "Difference between filter settings in vault and filter on S3. Vault filter: ${ws.filter} enabled ${ws.filterEnabled}, S3 filter: ${ws.prevFilter as FilterBase.Exists} enabled: ${ws.prevEnabled} - will consume from beginning of topic" }
+//            }
         } else {
             log.info { "Filter unchanged since last successful work session. Will consume from current offset $ws." }
         }
@@ -403,7 +404,8 @@ internal fun work(ws: WorkSettings): Triple<WorkSettings, ExitReason, Cache.Exis
             val areOk = results.fold(true) { acc, resp -> acc && (resp.first == KafkaConsumerStates.IsOk) }
 
             if (areOk) {
-                results.filter { it.second is PersonTombestone || (it.second is PersonSf && !((it.second as PersonSf).doed) && (!filterEnabled || personFilter.approved(it.second as PersonSf))) }.map {
+//                results.filter { it.second is PersonTombestone || (it.second is PersonSf && !((it.second as PersonSf).doed) && (!filterEnabled || personFilter.approved(it.second as PersonSf))) }.map {
+                results.filter { it.second is PersonTombestone || (it.second is PersonSf && !((it.second as PersonSf).doed)) }.map {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
                             Pair<PersonProto.PersonKey, PersonProto.PersonValue?>(personBase.toPersonTombstoneProtoKey(), null)
@@ -442,9 +444,9 @@ internal fun work(ws: WorkSettings): Triple<WorkSettings, ExitReason, Cache.Exis
     log.info { "bootstrap work session finished" }
 
     if (exitReason.isOK()) {
-        log.info { "Successful work session finished, will persist filter settings as current cache base" }
-        S3Client.persistToS3(json.toJson(FilterBase.Exists.serializer(), personFilter).toString())
-        S3Client.persistFlagToS3(filterEnabled)
+//        log.info { "Successful work session finished, will persist filter settings as current cache base" }
+//        S3Client.persistToS3(json.toJson(FilterBase.Exists.serializer(), personFilter).toString())
+//        S3Client.persistFlagToS3(filterEnabled)
         return Triple(ws, exitReason, cache.withNewRecords(newRecords))
     } else {
         log.warn { "Failed work session - will not update cache base" }
