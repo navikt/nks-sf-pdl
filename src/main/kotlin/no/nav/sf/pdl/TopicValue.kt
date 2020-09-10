@@ -73,10 +73,10 @@ data class Person(
         @Serializable
         data class Vegadresse(
             val kommunenummer: String?,
-            val adressenavn: String,
-            val husnummer: String,
-            val husbokstav: String,
-            val postnummer: String
+            val adressenavn: String?,
+            val husnummer: String?,
+            val husbokstav: String?,
+            val postnummer: String?
         )
 
         @Serializable
