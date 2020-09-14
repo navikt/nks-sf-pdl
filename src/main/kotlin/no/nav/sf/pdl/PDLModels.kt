@@ -1,6 +1,7 @@
 package no.nav.sf.pdl
 
 import com.google.protobuf.InvalidProtocolBufferException
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto.PersonKey
@@ -117,3 +118,33 @@ internal fun ByteArray.protobufSafeParseValue(): PersonValue = this.let { ba ->
         PersonValue.getDefaultInstance()
     }
 }
+
+@Serializable
+enum class AdresseType {
+    vegadresse,
+    matrikkeladresse,
+    ukjentBosted,
+    oppholdsadresse,
+}
+
+sealed class AdresseBase
+@Serializable
+data class AdresseInvalid(
+    val type: AdresseType
+) : AdresseBase()
+@Serializable
+data class AdresseMissing(
+    val type: AdresseType
+) : AdresseBase()
+
+data class AdresseExist(
+    val type: AdresseType,
+    val fornavn: String = "",
+    val mellomnavn: String = "",
+    val etternavn: String = "",
+    val adressebeskyttelse: AdressebeskyttelseGradering = AdressebeskyttelseGradering.UGRADERT,
+    val sikkerhetstiltak: List<String> = emptyList(),
+    val kommunenummer: String = "",
+    val region: String = "",
+    val doed: Boolean = false
+) : PersonBase()
