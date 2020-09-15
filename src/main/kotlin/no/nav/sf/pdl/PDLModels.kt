@@ -1,9 +1,9 @@
 package no.nav.sf.pdl
 
 import com.google.protobuf.InvalidProtocolBufferException
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import mu.KotlinLogging
+import no.nav.pdlsf.proto.PersonProto
 import no.nav.pdlsf.proto.PersonProto.PersonKey
 import no.nav.pdlsf.proto.PersonProto.PersonValue
 
@@ -79,6 +79,7 @@ data class PersonSf(
     val etternavn: String = "",
     val adressebeskyttelse: AdressebeskyttelseGradering = AdressebeskyttelseGradering.UGRADERT,
     val sikkerhetstiltak: List<String> = emptyList(),
+    val bostedsadresse: Adresse? = null,
     val kommunenummer: String = "",
     val region: String = "",
     val doed: Boolean = false
@@ -96,6 +97,18 @@ data class PersonSf(
                 this@PersonSf.sikkerhetstiltak.forEach {
                     addSikkerhetstiltak(it)
                 }
+                bostedsadresse = PersonProto.Adresse.newBuilder().apply {
+                    val bostedsAdresse = this@PersonSf.bostedsadresse
+                    if (bostedsAdresse is Adresse.Exist) {
+                        type = PersonProto.AdresseType.valueOf(bostedsAdresse.adresseType.name)
+                        adresse = bostedsAdresse.adresse
+                        postnummer = bostedsAdresse.postnummer
+                        kommunenummer = bostedsAdresse.kommunenummer
+                    } else if (bostedsAdresse is Adresse.Ukjent) {
+                        type = PersonProto.AdresseType.valueOf(AdresseType.UKJENTBOSTED.name)
+                        bostedskommune = bostedsAdresse.bostedsKommune
+                    }
+                }.build()
                 kommunenummer = this@PersonSf.kommunenummer
                 region = this@PersonSf.region
                 doed = this@PersonSf.doed
@@ -118,33 +131,3 @@ internal fun ByteArray.protobufSafeParseValue(): PersonValue = this.let { ba ->
         PersonValue.getDefaultInstance()
     }
 }
-
-@Serializable
-enum class AdresseType {
-    vegadresse,
-    matrikkeladresse,
-    ukjentBosted,
-    oppholdsadresse,
-}
-
-sealed class AdresseBase
-@Serializable
-data class AdresseInvalid(
-    val type: AdresseType
-) : AdresseBase()
-@Serializable
-data class AdresseMissing(
-    val type: AdresseType
-) : AdresseBase()
-
-data class AdresseExist(
-    val type: AdresseType,
-    val fornavn: String = "",
-    val mellomnavn: String = "",
-    val etternavn: String = "",
-    val adressebeskyttelse: AdressebeskyttelseGradering = AdressebeskyttelseGradering.UGRADERT,
-    val sikkerhetstiltak: List<String> = emptyList(),
-    val kommunenummer: String = "",
-    val region: String = "",
-    val doed: Boolean = false
-) : PersonBase()
