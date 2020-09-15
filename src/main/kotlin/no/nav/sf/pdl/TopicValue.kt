@@ -126,6 +126,7 @@ fun Query.toPersonSf(): PersonBase {
                 mellomnavn = this.findNavn().mellomnavn,
                 etternavn = this.findNavn().etternavn,
                 adressebeskyttelse = this.findAdressebeskyttelse(),
+                bostedsadresse = this.findBostedsAdresse(),
                 sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.map { it.beskrivelse }.toList(),
                 kommunenummer = kommunenummer,
                 region = kommunenummer.regionOfKommuneNummer(),
@@ -134,6 +135,33 @@ fun Query.toPersonSf(): PersonBase {
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findBostedsAdresse(): Adresse {
+    return this.hentPerson.bostedsadresse.let { bostedsadresse ->
+        if (bostedsadresse.isEmpty()) {
+            workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc()
+            Adresse.Missing
+        } else {
+            bostedsadresse.firstOrNull { !it.metadata.historisk }?.let {
+                it.vegadresse?.let { vegAdresse ->
+                    Adresse.Exist(
+                        adresseType = AdresseType.VEGADRESSE,
+                        adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + " " + vegAdresse.husbokstav,
+                        postnummer = vegAdresse.postnummer,
+                        kommunenummer = vegAdresse.kommunenummer
+                    )
+                } ?: it.ukjentBosted?.let { ukjentBosted ->
+                    if (ukjentBosted.findKommuneNummer() is Kommunenummer.Exist) {
+                        workMetrics.usedAddressTypes.labels(WMetrics.AddressType.UKJENTBOSTED.name).inc()
+                        Adresse.Ukjent(
+                                adresseType = AdresseType.UKJENTBOSTED,
+                                bostedsKommune = ukjentBosted.bostedskommune)
+                    } else Adresse.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.UKJENTBOSTED.name).inc() }
+                }
+            } ?: Adresse.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
 }
 
 private fun Query.findAktoerId(): String {
@@ -170,6 +198,28 @@ sealed class Kommunenummer {
     object Invalid : Kommunenummer()
 
     data class Exist(val knummer: String) : Kommunenummer()
+}
+
+enum class AdresseType {
+    VEGADRESSE,
+    UKJENTBOSTED,
+    OPPHOLDSADRESSE
+}
+
+sealed class Adresse {
+    object Missing : Adresse()
+    object Invalid : Adresse()
+
+    data class Exist(
+        val adresseType: AdresseType,
+        val adresse: String?,
+        val postnummer: String?,
+        val kommunenummer: String?
+    ) : Adresse()
+    data class Ukjent(
+        val adresseType: AdresseType,
+        val bostedsKommune: String?
+    ) : Adresse()
 }
 
 fun Person.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {
