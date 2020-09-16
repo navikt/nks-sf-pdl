@@ -43,6 +43,24 @@
         }
       }
     ],
+    "kjoenn": [
+      {
+        "kjoenn": "MANN",
+        "metadata": {
+          "opplysningsId": "2d595a77-08a4-4f68-83dd-4fdbe4b0e2d3",
+          "master": "Freg",
+          "endringer": [
+            {
+              "type": "OPPRETT",
+              "registrert": "2019-10-25T08:36:59.237",
+              "registrertAv": "Folkeregisteret",
+              "systemkilde": "FREG",
+              "kilde": "skatteetaten"
+            }
+          ]
+        }
+      }
+    ],
     "doedsfall": [],
     "sikkerhetstiltak": [],
     "navn": [

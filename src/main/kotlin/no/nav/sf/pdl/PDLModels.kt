@@ -82,6 +82,7 @@ data class PersonSf(
     val bostedsadresse: Adresse? = null,
     val oppholdsadresse: Adresse? = null,
     val kommunenummer: String = "",
+    val kjoenn: KjoennType = KjoennType.UKJENT,
     val region: String = "",
     val doed: Boolean = false
 ) : PersonBase() {
@@ -98,6 +99,7 @@ data class PersonSf(
                 this@PersonSf.sikkerhetstiltak.forEach {
                     addSikkerhetstiltak(it)
                 }
+                kjoenn = PersonValue.Kjoenn.valueOf(this@PersonSf.kjoenn.name)
                 bostedsadresse = PersonProto.Adresse.newBuilder().apply {
                     val bostedsAdresse = this@PersonSf.bostedsadresse
                     if (bostedsAdresse is Adresse.Exist) {
