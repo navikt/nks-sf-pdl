@@ -17,6 +17,13 @@ enum AdresseType {
     UTENLANDSADRESSE = 2;
 }
 
+enum FamilieRelasjonsRolle {
+    BARN = 0;
+    MOR = 1;
+    FAR = 2;
+    MORMOR = 3;
+}
+
 message Adresse {
     AdresseType type = 1;
     string adresse = 2;
@@ -24,6 +31,12 @@ message Adresse {
     string kommunenummer = 4;
     string bostedskommune = 5;
     string landkode = 6;
+}
+
+message Familierelasjon {
+  string relatertPersonsIdent = 1;
+  FamilieRelasjonsRolle relatertPersonsRolle = 2;
+  FamilieRelasjonsRolle minRolleForPerson = 3;
 }
 
 // this message will be the value part of kafka payload
@@ -55,4 +68,5 @@ message PersonValue {
   Adresse bostedsadresse = 10;
   Adresse oppholdsadresse = 11;
   Kjoenn kjoenn = 12;
+  Familierelasjon familierelasjoner = 13;
 }

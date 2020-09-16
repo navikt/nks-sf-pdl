@@ -77,6 +77,7 @@ data class PersonSf(
     val fornavn: String = "",
     val mellomnavn: String = "",
     val etternavn: String = "",
+    val familieRelasjon: FamilieRelasjon? = null,
     val adressebeskyttelse: AdressebeskyttelseGradering = AdressebeskyttelseGradering.UGRADERT,
     val sikkerhetstiltak: List<String> = emptyList(),
     val bostedsadresse: Adresse? = null,
@@ -123,6 +124,16 @@ data class PersonSf(
                         type = PersonProto.AdresseType.valueOf(AdresseType.UTENLANDSADRESSE.name)
                         adresse = oppholdsadresse.adresse
                         landkode = oppholdsadresse.landkode
+                    }
+                }.build()
+                familierelasjoner = PersonProto.Familierelasjon.newBuilder().apply {
+                    val familieRelasjon = this@PersonSf.familieRelasjon
+                    if (familieRelasjon is FamilieRelasjon.Exist) {
+                        relatertPersonsIdent = familieRelasjon.relatertPersonsIdent
+                        relatertPersonsRolle = PersonProto.FamilieRelasjonsRolle.valueOf(familieRelasjon.relatertPersonsRolle.name)
+                        minRolleForPerson = if (familieRelasjon.minRolleForPerson != null)
+                            PersonProto.FamilieRelasjonsRolle.valueOf(familieRelasjon.minRolleForPerson.name)
+                        else null
                     }
                 }.build()
                 kommunenummer = this@PersonSf.kommunenummer

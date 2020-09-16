@@ -37,6 +37,14 @@ enum class KjoennType {
 }
 
 @Serializable
+enum class FamilieRelasjonsRolle {
+    BARN,
+    MOR,
+    FAR,
+    MORMOR
+}
+
+@Serializable
 data class Metadata(
     val historisk: Boolean = true,
     val master: String
@@ -69,6 +77,7 @@ data class Person(
     val bostedsadresse: List<Bostedsadresse>,
     val oppholdsadresse: List<Oppholdsadresse>,
     val doedsfall: List<Doedsfall>,
+    var familieRelasjoner: List<FamilieRelasjon>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     val kjoenn: List<Kjoenn>,
     val navn: List<Navn>
@@ -135,6 +144,14 @@ data class Person(
     )
 
     @Serializable
+    data class FamilieRelasjon(
+        val relatertPersonsIdent: String = "",
+        val relatertPersonsRolle: FamilieRelasjonsRolle,
+        val minRolleForPerson: FamilieRelasjonsRolle?,
+        val metadata: Metadata
+    )
+
+    @Serializable
     data class Sikkerhetstiltak(
         val beskrivelse: String,
         val metadata: Metadata
@@ -171,6 +188,7 @@ fun Query.toPersonSf(): PersonBase {
                 fornavn = this.findNavn().fornavn,
                 mellomnavn = this.findNavn().mellomnavn,
                 etternavn = this.findNavn().etternavn,
+                familieRelasjon = this.findFamilieRelasjon(),
                 adressebeskyttelse = this.findAdressebeskyttelse(),
                 bostedsadresse = this.findBostedsAdresse(),
                 oppholdsadresse = this.findOppholdsAdresse(),
@@ -183,6 +201,23 @@ fun Query.toPersonSf(): PersonBase {
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findFamilieRelasjon(): FamilieRelasjon {
+    return this.hentPerson.familieRelasjoner.let { familierelasjon ->
+        if (familierelasjon.isEmpty()) {
+            FamilieRelasjon.Missing
+        } else {
+            familierelasjon.firstOrNull { !it.metadata.historisk }?.let {
+                familierelasjon ->
+                FamilieRelasjon.Exist(
+                        relatertPersonsIdent = familierelasjon.relatertPersonsIdent,
+                        relatertPersonsRolle = familierelasjon.relatertPersonsRolle,
+                        minRolleForPerson = familierelasjon.minRolleForPerson
+                )
+            } ?: FamilieRelasjon.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
 }
 
 private fun Query.findOppholdsAdresse(): Adresse {
@@ -298,6 +333,17 @@ enum class AdresseType {
     VEGADRESSE,
     UKJENTBOSTED,
     UTENLANDSADRESSE
+}
+
+sealed class FamilieRelasjon {
+    object Missing : FamilieRelasjon()
+    object Invalid : FamilieRelasjon()
+
+    data class Exist(
+        val relatertPersonsIdent: String,
+        val relatertPersonsRolle: FamilieRelasjonsRolle,
+        val minRolleForPerson: FamilieRelasjonsRolle?
+    ) : FamilieRelasjon()
 }
 
 sealed class Adresse {
