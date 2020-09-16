@@ -57,6 +57,7 @@ data class Identliste(
 data class Person(
     val adressebeskyttelse: List<Adressebeskyttelse>,
     val bostedsadresse: List<Bostedsadresse>,
+    val oppholdsadresse: List<Oppholdsadresse>,
     val doedsfall: List<Doedsfall>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     val navn: List<Navn>
@@ -86,6 +87,34 @@ data class Person(
         @Serializable
         data class UkjentBosted(
             val bostedskommune: String?
+        )
+    }
+
+    @Serializable
+    data class Oppholdsadresse(
+        val vegadresse: Vegadresse?,
+        val utenlandsAdresse: UtenlandsAdresse?,
+        val metadata: Metadata
+    ) {
+
+        @Serializable
+        data class Vegadresse(
+            val kommunenummer: String?,
+            val adressenavn: String?,
+            val husnummer: String?,
+            val husbokstav: String?,
+            val postnummer: String?
+        )
+
+        @Serializable
+        data class UtenlandsAdresse(
+            val adressenavnNummer: String?,
+            val bygningEtasjeLeilighet: String?,
+            val postboksNummerNavn: String?,
+            val postkode: String?,
+            val bySted: String?,
+            val regionDistriktOmraade: String?,
+            val landkode: String = ""
         )
     }
 
@@ -127,6 +156,7 @@ fun Query.toPersonSf(): PersonBase {
                 etternavn = this.findNavn().etternavn,
                 adressebeskyttelse = this.findAdressebeskyttelse(),
                 bostedsadresse = this.findBostedsAdresse(),
+                oppholdsadresse = this.findOppholdsAdresse(),
                 sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.map { it.beskrivelse }.toList(),
                 kommunenummer = kommunenummer,
                 region = kommunenummer.regionOfKommuneNummer(),
@@ -135,6 +165,38 @@ fun Query.toPersonSf(): PersonBase {
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findOppholdsAdresse(): Adresse {
+    return this.hentPerson.oppholdsadresse.let { oppholdsadresse ->
+        if (oppholdsadresse.isEmpty()) {
+            workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc()
+            Adresse.Missing
+        } else {
+            oppholdsadresse.firstOrNull { !it.metadata.historisk }?.let {
+                it.vegadresse?.let { vegAdresse ->
+                    Adresse.Exist(
+                            adresseType = AdresseType.VEGADRESSE,
+                            adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + vegAdresse.husbokstav,
+                            postnummer = vegAdresse.postnummer,
+                            kommunenummer = vegAdresse.kommunenummer
+                    )
+                } ?: it.utenlandsAdresse?.let { utenlandskAdresse ->
+                    Adresse.Utenlands(
+                            adresseType = AdresseType.UTENLANDSADRESSE,
+                            adresse =
+                                utenlandskAdresse.adressenavnNummer + " " +
+                                utenlandskAdresse.bygningEtasjeLeilighet + " " +
+                                utenlandskAdresse.postboksNummerNavn + " " +
+                                utenlandskAdresse.postkode + " " +
+                                utenlandskAdresse.bySted + " " +
+                                utenlandskAdresse.regionDistriktOmraade,
+                            landkode = utenlandskAdresse.landkode
+                    )
+                }
+            } ?: Adresse.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
 }
 
 private fun Query.findBostedsAdresse(): Adresse {
@@ -147,7 +209,7 @@ private fun Query.findBostedsAdresse(): Adresse {
                 it.vegadresse?.let { vegAdresse ->
                     Adresse.Exist(
                         adresseType = AdresseType.VEGADRESSE,
-                        adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + " " + vegAdresse.husbokstav,
+                        adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + vegAdresse.husbokstav,
                         postnummer = vegAdresse.postnummer,
                         kommunenummer = vegAdresse.kommunenummer
                     )
@@ -203,7 +265,7 @@ sealed class Kommunenummer {
 enum class AdresseType {
     VEGADRESSE,
     UKJENTBOSTED,
-    OPPHOLDSADRESSE
+    UTENLANDSADRESSE
 }
 
 sealed class Adresse {
@@ -219,6 +281,11 @@ sealed class Adresse {
     data class Ukjent(
         val adresseType: AdresseType,
         val bostedsKommune: String?
+    ) : Adresse()
+    data class Utenlands(
+        val adresseType: AdresseType,
+        val adresse: String?,
+        val landkode: String
     ) : Adresse()
 }
 

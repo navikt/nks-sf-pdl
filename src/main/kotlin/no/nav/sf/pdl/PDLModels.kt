@@ -80,6 +80,7 @@ data class PersonSf(
     val adressebeskyttelse: AdressebeskyttelseGradering = AdressebeskyttelseGradering.UGRADERT,
     val sikkerhetstiltak: List<String> = emptyList(),
     val bostedsadresse: Adresse? = null,
+    val oppholdsadresse: Adresse? = null,
     val kommunenummer: String = "",
     val region: String = "",
     val doed: Boolean = false
@@ -107,6 +108,19 @@ data class PersonSf(
                     } else if (bostedsAdresse is Adresse.Ukjent) {
                         type = PersonProto.AdresseType.valueOf(AdresseType.UKJENTBOSTED.name)
                         bostedskommune = bostedsAdresse.bostedsKommune
+                    }
+                }.build()
+                oppholdsadresse = PersonProto.Adresse.newBuilder().apply {
+                    val oppholdsadresse = this@PersonSf.oppholdsadresse
+                    if (oppholdsadresse is Adresse.Exist) {
+                        type = PersonProto.AdresseType.valueOf(oppholdsadresse.adresseType.name)
+                        adresse = oppholdsadresse.adresse
+                        postnummer = oppholdsadresse.postnummer
+                        kommunenummer = oppholdsadresse.kommunenummer
+                    } else if (oppholdsadresse is Adresse.Utenlands) {
+                        type = PersonProto.AdresseType.valueOf(AdresseType.UTENLANDSADRESSE.name)
+                        adresse = oppholdsadresse.adresse
+                        landkode = oppholdsadresse.landkode
                     }
                 }.build()
                 kommunenummer = this@PersonSf.kommunenummer
