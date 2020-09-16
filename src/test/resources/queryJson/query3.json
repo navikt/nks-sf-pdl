@@ -1,1 +1,115 @@
-{"hentPerson":{"adressebeskyttelse":[],"bostedsadresse":[{"vegadresse":null,"matrikkeladresse":{"kommunenummer":"1506"},"ukjentBosted":null,"metadata":{"historisk":true,"master":"Freg"}},{"vegadresse":{"kommunenummer":"0301", "adressenavn": "", "husnummer": "", "husbokstav": "", "postnummer": ""},"matrikkeladresse":null,"ukjentBosted":null,"metadata":{"historisk":true,"master":"Freg"}},{"vegadresse":{"kommunenummer":"0301", "adressenavn": "", "husnummer": "", "husbokstav": "", "postnummer": ""},"matrikkeladresse":null,"ukjentBosted":null,"metadata":{"historisk":true,"master":"Freg"}},{"vegadresse":{"kommunenummer":"", "adressenavn": "", "husnummer": "", "husbokstav": "", "postnummer": ""},"matrikkeladresse":null,"ukjentBosted":null,"metadata":{"historisk":false,"master":"Freg"}}],"doedsfall":[],"sikkerhetstiltak":[],"navn":[{"fornavn":"JAMES","mellomnavn":null,"etternavn":"BLYSTAD","metadata":{"historisk":false,"master":"Freg"}},{"fornavn":"JAMES","mellomnavn":null,"etternavn":"BLYSTAD","metadata":{"historisk":false,"master":"PDL"}}]},"hentIdenter":{"identer":[{"ident":"19106501737","historisk":false,"gruppe":"FOLKEREGISTERIDENT"},{"ident":"2016461136713","historisk":false,"gruppe":"AKTORID"}]}}
+{
+  "hentPerson": {
+    "adressebeskyttelse": [],
+    "bostedsadresse": [
+      {
+        "vegadresse": null,
+        "matrikkeladresse": {
+          "kommunenummer": "1506"
+        },
+        "ukjentBosted": null,
+        "metadata": {
+          "historisk": true,
+          "master": "Freg"
+        }
+      },
+      {
+        "vegadresse": {
+          "kommunenummer": "0301",
+          "adressenavn": "",
+          "husnummer": "",
+          "husbokstav": "",
+          "postnummer": ""
+        },
+        "matrikkeladresse": null,
+        "ukjentBosted": null,
+        "metadata": {
+          "historisk": true,
+          "master": "Freg"
+        }
+      },
+      {
+        "vegadresse": {
+          "kommunenummer": "0301",
+          "adressenavn": "",
+          "husnummer": "",
+          "husbokstav": "",
+          "postnummer": ""
+        },
+        "matrikkeladresse": null,
+        "ukjentBosted": null,
+        "metadata": {
+          "historisk": true,
+          "master": "Freg"
+        }
+      },
+      {
+        "vegadresse": {
+          "kommunenummer": "",
+          "adressenavn": "",
+          "husnummer": "",
+          "husbokstav": "",
+          "postnummer": ""
+        },
+        "matrikkeladresse": null,
+        "ukjentBosted": null,
+        "metadata": {
+          "historisk": false,
+          "master": "Freg"
+        }
+      }
+    ],
+    "oppholdsadresse": [
+      {
+        "vegadresse": {
+          "kommunenummer": "",
+          "adressenavn": "",
+          "husnummer": "",
+          "husbokstav": "",
+          "postnummer": ""
+        },
+        "utenlandsAdresse": null,
+        "metadata": {
+          "historisk": false,
+          "master": "Freg"
+        }
+      }
+    ],
+    "doedsfall": [],
+    "sikkerhetstiltak": [],
+    "navn": [
+      {
+        "fornavn": "JAMES",
+        "mellomnavn": null,
+        "etternavn": "BLYSTAD",
+        "metadata": {
+          "historisk": false,
+          "master": "Freg"
+        }
+      },
+      {
+        "fornavn": "JAMES",
+        "mellomnavn": null,
+        "etternavn": "BLYSTAD",
+        "metadata": {
+          "historisk": false,
+          "master": "PDL"
+        }
+      }
+    ]
+  },
+  "hentIdenter": {
+    "identer": [
+      {
+        "ident": "19106501737",
+        "historisk": false,
+        "gruppe": "FOLKEREGISTERIDENT"
+      },
+      {
+        "ident": "2016461136713",
+        "historisk": false,
+        "gruppe": "AKTORID"
+      }
+    ]
+  }
+}

@@ -270,7 +270,29 @@
 
     ],
     "oppholdsadresse": [
-
+      {
+        "vegadresse": {
+          "kommunenummer": "",
+          "adressenavn": "",
+          "husnummer": "",
+          "husbokstav": "",
+          "postnummer": ""
+        },
+        "utenlandsAdresse": {
+          "adressenavnNummer": null,
+          "bygningEtasjeLeilighet": null,
+          "postboksNummerNavn": null,
+          "postkode": null,
+          "bySted": null,
+          "regionDistriktOmraade": null,
+          "adresse": null,
+          "landkode": "GB"
+        },
+        "metadata": {
+          "historisk": false,
+          "master": "Freg"
+        }
+      }
     ],
     "sikkerhetstiltak": [
 

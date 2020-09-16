@@ -14,7 +14,7 @@ message PersonKey {
 enum AdresseType {
     VEGADRESSE = 0;
     UKJENTBOSTED = 1;
-    OPPHOLDSADRESSE = 2;
+    UTENLANDSADRESSE = 2;
 }
 
 message Adresse {
@@ -23,6 +23,7 @@ message Adresse {
     string postnummer = 3;
     string kommunenummer = 4;
     string bostedskommune = 5;
+    string landkode = 6;
 }
 
 // this message will be the value part of kafka payload
@@ -46,4 +47,5 @@ message PersonValue {
   string region = 8;
   bool doed = 9;
   Adresse bostedsadresse = 10;
+  Adresse oppholdsadresse = 11;
 }
