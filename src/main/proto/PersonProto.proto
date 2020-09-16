@@ -41,6 +41,12 @@ message PersonValue {
     STRENGT_FORTROLIG_UTLAND = 3;
   }
 
+  enum Kjoenn {
+    MANN = 0;
+    KVINNE = 1;
+    UKJENT = 2;
+  }
+
   Gradering adressebeskyttelse = 5;
   repeated string sikkerhetstiltak = 6;
   string kommunenummer = 7;
@@ -48,4 +54,5 @@ message PersonValue {
   bool doed = 9;
   Adresse bostedsadresse = 10;
   Adresse oppholdsadresse = 11;
+  Kjoenn kjoenn = 12;
 }

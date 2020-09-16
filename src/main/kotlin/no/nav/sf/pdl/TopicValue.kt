@@ -20,6 +20,7 @@ enum class IdentGruppe {
     FOLKEREGISTERIDENT,
     NPID
 }
+
 @Serializable
 enum class AdressebeskyttelseGradering {
     STRENGT_FORTROLIG_UTLAND,
@@ -27,6 +28,14 @@ enum class AdressebeskyttelseGradering {
     FORTROLIG,
     UGRADERT
 }
+
+@Serializable
+enum class KjoennType {
+    MANN,
+    KVINNE,
+    UKJENT
+}
+
 @Serializable
 data class Metadata(
     val historisk: Boolean = true,
@@ -53,6 +62,7 @@ data class Identliste(
         val gruppe: IdentGruppe
     )
 }
+
 @Serializable
 data class Person(
     val adressebeskyttelse: List<Adressebeskyttelse>,
@@ -60,6 +70,7 @@ data class Person(
     val oppholdsadresse: List<Oppholdsadresse>,
     val doedsfall: List<Doedsfall>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
+    val kjoenn: List<Kjoenn>,
     val navn: List<Navn>
 ) {
 
@@ -138,6 +149,12 @@ data class Person(
     )
 
     @Serializable
+    data class Kjoenn(
+        val kjoenn: KjoennType,
+        val metadata: Metadata
+    )
+
+    @Serializable
     data class Adressebeskyttelse(
         val gradering: AdressebeskyttelseGradering,
         val metadata: Metadata
@@ -160,6 +177,7 @@ fun Query.toPersonSf(): PersonBase {
                 sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.map { it.beskrivelse }.toList(),
                 kommunenummer = kommunenummer,
                 region = kommunenummer.regionOfKommuneNummer(),
+                kjoenn = this.findKjoenn(),
                 doed = this.hentPerson.doedsfall.isNotEmpty() // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
@@ -185,12 +203,12 @@ private fun Query.findOppholdsAdresse(): Adresse {
                     Adresse.Utenlands(
                             adresseType = AdresseType.UTENLANDSADRESSE,
                             adresse =
-                                utenlandskAdresse.adressenavnNummer + " " +
-                                utenlandskAdresse.bygningEtasjeLeilighet + " " +
-                                utenlandskAdresse.postboksNummerNavn + " " +
-                                utenlandskAdresse.postkode + " " +
-                                utenlandskAdresse.bySted + " " +
-                                utenlandskAdresse.regionDistriktOmraade,
+                            utenlandskAdresse.adressenavnNummer + " " +
+                                    utenlandskAdresse.bygningEtasjeLeilighet + " " +
+                                    utenlandskAdresse.postboksNummerNavn + " " +
+                                    utenlandskAdresse.postkode + " " +
+                                    utenlandskAdresse.bySted + " " +
+                                    utenlandskAdresse.regionDistriktOmraade,
                             landkode = utenlandskAdresse.landkode
                     )
                 }
@@ -208,10 +226,10 @@ private fun Query.findBostedsAdresse(): Adresse {
             bostedsadresse.firstOrNull { !it.metadata.historisk }?.let {
                 it.vegadresse?.let { vegAdresse ->
                     Adresse.Exist(
-                        adresseType = AdresseType.VEGADRESSE,
-                        adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + vegAdresse.husbokstav,
-                        postnummer = vegAdresse.postnummer,
-                        kommunenummer = vegAdresse.kommunenummer
+                            adresseType = AdresseType.VEGADRESSE,
+                            adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + vegAdresse.husbokstav,
+                            postnummer = vegAdresse.postnummer,
+                            kommunenummer = vegAdresse.kommunenummer
                     )
                 } ?: it.ukjentBosted?.let { ukjentBosted ->
                     if (ukjentBosted.findKommuneNummer() is Kommunenummer.Exist) {
@@ -245,12 +263,26 @@ private fun Query.findFolkeregisterIdent(): String {
         }
     }
 }
+
 private fun Query.findAdressebeskyttelse(): AdressebeskyttelseGradering {
     return this.hentPerson.adressebeskyttelse.let { list ->
         if (list.isEmpty()) {
             AdressebeskyttelseGradering.UGRADERT
         } else {
-            list.firstOrNull { !it.metadata.historisk }?.let { AdressebeskyttelseGradering.valueOf(it.gradering.name) } ?: AdressebeskyttelseGradering.UGRADERT
+            list.firstOrNull { !it.metadata.historisk }?.let { AdressebeskyttelseGradering.valueOf(it.gradering.name) }
+                    ?: AdressebeskyttelseGradering.UGRADERT
+        }
+    }
+}
+
+private fun Query.findKjoenn(): KjoennType {
+    return this.hentPerson.kjoenn.let { kjoenn ->
+        if (kjoenn.isEmpty()) {
+            KjoennType.UKJENT
+        } else {
+            kjoenn.firstOrNull { !it.metadata.historisk }?.let {
+                KjoennType.valueOf(it.kjoenn.name)
+            } ?: KjoennType.UKJENT
         }
     }
 }
@@ -278,10 +310,12 @@ sealed class Adresse {
         val postnummer: String?,
         val kommunenummer: String?
     ) : Adresse()
+
     data class Ukjent(
         val adresseType: AdresseType,
         val bostedsKommune: String?
     ) : Adresse()
+
     data class Utenlands(
         val adresseType: AdresseType,
         val adresse: String?,
@@ -370,20 +404,21 @@ fun Query.findNavn(): NavnBase {
                         etternavn = it.etternavn,
                         mellomnavn = it.mellomnavn.orEmpty()
                 )
-        } ?: this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == "PDL" && !it.metadata.historisk }?.let {
-            if (it.etternavn.isNotBlank() && it.fornavn.isNotBlank())
-                NavnBase.Pdl(
-                        fornavn = it.fornavn,
-                        etternavn = it.etternavn,
-                        mellomnavn = it.mellomnavn.orEmpty()
-                )
-            else
-                NavnBase.Ukjent(
-                        fornavn = it.fornavn,
-                        etternavn = it.etternavn,
-                        mellomnavn = it.mellomnavn.orEmpty()
-                )
-        } ?: NavnBase.Ukjent()
+        }
+                ?: this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == "PDL" && !it.metadata.historisk }?.let {
+                    if (it.etternavn.isNotBlank() && it.fornavn.isNotBlank())
+                        NavnBase.Pdl(
+                                fornavn = it.fornavn,
+                                etternavn = it.etternavn,
+                                mellomnavn = it.mellomnavn.orEmpty()
+                        )
+                    else
+                        NavnBase.Ukjent(
+                                fornavn = it.fornavn,
+                                etternavn = it.etternavn,
+                                mellomnavn = it.mellomnavn.orEmpty()
+                        )
+                } ?: NavnBase.Ukjent()
     }
 }
 
