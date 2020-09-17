@@ -7,7 +7,7 @@
           "kommunenummer": "",
           "adressenavn": "",
           "husnummer": "",
-          "husbokstav": "",
+          "husbokstav": null,
           "postnummer": ""
         },
         "matrikkeladresse": null,

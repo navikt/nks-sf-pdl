@@ -6,6 +6,9 @@ import no.nav.sf.library.jsonNonStrict
 
 private val log = KotlinLogging.logger { }
 
+const val FREG = "FREG"
+const val PDL = "PDL"
+
 fun String.getQueryFromJson(): QueryBase = runCatching {
     jsonNonStrict.parse(Query.serializer(), this)
 }
@@ -437,7 +440,7 @@ fun Query.findNavn(): NavnBase {
     return if (this.hentPerson.navn.isNullOrEmpty()) {
         NavnBase.Ukjent()
     } else {
-        this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == "FREG" && !it.metadata.historisk }?.let {
+        this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == FREG && !it.metadata.historisk }?.let {
             if (it.etternavn.isNotBlank() && it.fornavn.isNotBlank())
                 NavnBase.Freg(
                         fornavn = it.fornavn,
@@ -451,7 +454,7 @@ fun Query.findNavn(): NavnBase {
                         mellomnavn = it.mellomnavn.orEmpty()
                 )
         }
-                ?: this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == "PDL" && !it.metadata.historisk }?.let {
+                ?: this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == PDL && !it.metadata.historisk }?.let {
                     if (it.etternavn.isNotBlank() && it.fornavn.isNotBlank())
                         NavnBase.Pdl(
                                 fornavn = it.fornavn,
