@@ -82,6 +82,7 @@ data class Person(
     val doedsfall: List<Doedsfall>,
     var familieRelasjoner: List<FamilieRelasjon>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
+    var statsborgerskap: List<Statsborgerskap>,
     val kjoenn: List<Kjoenn>,
     val navn: List<Navn>
 ) {
@@ -175,6 +176,12 @@ data class Person(
     )
 
     @Serializable
+    data class Statsborgerskap(
+        val land: String?,
+        val metadata: Metadata
+    )
+
+    @Serializable
     data class Adressebeskyttelse(
         val gradering: AdressebeskyttelseGradering,
         val metadata: Metadata
@@ -199,11 +206,27 @@ fun Query.toPersonSf(): PersonBase {
                 kommunenummer = kommunenummer,
                 region = kommunenummer.regionOfKommuneNummer(),
                 kjoenn = this.findKjoenn(),
+                statsborgerskap = this.findStatsborgerskap(),
                 doed = this.hentPerson.doedsfall.isNotEmpty() // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findStatsborgerskap(): Statsborgerskap {
+    return this.hentPerson.statsborgerskap.let { statsborgerskap ->
+        if (statsborgerskap.isEmpty()) {
+            Statsborgerskap.Missing
+        } else {
+            statsborgerskap.firstOrNull { !it.metadata.historisk }?.let {
+                statsborgerskap ->
+                Statsborgerskap.Exist(
+                        land = statsborgerskap.land
+                )
+            } ?: Statsborgerskap.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
 }
 
 private fun Query.findFamilieRelasjon(): FamilieRelasjon {
@@ -347,6 +370,15 @@ sealed class FamilieRelasjon {
         val relatertPersonsRolle: FamilieRelasjonsRolle,
         val minRolleForPerson: FamilieRelasjonsRolle?
     ) : FamilieRelasjon()
+}
+
+sealed class Statsborgerskap {
+    object Missing : Statsborgerskap()
+    object Invalid : Statsborgerskap()
+
+    data class Exist(
+        val land: String?
+    ) : Statsborgerskap()
 }
 
 sealed class Adresse {

@@ -82,6 +82,7 @@ data class PersonSf(
     val sikkerhetstiltak: List<String> = emptyList(),
     val bostedsadresse: Adresse? = null,
     val oppholdsadresse: Adresse? = null,
+    val statsborgerskap: Statsborgerskap? = null,
     val kommunenummer: String = "",
     val kjoenn: KjoennType = KjoennType.UKJENT,
     val region: String = "",
@@ -134,6 +135,12 @@ data class PersonSf(
                         minRolleForPerson = if (familieRelasjon.minRolleForPerson != null)
                             PersonProto.FamilieRelasjonsRolle.valueOf(familieRelasjon.minRolleForPerson.name)
                         else null
+                    }
+                }.build()
+                statsborgerskap = PersonProto.Statsborgerskap.newBuilder().apply {
+                    val statsborgerskap = this@PersonSf.statsborgerskap
+                    if (statsborgerskap is Statsborgerskap.Exist) {
+                        land = statsborgerskap.land
                     }
                 }.build()
                 kommunenummer = this@PersonSf.kommunenummer
