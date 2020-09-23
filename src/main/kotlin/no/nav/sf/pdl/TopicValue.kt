@@ -40,6 +40,14 @@ enum class KjoennType {
 }
 
 @Serializable
+enum class GtType {
+    KOMMUNE,
+    BYDEL,
+    UTLAND,
+    UDEFINERT
+}
+
+@Serializable
 enum class FamilieRelasjonsRolle {
     BARN,
     MOR,
@@ -84,7 +92,8 @@ data class Person(
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     var statsborgerskap: List<Statsborgerskap>,
     val kjoenn: List<Kjoenn>,
-    val navn: List<Navn>
+    val navn: List<Navn>,
+    val geografiskTilknytning: GeografiskTilknytning? = null
 ) {
 
     @Serializable
@@ -186,12 +195,21 @@ data class Person(
         val gradering: AdressebeskyttelseGradering,
         val metadata: Metadata
     )
+
+    @Serializable
+    data class GeografiskTilknytning(
+        val gtType: GtType,
+        val gtKommune: String?,
+        val gtBydel: String?,
+        val gtLand: String?,
+        val metadata: Metadata
+    )
 }
 
 internal const val UKJENT_FRA_PDL = "<UKJENT_FRA_PDL>"
 fun Query.toPersonSf(): PersonBase {
     return runCatching {
-        val kommunenummer = this.findKommunenummer()
+        val kommunenummer = this.findGtKommunenummer()
         PersonSf(
                 aktoerId = this.findAktoerId(),
                 identifikasjonsnummer = this.findFolkeregisterIdent(),
@@ -212,6 +230,51 @@ fun Query.toPersonSf(): PersonBase {
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findGtKommunenummer(): String {
+    val kommunenr: Kommunenummer = this.hentPerson.geografiskTilknytning?.let { gt ->
+        when (gt.gtType) {
+            GtType.KOMMUNE -> {
+                if (gt.gtKommune.isNullOrEmpty()) {
+                    workMetrics.gtKommunenrFraKommuneMissing.inc()
+                    Kommunenummer.Missing
+                } else if ((gt.gtKommune.length == 4) || gt.gtKommune.all { c -> c.isDigit() }) {
+                    workMetrics.gtKommunenrFraKommune.inc()
+                    Kommunenummer.Exist(gt.gtKommune)
+                } else {
+                    workMetrics.gtKommuneInvalid.inc()
+                    Kommunenummer.Invalid
+                }
+            }
+            GtType.BYDEL -> {
+                if (gt.gtBydel.isNullOrEmpty()) {
+                    workMetrics.gtKommunenrFraBydelMissing.inc()
+                    Kommunenummer.Missing
+                } else if ((gt.gtBydel.length == 6) || gt.gtBydel.all { c -> c.isDigit() }) {
+                    workMetrics.gtKommunenrFraBydel.inc()
+                    Kommunenummer.Exist(gt.gtBydel.substring(0, 3))
+                } else {
+                    workMetrics.gtBydelInvalid.inc()
+                    Kommunenummer.Invalid
+                }
+            }
+            GtType.UTLAND -> {
+                workMetrics.gtUtland.inc()
+                Kommunenummer.GtUtland
+            }
+            GtType.UDEFINERT -> {
+                workMetrics.gtUdefinert.inc()
+                Kommunenummer.GtUdefinert
+            }
+        }
+    } ?: workMetrics.gtMissing.inc().let { Kommunenummer.Missing }
+
+    return if (kommunenr is Kommunenummer.Exist)
+        kommunenr.knummer
+    else {
+        UKJENT_FRA_PDL
+    }
 }
 
 private fun Query.findStatsborgerskap(): Statsborgerskap {
@@ -350,6 +413,8 @@ private fun Query.findKjoenn(): KjoennType {
 
 sealed class Kommunenummer {
     object Missing : Kommunenummer()
+    object GtUtland : Kommunenummer()
+    object GtUdefinert : Kommunenummer()
     object Invalid : Kommunenummer()
 
     data class Exist(val knummer: String) : Kommunenummer()

@@ -139,6 +139,51 @@ data class WMetrics(
             .name("invalid_kommunenummer")
             .labelNames("kommunenummer")
             .help("invalid_kommunenummer")
+            .register(),
+    val gtKommunenrFraKommuneMissing: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_fra_kommune_missing")
+            .help("gt_kommunenr_fra_kommune_missing")
+            .register(),
+    val gtKommunenrFraKommune: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_fra_kommune")
+            .help("gt_kommunenr_fra_kommune")
+            .register(),
+    val gtKommuneInvalid: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_invalid")
+            .help("gt_kommunenr_invalid")
+            .register(),
+    val gtKommunenrFraBydelMissing: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_fra_bydel_missing")
+            .help("gt_kommunenr_fra_bydel_missing")
+            .register(),
+    val gtKommunenrFraBydel: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_fra_bydel")
+            .help("gt_kommunenr_fra_bydel")
+            .register(),
+    val gtBydelInvalid: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_fra_bydel_invalid")
+            .help("gt_kommunenr_fra_bydel_invalid")
+            .register(),
+    val gtUtland: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_gttype_utland")
+            .help("gt_kommunenr_gttype_utland")
+            .register(),
+    val gtUdefinert: Gauge = Gauge
+            .build()
+            .name("gt_kommunenr_gttype_udefinert")
+            .help("gt_kommunenr_gttype_udefinert")
+            .register(),
+    val gtMissing: Gauge = Gauge
+            .build()
+            .name("gt_missing")
+            .help("gt_missing")
             .register()
 ) {
     enum class AddressType {
