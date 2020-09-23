@@ -66,6 +66,14 @@
 
     ],
     "doedsfall": [],
+    "utflyttingFraNorge": [{
+      "tilflyttingsland": "",
+      "tilflyttingsstedIUtlandet": "",
+      "metadata": {
+        "historisk": false,
+        "master": "PDL"
+      }
+    }],
     "sikkerhetstiltak": [],
     "navn": [
       {

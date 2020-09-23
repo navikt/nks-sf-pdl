@@ -80,6 +80,14 @@
     "familieRelasjoner": [],
     "doedsfall": [],
     "sikkerhetstiltak": [],
+    "utflyttingFraNorge": [{
+      "tilflyttingsland": "",
+      "tilflyttingsstedIUtlandet": "",
+      "metadata": {
+        "historisk": false,
+        "master": "PDL"
+      }
+    }],
     "navn": [
       {
         "fornavn": "JAMES",

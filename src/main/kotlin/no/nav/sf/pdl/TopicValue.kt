@@ -93,7 +93,8 @@ data class Person(
     var statsborgerskap: List<Statsborgerskap>,
     val kjoenn: List<Kjoenn>,
     val navn: List<Navn>,
-    val geografiskTilknytning: GeografiskTilknytning? = null
+    val geografiskTilknytning: GeografiskTilknytning? = null,
+    val utflyttingFraNorge: List<UtflyttingFraNorge>
 ) {
 
     @Serializable
@@ -204,6 +205,13 @@ data class Person(
         val gtLand: String?,
         val metadata: Metadata
     )
+
+    @Serializable
+    data class UtflyttingFraNorge(
+        val tilflyttingsland: String = "",
+        val tilflyttingsstedIUtlandet: String = "",
+        val metadata: Metadata
+    )
 }
 
 internal const val UKJENT_FRA_PDL = "<UKJENT_FRA_PDL>"
@@ -225,6 +233,7 @@ fun Query.toPersonSf(): PersonBase {
                 region = kommunenummer.regionOfKommuneNummer(),
                 kjoenn = this.findKjoenn(),
                 statsborgerskap = this.findStatsborgerskap(),
+                utflyttingFraNorge = this.findUtflyttingFraNorge(),
                 doed = this.hentPerson.doedsfall.isNotEmpty() // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
@@ -274,6 +283,22 @@ private fun Query.findGtKommunenummer(): String {
         kommunenr.knummer
     else {
         UKJENT_FRA_PDL
+    }
+}
+
+private fun Query.findUtflyttingFraNorge(): UtflyttingFraNorge {
+    return this.hentPerson.utflyttingFraNorge.let { utflyttingFraNorge ->
+        if (utflyttingFraNorge.isEmpty()) {
+            UtflyttingFraNorge.Missing
+        } else {
+            utflyttingFraNorge.firstOrNull { !it.metadata.historisk }?.let {
+                utflyttingFraNorge ->
+                UtflyttingFraNorge.Exist(
+                        tilflyttingsland = utflyttingFraNorge.tilflyttingsland,
+                        tilflyttingsstedIUtlandet = utflyttingFraNorge.tilflyttingsstedIUtlandet
+                )
+            } ?: UtflyttingFraNorge.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
     }
 }
 
@@ -444,6 +469,16 @@ sealed class Statsborgerskap {
     data class Exist(
         val land: String?
     ) : Statsborgerskap()
+}
+
+sealed class UtflyttingFraNorge {
+    object Missing : UtflyttingFraNorge()
+    object Invalid : UtflyttingFraNorge()
+
+    data class Exist(
+        val tilflyttingsland: String,
+        val tilflyttingsstedIUtlandet: String
+    ) : UtflyttingFraNorge()
 }
 
 sealed class Adresse {

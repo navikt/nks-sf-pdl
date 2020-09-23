@@ -86,7 +86,8 @@ data class PersonSf(
     val kommunenummer: String = "",
     val kjoenn: KjoennType = KjoennType.UKJENT,
     val region: String = "",
-    val doed: Boolean = false
+    val doed: Boolean = false,
+    val utflyttingFraNorge: UtflyttingFraNorge? = null
 ) : PersonBase() {
 
     fun toPersonProto(): Pair<PersonKey, PersonValue> =
@@ -145,6 +146,13 @@ data class PersonSf(
                 }.build()
                 kommunenummer = this@PersonSf.kommunenummer
                 region = this@PersonSf.region
+                utflyttingFraNorge = PersonProto.UtflyttingFraNorge.newBuilder().apply {
+                    val utflyttingFraNorge = this@PersonSf.utflyttingFraNorge
+                    if (utflyttingFraNorge is UtflyttingFraNorge.Exist) {
+                        tilflyttingsland = utflyttingFraNorge.tilflyttingsland
+                        tilflyttingsstedIUtlandet = utflyttingFraNorge.tilflyttingsstedIUtlandet
+                    }
+                }.build()
                 doed = this@PersonSf.doed
             }
                     .build()
