@@ -39,10 +39,6 @@ message Familierelasjon {
   FamilieRelasjonsRolle minRolleForPerson = 3;
 }
 
-message Statsborgerskap {
-  string land = 1;
-}
-
 message UtflyttingFraNorge {
   string tilflyttingsland = 1;
   string tilflyttingsstedIUtlandet = 2;
@@ -78,7 +74,7 @@ message PersonValue {
   Adresse oppholdsadresse = 11;
   Kjoenn kjoenn = 12;
   Familierelasjon familierelasjoner = 13;
-  Statsborgerskap statsborgerskap = 14;
+  string statsborgerskap = 14;
   UtflyttingFraNorge utflyttingFraNorge = 15;
   string folkeregisterpersonstatus = 16;
 }

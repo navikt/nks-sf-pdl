@@ -323,17 +323,14 @@ private fun Query.findUtflyttingFraNorge(): UtflyttingFraNorge {
     }
 }
 
-private fun Query.findStatsborgerskap(): Statsborgerskap {
+private fun Query.findStatsborgerskap(): String {
     return this.hentPerson.statsborgerskap.let { statsborgerskap ->
         if (statsborgerskap.isEmpty()) {
-            Statsborgerskap.Missing
+            UKJENT_FRA_PDL
         } else {
-            statsborgerskap.firstOrNull { !it.metadata.historisk }?.let {
-                statsborgerskap ->
-                Statsborgerskap.Exist(
-                        land = statsborgerskap.land
-                )
-            } ?: Statsborgerskap.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+            statsborgerskap.joinToString {
+                "\'${it.land}\'"
+            }
         }
     }
 }
@@ -481,15 +478,6 @@ sealed class FamilieRelasjon {
         val relatertPersonsRolle: FamilieRelasjonsRolle,
         val minRolleForPerson: FamilieRelasjonsRolle?
     ) : FamilieRelasjon()
-}
-
-sealed class Statsborgerskap {
-    object Missing : Statsborgerskap()
-    object Invalid : Statsborgerskap()
-
-    data class Exist(
-        val land: String?
-    ) : Statsborgerskap()
 }
 
 sealed class UtflyttingFraNorge {

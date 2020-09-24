@@ -83,7 +83,7 @@ data class PersonSf(
     val sikkerhetstiltak: List<String> = emptyList(),
     val bostedsadresse: Adresse? = null,
     val oppholdsadresse: Adresse? = null,
-    val statsborgerskap: Statsborgerskap? = null,
+    val statsborgerskap: String = "",
     val kommunenummer: String = "",
     val kjoenn: KjoennType = KjoennType.UKJENT,
     val region: String = "",
@@ -139,12 +139,7 @@ data class PersonSf(
                         else null
                     }
                 }.build()
-                statsborgerskap = PersonProto.Statsborgerskap.newBuilder().apply {
-                    val statsborgerskap = this@PersonSf.statsborgerskap
-                    if (statsborgerskap is Statsborgerskap.Exist) {
-                        land = statsborgerskap.land
-                    }
-                }.build()
+                statsborgerskap = this@PersonSf.statsborgerskap
                 kommunenummer = this@PersonSf.kommunenummer
                 region = this@PersonSf.region
                 utflyttingFraNorge = PersonProto.UtflyttingFraNorge.newBuilder().apply {
