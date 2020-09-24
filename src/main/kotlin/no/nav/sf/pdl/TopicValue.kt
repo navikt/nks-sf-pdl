@@ -89,6 +89,7 @@ data class Person(
     val oppholdsadresse: List<Oppholdsadresse>,
     val doedsfall: List<Doedsfall>,
     var familieRelasjoner: List<FamilieRelasjon>,
+    val folkeregisterpersonstatus: List<Folkeregisterpersonstatus>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     var statsborgerskap: List<Statsborgerskap>,
     val kjoenn: List<Kjoenn>,
@@ -198,6 +199,12 @@ data class Person(
     )
 
     @Serializable
+    data class Folkeregisterpersonstatus(
+        val status: String,
+        val metadata: Metadata
+    )
+
+    @Serializable
     data class GeografiskTilknytning(
         val gtType: GtType,
         val gtKommune: String?,
@@ -239,6 +246,20 @@ fun Query.toPersonSf(): PersonBase {
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findFolkeregisterPersonStatus(): String {
+    return this.hentPerson.folkeregisterpersonstatus.let { folkeRegisterPersonStatus ->
+        if (folkeRegisterPersonStatus.isEmpty()) {
+            UKJENT_FRA_PDL
+        } else {
+            folkeRegisterPersonStatus.firstOrNull { !it.metadata.historisk }?.let {
+                folkeRegisterPersonStatus ->
+
+                folkeRegisterPersonStatus.status
+            } ?: UKJENT_FRA_PDL
+        }
+    }
 }
 
 private fun Query.findGtKommunenummer(): String {

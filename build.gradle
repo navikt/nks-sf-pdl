@@ -80,7 +80,6 @@ configurations {
     all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
 }
 
-
 dependencies {
     compile "com.amazonaws:aws-java-sdk-s3:1.11.703"
 

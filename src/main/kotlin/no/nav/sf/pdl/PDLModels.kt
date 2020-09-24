@@ -78,6 +78,7 @@ data class PersonSf(
     val mellomnavn: String = "",
     val etternavn: String = "",
     val familieRelasjon: FamilieRelasjon? = null,
+    val folkeregisterpersonstatus: String = "",
     val adressebeskyttelse: AdressebeskyttelseGradering = AdressebeskyttelseGradering.UGRADERT,
     val sikkerhetstiltak: List<String> = emptyList(),
     val bostedsadresse: Adresse? = null,
@@ -153,6 +154,7 @@ data class PersonSf(
                         tilflyttingsstedIUtlandet = utflyttingFraNorge.tilflyttingsstedIUtlandet
                     }
                 }.build()
+                folkeregisterpersonstatus = this@PersonSf.folkeregisterpersonstatus
                 doed = this@PersonSf.doed
             }
                     .build()

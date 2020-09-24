@@ -80,4 +80,5 @@ message PersonValue {
   Familierelasjon familierelasjoner = 13;
   Statsborgerskap statsborgerskap = 14;
   UtflyttingFraNorge utflyttingFraNorge = 15;
+  string folkeregisterpersonstatus = 16;
 }

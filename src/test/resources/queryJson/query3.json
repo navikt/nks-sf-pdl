@@ -59,6 +59,15 @@
         }
       }
     ],
+    "folkeregisterpersonstatus": [
+      {
+        "status": "",
+        "metadata": {
+          "historisk": false,
+          "master": "PDL"
+        }
+      }
+    ],
     "oppholdsadresse": [
       {
         "vegadresse": {

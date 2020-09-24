@@ -61,6 +61,15 @@
     ],
     "doedsfall": [],
     "sikkerhetstiltak": [],
+    "folkeregisterpersonstatus": [
+      {
+        "status": "",
+        "metadata": {
+          "historisk": false,
+          "master": "PDL"
+        }
+      }
+    ],
     "utflyttingFraNorge": [{
       "tilflyttingsland": "",
       "tilflyttingsstedIUtlandet": "",
