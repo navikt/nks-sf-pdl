@@ -232,6 +232,7 @@ fun Query.toPersonSf(): PersonBase {
                 mellomnavn = this.findNavn().mellomnavn,
                 etternavn = this.findNavn().etternavn,
                 familieRelasjon = this.findFamilieRelasjon(),
+                folkeregisterpersonstatus = this.findFolkeregisterPersonStatus(),
                 adressebeskyttelse = this.findAdressebeskyttelse(),
                 bostedsadresse = this.findBostedsAdresse(),
                 oppholdsadresse = this.findOppholdsAdresse(),
