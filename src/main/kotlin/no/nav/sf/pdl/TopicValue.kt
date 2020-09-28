@@ -89,6 +89,7 @@ data class Person(
     val oppholdsadresse: List<Oppholdsadresse>,
     val doedsfall: List<Doedsfall>,
     var familieRelasjoner: List<FamilieRelasjon>,
+    var innflyttingTilNorge: List<InnflyttingTilNorge>,
     val folkeregisterpersonstatus: List<Folkeregisterpersonstatus>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     var statsborgerskap: List<Statsborgerskap>,
@@ -155,6 +156,13 @@ data class Person(
 
     @Serializable
     data class Doedsfall(
+        val metadata: Metadata
+    )
+
+    @Serializable
+    data class InnflyttingTilNorge(
+        val fraflyttingsland: String = "",
+        val fraflyttingsstedIUtlandet: String = "",
         val metadata: Metadata
     )
 
@@ -234,6 +242,7 @@ fun Query.toPersonSf(): PersonBase {
                 familieRelasjon = this.findFamilieRelasjon(),
                 folkeregisterpersonstatus = this.findFolkeregisterPersonStatus(),
                 adressebeskyttelse = this.findAdressebeskyttelse(),
+                innflyttingTilNorge = this.findInnflyttingTilNorge(),
                 bostedsadresse = this.findBostedsAdresse(),
                 oppholdsadresse = this.findOppholdsAdresse(),
                 sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.map { it.beskrivelse }.toList(),
@@ -247,6 +256,24 @@ fun Query.toPersonSf(): PersonBase {
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findInnflyttingTilNorge(): InnflyttingTilNorge {
+    return this.hentPerson.innflyttingTilNorge.let {
+        innflyttingTilNorge ->
+
+        if (innflyttingTilNorge.isEmpty()) {
+            InnflyttingTilNorge.Missing
+        } else {
+            innflyttingTilNorge.firstOrNull { !it.metadata.historisk }?.let {
+                innflyttingTilNorge ->
+                InnflyttingTilNorge.Exist(
+                        fraflyttingsland = innflyttingTilNorge.fraflyttingsland,
+                        fraflyttingsstedIUtlandet = innflyttingTilNorge.fraflyttingsstedIUtlandet
+                )
+            } ?: InnflyttingTilNorge.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
 }
 
 private fun Query.findFolkeregisterPersonStatus(): String {
@@ -512,6 +539,16 @@ sealed class Adresse {
         val adresse: String?,
         val landkode: String
     ) : Adresse()
+}
+
+sealed class InnflyttingTilNorge {
+    object Missing : InnflyttingTilNorge()
+    object Invalid : InnflyttingTilNorge()
+
+    data class Exist(
+        val fraflyttingsland: String,
+        val fraflyttingsstedIUtlandet: String
+    ) : InnflyttingTilNorge()
 }
 
 fun Person.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {

@@ -44,6 +44,11 @@ message UtflyttingFraNorge {
   string tilflyttingsstedIUtlandet = 2;
 }
 
+message InnflyttingTilNorge {
+  string fraflyttingsland = 1;
+  string fraflyttingsstedIUtlandet = 2;
+}
+
 // this message will be the value part of kafka payload
 message PersonValue {
   string identifikasjonsnummer = 1;
@@ -77,4 +82,5 @@ message PersonValue {
   string statsborgerskap = 14;
   UtflyttingFraNorge utflyttingFraNorge = 15;
   string folkeregisterpersonstatus = 16;
+  InnflyttingTilNorge innflyttingTilNorge = 17;
 }

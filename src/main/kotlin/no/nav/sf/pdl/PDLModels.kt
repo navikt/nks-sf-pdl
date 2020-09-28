@@ -79,6 +79,7 @@ data class PersonSf(
     val etternavn: String = "",
     val familieRelasjon: FamilieRelasjon? = null,
     val folkeregisterpersonstatus: String = "",
+    val innflyttingTilNorge: InnflyttingTilNorge? = null,
     val adressebeskyttelse: AdressebeskyttelseGradering = AdressebeskyttelseGradering.UGRADERT,
     val sikkerhetstiltak: List<String> = emptyList(),
     val bostedsadresse: Adresse? = null,
@@ -147,6 +148,13 @@ data class PersonSf(
                     if (utflyttingFraNorge is UtflyttingFraNorge.Exist) {
                         tilflyttingsland = utflyttingFraNorge.tilflyttingsland
                         tilflyttingsstedIUtlandet = utflyttingFraNorge.tilflyttingsstedIUtlandet
+                    }
+                }.build()
+                innflyttingTilNorge = PersonProto.InnflyttingTilNorge.newBuilder().apply {
+                    val innflyttingTilNorge = this@PersonSf.innflyttingTilNorge
+                    if (innflyttingTilNorge is InnflyttingTilNorge.Exist) {
+                        fraflyttingsland = innflyttingTilNorge.fraflyttingsland
+                        fraflyttingsstedIUtlandet = innflyttingTilNorge.fraflyttingsstedIUtlandet
                     }
                 }.build()
                 folkeregisterpersonstatus = this@PersonSf.folkeregisterpersonstatus

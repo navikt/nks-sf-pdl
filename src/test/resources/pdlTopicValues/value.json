@@ -401,27 +401,9 @@
     "innflyttingTilNorge": [
       {
         "fraflyttingsland": "SWE",
-        "fraflyttingsstedIUtlandet": null,
-        "folkeregistermetadata": {
-          "ajourholdstidspunkt": "2019-11-19T08:15:49",
-          "gyldighetstidspunkt": "2019-11-14T00:00:00",
-          "opphoerstidspunkt": null,
-          "kilde": "",
-          "aarsak": "Innvandring",
-          "sekvens": null
-        },
+        "fraflyttingsstedIUtlandet": "",
         "metadata": {
-          "opplysningsId": "eec6e6a0-1f1d-442c-b870-085615128238",
-          "master": "Freg",
-          "endringer": [
-            {
-              "type": "OPPRETT",
-              "registrert": "2020-03-03T09:55:27.421",
-              "registrertAv": "Folkeregisteret",
-              "systemkilde": "FREG",
-              "kilde": "FREG"
-            }
-          ]
+          "master": "Freg"
         }
       }
     ],
