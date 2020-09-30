@@ -59,6 +59,7 @@ object Bootstrap {
             }
 
              */
+            loop(ws)
         }
         log.info { "Finished!" }
     }
