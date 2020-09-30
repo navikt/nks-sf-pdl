@@ -2,9 +2,9 @@ apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
   name: nks-sf-pdl
-  namespace: teamcrm
+  namespace: teamnks
   labels:
-    team: teamcrm
+    team: teamnks
 spec:
   webproxy: true
   image: {{ image }}
