@@ -85,6 +85,7 @@ data class PersonSf(
     val bostedsadresse: Adresse? = null,
     val oppholdsadresse: Adresse? = null,
     val statsborgerskap: String = "",
+    val sivilstand: Sivilstand? = null,
     val kommunenummer: String = "",
     val kjoenn: KjoennType = KjoennType.UKJENT,
     val region: String = "",
@@ -138,6 +139,14 @@ data class PersonSf(
                         minRolleForPerson = if (familieRelasjon.minRolleForPerson != null)
                             PersonProto.FamilieRelasjonsRolle.valueOf(familieRelasjon.minRolleForPerson.name)
                         else null
+                    }
+                }.build()
+                sivilstand = PersonProto.Sivilstand.newBuilder().apply {
+                    val sivilstand = this@PersonSf.sivilstand
+                    if (sivilstand is Sivilstand.Exist) {
+                        type = PersonProto.SivilstandType.valueOf(sivilstand.type.name)
+                        gyldigFraOgMed = sivilstand.gyldigFraOgMed.toString()
+                        relatertVedSivilstand = sivilstand.relatertVedSivilstand
                     }
                 }.build()
                 statsborgerskap = this@PersonSf.statsborgerskap

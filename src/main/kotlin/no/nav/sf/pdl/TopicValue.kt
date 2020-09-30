@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import no.nav.sf.library.jsonNonStrict
@@ -56,6 +57,20 @@ enum class FamilieRelasjonsRolle {
 }
 
 @Serializable
+enum class Sivilstandstype {
+    UOPPGITT,
+    UGIFT,
+    GIFT,
+    ENKE_ELLER_ENKEMANN,
+    SKILT,
+    SEPARERT,
+    REGISTRERT_PARTNER,
+    SEPARERT_PARTNER,
+    SKILT_PARTNER,
+    GJENLEVENDE_PARTNE
+}
+
+@Serializable
 data class Metadata(
     val historisk: Boolean = true,
     val master: String
@@ -93,6 +108,7 @@ data class Person(
     val folkeregisterpersonstatus: List<Folkeregisterpersonstatus>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     var statsborgerskap: List<Statsborgerskap>,
+    val sivilstand: List<Sivilstand>,
     val kjoenn: List<Kjoenn>,
     val navn: List<Navn>,
     val geografiskTilknytning: GeografiskTilknytning? = null,
@@ -201,6 +217,15 @@ data class Person(
     )
 
     @Serializable
+    data class Sivilstand(
+        val type: Sivilstandstype,
+        @Serializable(with = IsoLocalDateSerializer::class)
+        val gyldigFraOgMed: LocalDate? = null,
+        val relatertVedSivilstand: String?,
+        val metadata: Metadata
+    )
+
+    @Serializable
     data class Adressebeskyttelse(
         val gradering: AdressebeskyttelseGradering,
         val metadata: Metadata
@@ -250,12 +275,33 @@ fun Query.toPersonSf(): PersonBase {
                 region = kommunenummer.regionOfKommuneNummer(),
                 kjoenn = this.findKjoenn(),
                 statsborgerskap = this.findStatsborgerskap(),
+                sivilstand = this.findSivilstand(),
                 utflyttingFraNorge = this.findUtflyttingFraNorge(),
                 doed = this.hentPerson.doedsfall.isNotEmpty() // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findSivilstand(): Sivilstand {
+    return this.hentPerson.sivilstand.let {
+        sivilStand ->
+
+        if (sivilStand.isEmpty()) {
+            Sivilstand.Missing
+        } else {
+            sivilStand.firstOrNull { !it.metadata.historisk }?.let {
+                sivilstand ->
+
+                Sivilstand.Exist(
+                    type = sivilstand.type,
+                    gyldigFraOgMed = sivilstand.gyldigFraOgMed,
+                    relatertVedSivilstand = sivilstand.relatertVedSivilstand
+                )
+            } ?: Sivilstand.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
 }
 
 private fun Query.findInnflyttingTilNorge(): InnflyttingTilNorge {
@@ -549,6 +595,17 @@ sealed class InnflyttingTilNorge {
         val fraflyttingsland: String,
         val fraflyttingsstedIUtlandet: String
     ) : InnflyttingTilNorge()
+}
+
+sealed class Sivilstand {
+    object Missing : Sivilstand()
+    object Invalid : Sivilstand()
+
+    data class Exist(
+        val type: Sivilstandstype,
+        val gyldigFraOgMed: LocalDate?,
+        val relatertVedSivilstand: String?
+    ) : Sivilstand()
 }
 
 fun Person.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {
