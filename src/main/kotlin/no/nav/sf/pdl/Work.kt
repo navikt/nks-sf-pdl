@@ -216,6 +216,8 @@ sealed class Cache {
 
 internal fun initLoad(ws: WorkSettings): ExitReason {
     workMetrics.clearAll()
+    log.info { "Init entered. Hello world" }
+    /*
 //    /**
 //     * Check - no filter means nothing to transfer, leaving
 //     */
@@ -239,6 +241,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 //    log.info { "Successful init session finished, will persist filter settings as current cache base" }
 //    S3Client.persistToS3(json.toJson(FilterBase.Exists.serializer(), personFilter).toString())
 //    S3Client.persistFlagToS3(filterEnabled)
+    */
     return ExitReason.Work
 }
 
