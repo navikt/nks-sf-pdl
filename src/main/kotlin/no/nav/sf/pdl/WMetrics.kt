@@ -129,6 +129,11 @@ data class WMetrics(
             .name("init_records_parsed")
             .help("init_records_parsed")
             .register(),
+    val initRecordsParsedTest: Gauge = Gauge
+            .build()
+            .name("init_records_parsed_test")
+            .help("init_records_parsed_test")
+            .register(),
     val noInvalidKommuneNummer: Gauge = Gauge
             .build()
             .name("no_invalid_kommunenummer")
@@ -140,6 +145,7 @@ data class WMetrics(
             .labelNames("kommunenummer")
             .help("invalid_kommunenummer")
             .register(),
+// GT metrics start
     val gtKommunenrFraKommuneMissing: Gauge = Gauge
             .build()
             .name("gt_kommunenr_fra_kommune_missing")
@@ -184,6 +190,36 @@ data class WMetrics(
             .build()
             .name("gt_missing")
             .help("gt_missing")
+            .register(),
+
+// GT metrics end
+    val kommune: Gauge = Gauge
+            .build()
+            .name("kommune")
+            .labelNames("kommune")
+            .help("kommune")
+            .register(),
+    val kommune_number_not_found: Gauge = Gauge
+            .build()
+            .name("kommune_number_not_found")
+            .labelNames("kommune_number")
+            .help("kommune_number_not_found")
+            .register(),
+    val deadPersons: Gauge = Gauge
+            .build()
+            .name("dead_persons")
+            .help("dead_persons")
+            .register(),
+    val lastCharParsed: Gauge = Gauge
+            .build()
+            .name("last_char_parsed")
+            .labelNames("char_int")
+            .help("last_char_parsed")
+            .register(),
+    val invalidPersonsParsed: Gauge = Gauge
+            .build()
+            .name("invalid_persons_parsed")
+            .help("invalid_persons_parsed")
             .register()
 ) {
     enum class AddressType {
@@ -191,6 +227,22 @@ data class WMetrics(
     }
 
     fun clearAll() {
+        this.initRecordsParsedTest.clear()
+        this.deadPersons.clear()
+        this.lastCharParsed.clear()
+        this.invalidPersonsParsed.clear()
+
+        this.kommune.clear()
+        this.gtKommunenrFraKommuneMissing.clear()
+        this.gtKommunenrFraKommune.clear()
+        this.gtKommuneInvalid.clear()
+        this.gtKommunenrFraBydelMissing.clear()
+        this.gtKommunenrFraBydel.clear()
+        this.gtBydelInvalid.clear()
+        this.gtUtland.clear()
+        this.gtUdefinert.clear()
+        this.gtMissing.clear()
+
         this.noInvalidKommuneNummer.clear()
         this.invalidKommuneNummer.clear()
         this.initRecordsParsed.clear()
