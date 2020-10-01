@@ -1,130 +1,197 @@
 package no.nav.sf.pdl
 
-import java.time.Duration
-import java.util.Properties
+import kotlin.streams.toList
 import mu.KotlinLogging
-import no.nav.sf.library.PrestopHook
-import no.nav.sf.library.ShutdownHook
-import org.apache.kafka.clients.consumer.ConsumerRecords
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.common.TopicPartition
+import no.nav.sf.library.AKafkaConsumer
+import no.nav.sf.library.KafkaConsumerStates
+import org.apache.kafka.clients.consumer.ConsumerRecord
 
 private val log = KotlinLogging.logger {}
 
-sealed class InitPopulation {
-    object Interrupted : InitPopulation()
-    object Failure : InitPopulation()
-    data class Exist(val records: Map<String, PersonBase>) : InitPopulation()
+internal fun parsePdlJson(cr: ConsumerRecord<String, String?>): PersonBase {
+    if (cr.value() == null) {
+        workMetrics.noOfInitialTombestone.inc()
+        return PersonTombestone(aktoerId = cr.key())
+    } else {
+        when (val query = cr.value()?.getQueryFromJson() ?: InvalidQuery) {
+            InvalidQuery -> {
+                log.error { "Unable to parse topic value PDL" }
+                workMetrics.invalidPersonsParsed.inc()
+                return PersonInvalid
+            }
+            is Query -> {
+                when (val personSf = query.toPersonSf()) {
+                    is PersonSf -> {
+                        workMetrics.noOfInitialPersonSf.inc()
+                        return personSf
+                    }
+                    is PersonInvalid -> {
+                        workMetrics.invalidPersonsParsed.inc()
+                        return PersonInvalid
+                    }
+                    else -> {
+                        log.error { "Unhandled PersonBase from Query.toPersonSf" }
+                        workMetrics.invalidPersonsParsed.inc()
+                        return PersonInvalid
+                    }
+                }
+            }
+        }
+    }
 }
 
-fun InitPopulation.Exist.isValid(): Boolean {
-    return records.values.filterIsInstance<PersonInvalid>().isEmpty()
+fun List<Pair<String, PersonBase>>.isValid(): Boolean {
+    return filterIsInstance<PersonInvalid>().isEmpty()
 }
 
-fun <K, V> getInitPopulation(
-    lastDigit: Int,
-    config: Map<String, Any>,
-//    filter: FilterBase.Exists,
-//    filterEnabled: Boolean,
-    topics: List<String> = listOf(kafkaPDLTopic)
-): InitPopulation =
-        try {
-            KafkaConsumer<K, V>(Properties().apply { config.forEach { set(it.key, it.value) } })
-                    .apply {
-                        this.runCatching {
-                            assign(
-                                    topics.flatMap { topic ->
-                                        partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
-                                    }
-                            )
-                        }.onFailure {
-                            log.error { "InitPopulation (portion ${lastDigit + 1} of 10) Failure during topic partition(s) assignment for $topics - ${it.message}" }
-                        }
-                    }
-                    .use { c ->
-                        c.runCatching { seekToBeginning(emptyList()) }
-                                .onFailure { log.error { "InitPopulation (portion ${lastDigit + 1} of 10) Failure during SeekToBeginning - ${it.message}" } }
-                        tailrec fun loop(records: Map<String, PersonBase>): InitPopulation = when {
-                            ShutdownHook.isActive() || PrestopHook.isActive() -> InitPopulation.Interrupted
-                            else -> {
-                                val cr = c.runCatching { Pair(true, poll(Duration.ofMillis(3_000)) as ConsumerRecords<String, String>) }
-                                        .onFailure { log.error { "InitPopulation (portion ${lastDigit + 1} of 10) Failure during poll - ${it.localizedMessage}" } }
-                                        .getOrDefault(Pair(false, ConsumerRecords<String, String>(emptyMap())))
-                                when {
-                                    !cr.first -> InitPopulation.Failure
-                                    cr.second.isEmpty -> InitPopulation.Exist(records)
-                                    // Only deal with messages with key starting with firstDigit (current portion of 10):
-                                    else -> loop((records + cr.second.filter { r -> Character.getNumericValue(r.key().last()) == lastDigit }.map {
-                                        r ->
-                                        workMetrics.initRecordsParsed.inc()
-                                        if (r.value() == null) {
-                                            val personTombestone = PersonTombestone(aktoerId = r.key())
-                                            Pair(r.key(), personTombestone)
-                                        } else {
-                                            when (val query = r.value().getQueryFromJson()) {
-                                                InvalidQuery -> {
-                                                    log.error { "InitPopulation (portion ${lastDigit + 1} of 10) Unable to parse topic value PDL" }
-                                                    Pair(r.key(), PersonInvalid)
-                                                }
-                                                is Query -> {
-                                                    when (val personSf = query.toPersonSf()) {
-                                                        is PersonSf -> {
-                                                            Pair(r.key(), personSf)
-                                                        }
-                                                        is PersonInvalid -> {
-                                                            Pair(r.key(), PersonInvalid)
-                                                        }
-                                                        else -> {
-                                                            log.error { "InitPopulation (portion ${lastDigit + 1} of 10) Returned unhandled PersonBase from Query.toPersonSf" }
-                                                            Pair(r.key(), PersonInvalid)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }.filter {
-//                                        p -> p.second is PersonTombestone || (p.second is PersonSf && !((p.second as PersonSf).doed) && (!filterEnabled || filter.approved(p.second as PersonSf, true)))
-                                        p -> p.second is PersonTombestone || (p.second is PersonSf && !((p.second as PersonSf).doed))
-                                    }))
-                                }
-                            }
-                        }
-                        loop(emptyMap()).also { log.info { "InitPopulation (portion ${lastDigit + 1} of 10) Closing KafkaConsumer" } }
-                    }
-        } catch (e: Exception) {
-            log.error { "InitPopulation (portion ${lastDigit + 1} of 10) Failure during kafka consumer construction - ${e.message}" }
-            InitPopulation.Failure
-        }
+var heartBeatConsumer: Int = 0
 
-fun <K, V> getStartupOffset(
-    config: Map<String, Any>,
-    topics: List<String> = listOf(kafkaPDLTopic)
-): Long =
-        try {
-            var startUpOffset = 0L
-            KafkaConsumer<K, V>(Properties().apply { config.forEach { set(it.key, it.value) } })
-                    .apply {
-                        this.runCatching {
-                            assign(
-                                    topics.flatMap { topic ->
-                                        partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
-                                    }
-                            )
-                        }.onFailure {
-                            log.error { "Get Startup offset - Failure during topic partition(s) assignment for $topics - ${it.message}" }
-                        }
-                    }
-                    .use { c ->
-                        c.runCatching {
-                            log.info { "Attempt to register current latest offset as baseline for later" }
-                            seekToEnd(emptyList())
-                            log.info { "Registered number of assigned partitions ${assignment().size}" }
-                            startUpOffset = position(assignment().first())
-                            log.info { "startUpOffset registered as $startUpOffset" }
-                        }.onFailure { log.error { "Failure during attempt to register current latest offset - ${it.message}" } }
-                    }
-            startUpOffset
-        } catch (e: Exception) {
-            log.error { "get Startup Offset Failure during kafka consumer construction - ${e.message}" }
-            0L
+internal fun initLoadTest(ws: WorkSettings) {
+    workMetrics.clearAll()
+    val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
+            config = ws.kafkaConsumerPdl,
+            topics = listOf(kafkaPDLTopic),
+            fromBeginning = true
+    )
+
+    val resultListTest: MutableList<String> = mutableListOf()
+
+    kafkaConsumerPdlTest.consume { cRecords ->
+        if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
+
+        workMetrics.initRecordsParsedTest.inc(cRecords.count().toDouble())
+        cRecords.forEach { cr -> resultListTest.add(cr.key()) }
+        if (heartBeatConsumer == 0) {
+            log.debug { "Test phase Successfully consumed a batch (This is prompted 100000th consume batch)" }
         }
+        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
+
+        KafkaConsumerStates.IsOk
+    }
+    heartBeatConsumer = 0
+
+    log.info { "Init test run : Total records from topic: ${resultListTest.size}" }
+    workMetrics.initRecordsParsedTest.set(resultListTest.size.toDouble())
+    log.info { "Init test run : Total unique records from topic: ${resultListTest.stream().distinct().toList().size}" }
+    heartBeatConsumer = 0
+}
+
+internal fun initLoad(ws: WorkSettings): ExitReason {
+    initLoadTest(ws)
+
+    workMetrics.clearAll()
+
+    /*
+    if (ws.filter is FilterBase.Missing) {
+        log.warn { "initLoad - No filter for activities, leaving" }
+        return ExitReason.NoFilter
+    }
+    val filter = ws.filter as FilterBase.Exists
+
+     */
+
+    log.info { "Commencing reading all records on topic $kafkaPDLTopic" }
+
+    val resultList: MutableList<Pair<String, PersonBase>> = mutableListOf()
+
+    val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
+            config = ws.kafkaConsumerPdl,
+            topics = listOf(kafkaPDLTopic),
+            fromBeginning = true
+    )
+
+    kafkaConsumerPdl.consume { cRecords ->
+        if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
+
+        workMetrics.initRecordsParsed.inc(cRecords.count().toDouble())
+        cRecords.forEach { cr -> resultList.add(Pair(cr.key(), parsePdlJson(cr))) }
+        if (heartBeatConsumer == 0) {
+            log.debug { "Successfully consumed a batch (This is prompted 100000th consume batch)" }
+        }
+        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
+
+        KafkaConsumerStates.IsOk
+    }
+
+    if (!resultList.isValid()) {
+        log.error { "Result contains invalid records" }
+        return ExitReason.InvalidCache
+    }
+
+    log.info { "Number of records from topic $kafkaPDLTopic is ${resultList.size}" }
+
+    val latestRecords = resultList.toMap() // Remove duplicates
+
+    log.info { "Number of unique aktoersIds (and corresponding messages to handle) on topic $kafkaPDLTopic is ${latestRecords.size}" }
+
+    val numberOfDeadPeopleFound = latestRecords.filter { r -> r.value is PersonSf && (r.value as PersonSf).doed }.size
+
+    log.info { "Number of aktoersIds that is dead people $numberOfDeadPeopleFound" }
+    workMetrics.deadPersons.set(numberOfDeadPeopleFound.toDouble())
+
+    val filteredRecords = latestRecords.filter { r -> r.value is PersonTombestone ||
+            (r.value is PersonSf &&
+                    !(r.value as PersonSf).doed /*&&
+                    (!ws.filterEnabled || filter.approved(r.value as PersonSf, true))*/)
+    } /*.map {
+        if (it.value is PersonSf) {
+            (it.value as PersonSf).measureKommune()
+            if (it.key == "1000025964669") { log.info { "Found reference person in filtering" } }
+            (it.value as PersonSf).toPersonProto()
+        } else {
+            Pair<PersonProto.PersonKey, PersonProto.PersonValue?>((it.value as PersonTombestone).toPersonTombstoneProtoKey(), null)
+        }
+    }*/.toList()/*.asSequence()*/
+
+    log.info { "Number of records filtered, translated and ready to send ${filteredRecords.count().toDouble()}" }
+    workMetrics.noOfInitialKakfaRecordsPdl.set(filteredRecords.count().toDouble())
+
+    var exitReason: ExitReason = ExitReason.NoKafkaProducer
+
+    var produceCount: Int = 0
+
+    // TODO No publishing. Give ten last json object in logs (Important! Only deploy to preprod)
+
+    for (i in 0..9) {
+        log.info("Last resulting jsons (${i + 1} of 10): \n${(filteredRecords[filteredRecords.count() - i - 1].second)}")
+    }
+    /*
+    filteredRecords.chunked(500000).forEach {
+        log.info { "Creating producer for batch ${produceCount++}" }
+        AKafkaProducer<ByteArray, ByteArray>(
+                config = ws.kafkaProducerPerson
+        ).produce {
+            it.fold(true) { acc, pair ->
+                acc && pair.second?.let {
+                    send(kafkaPersonTopic, pair.first.toByteArray(), it.toByteArray()).also { workMetrics.initiallyPublishedPersons.inc() }
+                } ?: sendNullValue(kafkaPersonTopic, pair.first.toByteArray()).also { workMetrics.initiallyPublishedTombestones.inc() }
+            }.let { sent ->
+                when (sent) {
+                    true -> exitReason = ExitReason.Work
+                    false -> {
+                        exitReason = ExitReason.InvalidCache
+                        workMetrics.producerIssues.inc()
+                        log.error { "Init load - Producer $produceCount has issues sending to topic" }
+                    }
+                }
+            }
+        }
+    }
+
+     */
+
+    log.info { "Init load - Done with publishing to topic exitReason is Ok? ${exitReason.isOK()} " }
+
+    return exitReason
+}
+
+fun PersonSf.measureKommune() {
+    val kommuneLabel = if (this.kommunenummer == UKJENT_FRA_PDL) {
+        UKJENT_FRA_PDL
+    } else {
+        PostnummerService.getKommunenummer(this.kommunenummer)?.let {
+            it
+        } ?: workMetrics.kommune_number_not_found.labels(this.kommunenummer).inc().let { NOT_FOUND_IN_REGISTER }
+    }
+    workMetrics.kommune.labels(kommuneLabel).inc()
+}

@@ -4,6 +4,8 @@ on: [push, pull_request]
 
 env:
   IMAGE: docker.pkg.github.com/${{ github.repository }}/nks-sf-pdl:${{ github.sha }}
+  ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   test:
     name: Run tests
