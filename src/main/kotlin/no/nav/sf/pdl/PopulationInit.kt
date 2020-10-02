@@ -48,6 +48,7 @@ var heartBeatConsumer: Int = 0
 
 internal fun initLoadTest(ws: WorkSettings) {
     workMetrics.clearAll()
+    log.info { "Init test run commence..." }
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerPdl,
             topics = listOf(kafkaPDLTopic),
@@ -62,7 +63,7 @@ internal fun initLoadTest(ws: WorkSettings) {
         workMetrics.initRecordsParsedTest.inc(cRecords.count().toDouble())
         cRecords.forEach { cr -> resultListTest.add(cr.key()) }
         if (heartBeatConsumer == 0) {
-            log.debug { "Test phase Successfully consumed a batch (This is prompted 100000th consume batch)" }
+            log.info { "Test phase Successfully consumed a batch (This is prompted 100000th consume batch)" }
         }
         heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
 
@@ -152,8 +153,10 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     // TODO No publishing. Give ten last json object in logs (Important! Only deploy to preprod)
 
+    val filteredPersons = filteredRecords.filter { r -> r.second is PersonSf }
+
     for (i in 0..9) {
-        log.info("Last resulting jsons (${i + 1} of 10): \n${(filteredRecords[filteredRecords.count() - i - 1].second)}")
+        log.info("Last resulting person jsons (${i + 1} of 10): \n${(filteredPersons[filteredPersons.count() - i - 1].second)}")
     }
     /*
     filteredRecords.chunked(500000).forEach {
