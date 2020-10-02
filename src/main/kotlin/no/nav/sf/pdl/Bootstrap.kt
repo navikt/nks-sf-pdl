@@ -27,7 +27,7 @@ object Bootstrap {
         log.info { "Starting" }
         enableNAISAPI {
 
-            conditionalWait()
+            // conditionalWait()
             initLoad(ws)
 
 //            if (ws.initialLoad || FilterBase.filterSettingsDiffer(ws.filterEnabled, ws.filter, ws.prevEnabled, ws.prevFilter)) {

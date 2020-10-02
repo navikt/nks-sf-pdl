@@ -78,9 +78,9 @@ internal fun initLoadTest(ws: WorkSettings) {
 }
 
 internal fun initLoad(ws: WorkSettings): ExitReason {
-    initLoadTest(ws)
+    // initLoadTest(ws)
 
-    workMetrics.clearAll()
+    // workMetrics.clearAll()
 
     /*
     if (ws.filter is FilterBase.Missing) {
