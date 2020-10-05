@@ -67,6 +67,12 @@ message Sivilstand {
   string relatertVedSivilstand = 3;
 }
 
+message Telefonnummer {
+  string landkode = 1;
+  string nummer = 2;
+  string prioritet = 3;
+}
+
 // this message will be the value part of kafka payload
 message PersonValue {
   string identifikasjonsnummer = 1;
@@ -102,4 +108,5 @@ message PersonValue {
   string folkeregisterpersonstatus = 16;
   InnflyttingTilNorge innflyttingTilNorge = 17;
   Sivilstand sivilstand = 18;
+  repeated Telefonnummer telefonnummer = 19;
 }

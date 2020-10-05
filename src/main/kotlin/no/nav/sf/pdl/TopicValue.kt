@@ -109,6 +109,7 @@ data class Person(
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     var statsborgerskap: List<Statsborgerskap>,
     val sivilstand: List<Sivilstand>,
+    val telefonnummer: List<Telefonnummer>,
     val kjoenn: List<Kjoenn>,
     val navn: List<Navn>,
     val geografiskTilknytning: GeografiskTilknytning? = null,
@@ -252,6 +253,14 @@ data class Person(
         val tilflyttingsstedIUtlandet: String = "",
         val metadata: Metadata
     )
+
+    @Serializable
+    data class Telefonnummer(
+        val landskode: String = "",
+        val nummer: String = "",
+        val prioritet: String = "",
+        val metadata: Metadata
+    )
 }
 
 internal const val UKJENT_FRA_PDL = "<UKJENT_FRA_PDL>"
@@ -276,12 +285,27 @@ fun Query.toPersonSf(): PersonBase {
                 kjoenn = this.findKjoenn(),
                 statsborgerskap = this.findStatsborgerskap(),
                 sivilstand = this.findSivilstand(),
+                telefonnummer = this.findTelefonnummer(),
                 utflyttingFraNorge = this.findUtflyttingFraNorge(),
                 doed = this.hentPerson.doedsfall.isNotEmpty() // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findTelefonnummer(): TelefonnummerBase {
+    return this.hentPerson.telefonnummer.let {
+        telefonnummer ->
+
+        if (telefonnummer.isEmpty()) {
+            TelefonnummerBase.Missing
+        } else {
+            TelefonnummerBase.Exist(
+                    telefonnummer
+            )
+        }
+    }
 }
 
 private fun Query.findSivilstand(): Sivilstand {
@@ -606,6 +630,15 @@ sealed class Sivilstand {
         val gyldigFraOgMed: LocalDate?,
         val relatertVedSivilstand: String?
     ) : Sivilstand()
+}
+
+sealed class TelefonnummerBase {
+    object Missing : TelefonnummerBase()
+    object Invalid : TelefonnummerBase()
+
+    data class Exist(
+        val list: List<Person.Telefonnummer>
+    ) : TelefonnummerBase()
 }
 
 fun Person.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {

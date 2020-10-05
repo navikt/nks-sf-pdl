@@ -90,6 +90,7 @@ data class PersonSf(
     val kjoenn: KjoennType = KjoennType.UKJENT,
     val region: String = "",
     val doed: Boolean = false,
+    val telefonnummer: TelefonnummerBase? = null,
     val utflyttingFraNorge: UtflyttingFraNorge? = null
 ) : PersonBase() {
 
@@ -104,6 +105,15 @@ data class PersonSf(
                 adressebeskyttelse = PersonValue.Gradering.valueOf(this@PersonSf.adressebeskyttelse.name)
                 this@PersonSf.sikkerhetstiltak.forEach {
                     addSikkerhetstiltak(it)
+                }
+                if (this@PersonSf.telefonnummer is TelefonnummerBase.Exist) {
+                    this@PersonSf.telefonnummer.list.forEach {
+                        addTelefonnummer(PersonProto.Telefonnummer.newBuilder().apply {
+                            landkode = it.landskode
+                            nummer = it.nummer
+                            prioritet = it.prioritet
+                        })
+                    }
                 }
                 kjoenn = PersonValue.Kjoenn.valueOf(this@PersonSf.kjoenn.name)
                 bostedsadresse = PersonProto.Adresse.newBuilder().apply {
