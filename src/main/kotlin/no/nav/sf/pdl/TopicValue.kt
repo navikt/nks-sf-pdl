@@ -127,8 +127,8 @@ data class Person(
 
     @Serializable
     data class Oppholdsadresse(
-        val vegadresse: Vegadresse?,
-        val utenlandsAdresse: UtenlandsAdresse?,
+        val vegadresse: Vegadresse? = null,
+        val utenlandsAdresse: UtenlandsAdresse? = null,
         val metadata: Metadata
     ) {
 
