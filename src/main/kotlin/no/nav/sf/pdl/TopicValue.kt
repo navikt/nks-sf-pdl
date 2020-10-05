@@ -215,8 +215,8 @@ data class Person(
 
     @Serializable
     data class UtflyttingFraNorge(
-        val tilflyttingsland: String = "",
-        val tilflyttingsstedIUtlandet: String = "",
+        val tilflyttingsland: String? = "",
+        val tilflyttingsstedIUtlandet: String? = "",
         val metadata: Metadata
     )
 }
@@ -485,8 +485,8 @@ sealed class UtflyttingFraNorge {
     object Invalid : UtflyttingFraNorge()
 
     data class Exist(
-        val tilflyttingsland: String,
-        val tilflyttingsstedIUtlandet: String
+        val tilflyttingsland: String?,
+        val tilflyttingsstedIUtlandet: String?
     ) : UtflyttingFraNorge()
 }
 
