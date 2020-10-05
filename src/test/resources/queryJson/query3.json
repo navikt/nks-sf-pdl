@@ -59,6 +59,8 @@
         }
       }
     ],
+    "sivilstand": [],
+    "innflyttingTilNorge": [],
     "folkeregisterpersonstatus": [
       {
         "status": "",
@@ -85,6 +87,7 @@
       }
     ],
     "kjoenn": [],
+    "telefonnummer": [],
     "statsborgerskap": [],
     "familieRelasjoner": [],
     "doedsfall": [],

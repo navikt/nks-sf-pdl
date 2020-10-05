@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import no.nav.sf.library.jsonNonStrict
@@ -13,7 +14,7 @@ fun String.getQueryFromJson(): QueryBase = runCatching {
     jsonNonStrict.parse(Query.serializer(), this)
 }
         .onFailure {
-            log.error { "Cannot convert kafka value to query - ${it.localizedMessage} Json: $this" }
+            log.error { "Cannot convert kafka value to query - ${it.localizedMessage}" }
         }
         .getOrDefault(InvalidQuery)
 
@@ -56,6 +57,20 @@ enum class FamilieRelasjonsRolle {
 }
 
 @Serializable
+enum class Sivilstandstype {
+    UOPPGITT,
+    UGIFT,
+    GIFT,
+    ENKE_ELLER_ENKEMANN,
+    SKILT,
+    SEPARERT,
+    REGISTRERT_PARTNER,
+    SEPARERT_PARTNER,
+    SKILT_PARTNER,
+    GJENLEVENDE_PARTNE
+}
+
+@Serializable
 data class Metadata(
     val historisk: Boolean = true,
     val master: String
@@ -88,10 +103,13 @@ data class Person(
     val bostedsadresse: List<Bostedsadresse>,
     val oppholdsadresse: List<Oppholdsadresse>,
     val doedsfall: List<Doedsfall>,
-    var familieRelasjoner: List<FamilieRelasjon>? = null,
+    var familieRelasjoner: List<FamilieRelasjon>,
+    var innflyttingTilNorge: List<InnflyttingTilNorge>,
     val folkeregisterpersonstatus: List<Folkeregisterpersonstatus>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     var statsborgerskap: List<Statsborgerskap>,
+    val sivilstand: List<Sivilstand>,
+    val telefonnummer: List<Telefonnummer>,
     val kjoenn: List<Kjoenn>,
     val navn: List<Navn>,
     val geografiskTilknytning: GeografiskTilknytning? = null,
@@ -127,8 +145,8 @@ data class Person(
 
     @Serializable
     data class Oppholdsadresse(
-        val vegadresse: Vegadresse? = null,
-        val utenlandsAdresse: UtenlandsAdresse? = null,
+        val vegadresse: Vegadresse?,
+        val utenlandsAdresse: UtenlandsAdresse?,
         val metadata: Metadata
     ) {
 
@@ -155,6 +173,13 @@ data class Person(
 
     @Serializable
     data class Doedsfall(
+        val metadata: Metadata
+    )
+
+    @Serializable
+    data class InnflyttingTilNorge(
+        val fraflyttingsland: String = "",
+        val fraflyttingsstedIUtlandet: String = "",
         val metadata: Metadata
     )
 
@@ -193,6 +218,15 @@ data class Person(
     )
 
     @Serializable
+    data class Sivilstand(
+        val type: Sivilstandstype,
+        @Serializable(with = IsoLocalDateSerializer::class)
+        val gyldigFraOgMed: LocalDate? = null,
+        val relatertVedSivilstand: String?,
+        val metadata: Metadata
+    )
+
+    @Serializable
     data class Adressebeskyttelse(
         val gradering: AdressebeskyttelseGradering,
         val metadata: Metadata
@@ -215,8 +249,16 @@ data class Person(
 
     @Serializable
     data class UtflyttingFraNorge(
-        val tilflyttingsland: String? = "",
-        val tilflyttingsstedIUtlandet: String? = "",
+        val tilflyttingsland: String = "",
+        val tilflyttingsstedIUtlandet: String = "",
+        val metadata: Metadata
+    )
+
+    @Serializable
+    data class Telefonnummer(
+        val landskode: String = "",
+        val nummer: String = "",
+        val prioritet: String = "",
         val metadata: Metadata
     )
 }
@@ -232,7 +274,9 @@ fun Query.toPersonSf(): PersonBase {
                 mellomnavn = this.findNavn().mellomnavn,
                 etternavn = this.findNavn().etternavn,
                 familieRelasjon = this.findFamilieRelasjon(),
+                folkeregisterpersonstatus = this.findFolkeregisterPersonStatus(),
                 adressebeskyttelse = this.findAdressebeskyttelse(),
+                innflyttingTilNorge = this.findInnflyttingTilNorge(),
                 bostedsadresse = this.findBostedsAdresse(),
                 oppholdsadresse = this.findOppholdsAdresse(),
                 sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.map { it.beskrivelse }.toList(),
@@ -240,12 +284,66 @@ fun Query.toPersonSf(): PersonBase {
                 region = kommunenummer.regionOfKommuneNummer(),
                 kjoenn = this.findKjoenn(),
                 statsborgerskap = this.findStatsborgerskap(),
+                sivilstand = this.findSivilstand(),
+                telefonnummer = this.findTelefonnummer(),
                 utflyttingFraNorge = this.findUtflyttingFraNorge(),
                 doed = this.hentPerson.doedsfall.isNotEmpty() // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
             .getOrDefault(PersonInvalid)
+}
+
+private fun Query.findTelefonnummer(): TelefonnummerBase {
+    return this.hentPerson.telefonnummer.let {
+        telefonnummer ->
+
+        if (telefonnummer.isEmpty()) {
+            TelefonnummerBase.Missing
+        } else {
+            TelefonnummerBase.Exist(
+                    telefonnummer
+            )
+        }
+    }
+}
+
+private fun Query.findSivilstand(): Sivilstand {
+    return this.hentPerson.sivilstand.let {
+        sivilStand ->
+
+        if (sivilStand.isEmpty()) {
+            Sivilstand.Missing
+        } else {
+            sivilStand.firstOrNull { !it.metadata.historisk }?.let {
+                sivilstand ->
+
+                Sivilstand.Exist(
+                    type = sivilstand.type,
+                    gyldigFraOgMed = sivilstand.gyldigFraOgMed,
+                    relatertVedSivilstand = sivilstand.relatertVedSivilstand
+                )
+            } ?: Sivilstand.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
+}
+
+private fun Query.findInnflyttingTilNorge(): InnflyttingTilNorge {
+    return this.hentPerson.innflyttingTilNorge.let {
+        innflyttingTilNorge ->
+
+        if (innflyttingTilNorge.isEmpty()) {
+            InnflyttingTilNorge.Missing
+        } else {
+            innflyttingTilNorge.firstOrNull { !it.metadata.historisk }?.let {
+                innflyttingTilNorge ->
+                InnflyttingTilNorge.Exist(
+                        fraflyttingsland = innflyttingTilNorge.fraflyttingsland,
+                        fraflyttingsstedIUtlandet = innflyttingTilNorge.fraflyttingsstedIUtlandet
+                )
+            } ?: InnflyttingTilNorge.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+        }
+    }
 }
 
 private fun Query.findFolkeregisterPersonStatus(): String {
@@ -335,8 +433,8 @@ private fun Query.findStatsborgerskap(): String {
     }
 }
 
-private fun Query.findFamilieRelasjon(): FamilieRelasjon? {
-    return this.hentPerson.familieRelasjoner?.let { familierelasjon ->
+private fun Query.findFamilieRelasjon(): FamilieRelasjon {
+    return this.hentPerson.familieRelasjoner.let { familierelasjon ->
         if (familierelasjon.isEmpty()) {
             FamilieRelasjon.Missing
         } else {
@@ -485,8 +583,8 @@ sealed class UtflyttingFraNorge {
     object Invalid : UtflyttingFraNorge()
 
     data class Exist(
-        val tilflyttingsland: String?,
-        val tilflyttingsstedIUtlandet: String?
+        val tilflyttingsland: String,
+        val tilflyttingsstedIUtlandet: String
     ) : UtflyttingFraNorge()
 }
 
@@ -511,6 +609,36 @@ sealed class Adresse {
         val adresse: String?,
         val landkode: String
     ) : Adresse()
+}
+
+sealed class InnflyttingTilNorge {
+    object Missing : InnflyttingTilNorge()
+    object Invalid : InnflyttingTilNorge()
+
+    data class Exist(
+        val fraflyttingsland: String,
+        val fraflyttingsstedIUtlandet: String
+    ) : InnflyttingTilNorge()
+}
+
+sealed class Sivilstand {
+    object Missing : Sivilstand()
+    object Invalid : Sivilstand()
+
+    data class Exist(
+        val type: Sivilstandstype,
+        val gyldigFraOgMed: LocalDate?,
+        val relatertVedSivilstand: String?
+    ) : Sivilstand()
+}
+
+sealed class TelefonnummerBase {
+    object Missing : TelefonnummerBase()
+    object Invalid : TelefonnummerBase()
+
+    data class Exist(
+        val list: List<Person.Telefonnummer>
+    ) : TelefonnummerBase()
 }
 
 fun Person.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {

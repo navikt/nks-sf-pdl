@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package no.nav.pdlsf.proto;
 
-
 option java_package = "no.nav.pdlsf.proto";
 option java_outer_classname = "PersonProto";
 
@@ -24,6 +23,19 @@ enum FamilieRelasjonsRolle {
     MORMOR = 3;
 }
 
+enum SivilstandType {
+    UOPPGITT = 0;
+    UGIFT = 1;
+    GIFT = 2;
+    ENKE_ELLER_ENKEMANN = 3;
+    SKILT = 4;
+    SEPARERT = 5;
+    REGISTRERT_PARTNER = 6;
+    SEPARERT_PARTNER = 7;
+    SKILT_PARTNER = 8;
+    GJENLEVENDE_PARTNER = 9;
+}
+
 message Adresse {
     AdresseType type = 1;
     string adresse = 2;
@@ -42,6 +54,23 @@ message Familierelasjon {
 message UtflyttingFraNorge {
   string tilflyttingsland = 1;
   string tilflyttingsstedIUtlandet = 2;
+}
+
+message InnflyttingTilNorge {
+  string fraflyttingsland = 1;
+  string fraflyttingsstedIUtlandet = 2;
+}
+
+message Sivilstand {
+  SivilstandType type = 1;
+  string gyldigFraOgMed = 2;
+  string relatertVedSivilstand = 3;
+}
+
+message Telefonnummer {
+  string landkode = 1;
+  string nummer = 2;
+  string prioritet = 3;
 }
 
 // this message will be the value part of kafka payload
@@ -77,4 +106,7 @@ message PersonValue {
   string statsborgerskap = 14;
   UtflyttingFraNorge utflyttingFraNorge = 15;
   string folkeregisterpersonstatus = 16;
+  InnflyttingTilNorge innflyttingTilNorge = 17;
+  Sivilstand sivilstand = 18;
+  repeated Telefonnummer telefonnummer = 19;
 }

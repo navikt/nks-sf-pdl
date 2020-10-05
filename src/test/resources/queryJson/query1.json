@@ -61,10 +61,13 @@
         }
       }
     ],
+    "telefonnummer": [],
+    "sivilstand": [],
     "statsborgerskap": [],
     "familieRelasjoner": [
 
     ],
+    "innflyttingTilNorge": [],
     "doedsfall": [],
     "folkeregisterpersonstatus": [
       {
