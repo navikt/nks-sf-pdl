@@ -88,7 +88,7 @@ data class Person(
     val bostedsadresse: List<Bostedsadresse>,
     val oppholdsadresse: List<Oppholdsadresse>,
     val doedsfall: List<Doedsfall>,
-    var familieRelasjoner: List<FamilieRelasjon>,
+    var familieRelasjoner: List<FamilieRelasjon>? = null,
     val folkeregisterpersonstatus: List<Folkeregisterpersonstatus>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     var statsborgerskap: List<Statsborgerskap>,
@@ -335,8 +335,8 @@ private fun Query.findStatsborgerskap(): String {
     }
 }
 
-private fun Query.findFamilieRelasjon(): FamilieRelasjon {
-    return this.hentPerson.familieRelasjoner.let { familierelasjon ->
+private fun Query.findFamilieRelasjon(): FamilieRelasjon? {
+    return this.hentPerson.familieRelasjoner?.let { familierelasjon ->
         if (familierelasjon.isEmpty()) {
             FamilieRelasjon.Missing
         } else {
