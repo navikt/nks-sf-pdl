@@ -1,25 +1,11 @@
 package no.nav.sf
 
-import io.kotest.assertions.asClue
-import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.collections.shouldHaveSize
-import io.kotest.matchers.ints.shouldBeExactly
-import io.kotest.matchers.shouldBe
-import kotlinx.serialization.ImplicitReflectionSerializer
-import kotlinx.serialization.UnstableDefault
-import no.nav.pdlsf.proto.PersonProto
-import no.nav.sf.pdl.AdressebeskyttelseGradering
-import no.nav.sf.pdl.PersonSf
-import no.nav.sf.pdl.Query
-import no.nav.sf.pdl.UKJENT_FRA_PDL
-import no.nav.sf.pdl.getQueryFromJson
-import no.nav.sf.pdl.toPersonSf
-
 private const val AKTORID = "AKTORID"
 private const val FOLKEREGISTERIDENT = "FOLKEREGISTERIDENT"
 
 private const val PDL_TOPIC_VALUE_OK_WITHOUT_HISTORIKK = "/pdlTopicValues/value.json"
 
+/*
 @OptIn(UnstableDefault::class)
 @ImplicitReflectionSerializer
 class PersonProtoTests : StringSpec() {
@@ -76,3 +62,4 @@ class PersonProtoTests : StringSpec() {
 @ImplicitReflectionSerializer
 internal fun getStringFromResource(path: String) =
         PersonProtoTests::class.java.getResourceAsStream(path).bufferedReader().use { it.readText() }
+*/

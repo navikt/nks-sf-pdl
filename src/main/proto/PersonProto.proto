@@ -10,6 +10,20 @@ message PersonKey {
   string aktoer_id = 1;
 }
 
+// default value will be the one with 0
+enum Gradering {
+  UGRADERT = 0;
+  FORTROLIG = 1;
+  STRENGT_FORTROLIG = 2;
+  STRENGT_FORTROLIG_UTLAND = 3;
+}
+
+enum Kjoenn {
+  MANN = 0;
+  KVINNE = 1;
+  UKJENT = 2;
+}
+
 enum AdresseType {
     VEGADRESSE = 0;
     UKJENTBOSTED = 1;
@@ -36,6 +50,13 @@ enum SivilstandType {
     GJENLEVENDE_PARTNER = 9;
 }
 
+enum Tiltakstype {
+    FYUS = 0;
+    TFUS = 1;
+    FTUS = 2;
+    TOAN = 3;
+  }
+
 message Adresse {
     AdresseType type = 1;
     string adresse = 2;
@@ -61,6 +82,15 @@ message InnflyttingTilNorge {
   string fraflyttingsstedIUtlandet = 2;
 }
 
+message Sikkerhetstiltak {
+    string beskrivelse = 1;
+    Tiltakstype tiltakstype = 2;
+    string gyldigFraOgMed = 3;
+    string gyldigTilOgMed = 4;
+    string kontaktPersonId = 5;
+    string kontaktPersonEnhet = 6;
+}
+
 message Sivilstand {
   SivilstandType type = 1;
   string gyldigFraOgMed = 2;
@@ -73,40 +103,31 @@ message Telefonnummer {
   string prioritet = 3;
 }
 
+message Doedsfall {
+    string doedsdato = 1;
+}
+
 // this message will be the value part of kafka payload
 message PersonValue {
-  string identifikasjonsnummer = 1;
+  // aktoerid will be placed as key
+  string folkeregisterId = 1;
   string fornavn = 2;
   string mellomnavn = 3;
   string etternavn = 4;
-
-  // default value will be the one with 0
-  enum Gradering {
-    UGRADERT = 0;
-    FORTROLIG = 1;
-    STRENGT_FORTROLIG = 2;
-    STRENGT_FORTROLIG_UTLAND = 3;
-  }
-
-  enum Kjoenn {
-    MANN = 0;
-    KVINNE = 1;
-    UKJENT = 2;
-  }
-
-  Gradering adressebeskyttelse = 5;
-  repeated string sikkerhetstiltak = 6;
-  string kommunenummer = 7;
-  string region = 8;
-  bool doed = 9;
+  repeated Familierelasjon familierelasjoner = 5;
+  string folkeregisterpersonstatus = 6;
+  repeated InnflyttingTilNorge innflyttingTilNorge = 7;
+  Gradering adressebeskyttelse = 8;
+  repeated Sikkerhetstiltak sikkerhetstiltak = 9;
   Adresse bostedsadresse = 10;
   Adresse oppholdsadresse = 11;
-  Kjoenn kjoenn = 12;
-  Familierelasjon familierelasjoner = 13;
-  string statsborgerskap = 14;
-  UtflyttingFraNorge utflyttingFraNorge = 15;
-  string folkeregisterpersonstatus = 16;
-  InnflyttingTilNorge innflyttingTilNorge = 17;
-  Sivilstand sivilstand = 18;
+  string statsborgerskap = 12;
+  repeated Sivilstand sivilstand = 13;
+  string kommunenummeFraGt = 14;
+  string kommunenummeFraAdresse = 15;
+  Kjoenn kjoenn = 16;
+  repeated Doedsfall doedsfall = 18;
   repeated Telefonnummer telefonnummer = 19;
+  repeated UtflyttingFraNorge utflyttingFraNorge = 20;
+  repeated string talesspraaktolk = 21;
 }

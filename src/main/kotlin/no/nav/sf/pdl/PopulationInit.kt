@@ -125,14 +125,14 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     log.info { "Number of unique aktoersIds (and corresponding messages to handle) on topic $kafkaPDLTopic is ${latestRecords.size}" }
 
-    val numberOfDeadPeopleFound = latestRecords.filter { r -> r.value is PersonSf && (r.value as PersonSf).doed }.size
+    val numberOfDeadPeopleFound = latestRecords.filter { r -> r.value is PersonSf && (r.value as PersonSf).doedsfall.isNotEmpty() }.size
 
     log.info { "Number of aktoersIds that is dead people $numberOfDeadPeopleFound" }
     workMetrics.deadPersons.set(numberOfDeadPeopleFound.toDouble())
 
     val filteredRecords = latestRecords.filter { r -> r.value is PersonTombestone ||
             (r.value is PersonSf &&
-                    !(r.value as PersonSf).doed /*&&
+                    (r.value as PersonSf).doedsfall.isEmpty() /*&&
                     (!ws.filterEnabled || filter.approved(r.value as PersonSf, true))*/)
     } /*.map {
         if (it.value is PersonSf) {
@@ -189,12 +189,12 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 }
 
 fun PersonSf.measureKommune() {
-    val kommuneLabel = if (this.kommunenummer == UKJENT_FRA_PDL) {
+    val kommuneLabel = if (this.kommunenummerFraGt == UKJENT_FRA_PDL) {
         UKJENT_FRA_PDL
     } else {
-        PostnummerService.getKommunenummer(this.kommunenummer)?.let {
+        PostnummerService.getKommunenummer(this.kommunenummerFraGt)?.let {
             it
-        } ?: workMetrics.kommune_number_not_found.labels(this.kommunenummer).inc().let { NOT_FOUND_IN_REGISTER }
+        } ?: workMetrics.kommune_number_not_found.labels(this.kommunenummerFraGt).inc().let { NOT_FOUND_IN_REGISTER }
     }
     workMetrics.kommune.labels(kommuneLabel).inc()
 }
