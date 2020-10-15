@@ -25,14 +25,14 @@ fun Query.toPersonSf(): PersonBase {
                             fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet)
                 },
                 bostedsadresse = this.findBostedsAdresse(),
-                oppholdsadresse = this.findOppholdsAdresse(),
-                sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.map { hS ->
+                oppholdsadresse = this.findOppholdsAdresse(), // TODO filter metadata.historisk på alla
+                sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.filter { !it.metadata.historisk }.map { hS ->
                     Sikkerhetstiltak(beskrivelse = hS.beskrivelse,
                             tiltaksType = hS.tiltakstype,
                             gyldigFraOgMed = hS.gyldigFraOgMed,
                             gyldigTilOgMed = hS.gyldigTilOgMed,
-                            kontaktPersonId = hS.kontaktPerson?.let { k -> k.personident } ?: UKJENT_FRA_PDL,
-                            kontaktPersonEnhet = hS.kontaktPerson?.let { k -> k.enhet } ?: UKJENT_FRA_PDL
+                            kontaktpersonId = hS.kontaktperson?.let { k -> k.personident } ?: UKJENT_FRA_PDL,
+                            kontaktpersonEnhet = hS.kontaktperson?.let { k -> k.enhet } ?: UKJENT_FRA_PDL
                     )
                 },
                 kommunenummerFraGt = this.findGtKommunenummer(),
@@ -52,7 +52,7 @@ fun Query.toPersonSf(): PersonBase {
                 utflyttingFraNorge = this.hentPerson.utflyttingFraNorge.map {
                     UtflyttingFraNorge(tilflyttingsland = it.tilflyttingsland, tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet)
                 },
-                talesspraaktolk = this.hentPerson.tilrettelagtKommunikasjon.filter { it.talespraaktolk != null && !it.metadata.historisk }.map { it.talespraaktolk.spraak },
+                talesspraaktolk = this.hentPerson.tilrettelagtKommunikasjon.filter { it.talespraaktolk != null && !it.metadata.historisk && it.talespraaktolk.spraak != null }.map { it.talespraaktolk?.spraak ?: "" },
                 doedsfall = this.hentPerson.doedsfall.map { Doedsfall(doedsdato = it.doedsdato) } // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
@@ -181,7 +181,7 @@ private fun Query.findOppholdsAdresse(): Adresse {
                             postnummer = vegAdresse.postnummer,
                             kommunenummer = vegAdresse.kommunenummer
                     )
-                } ?: it.utenlandsAdresse?.let { utenlandskAdresse ->
+                } ?: it.utenlandskAdresse?.let { utenlandskAdresse ->
                     Adresse.Utenlands(
                             adresseType = AdresseType.UTENLANDSADRESSE,
                             adresse =

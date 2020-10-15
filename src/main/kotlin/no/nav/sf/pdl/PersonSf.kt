@@ -43,8 +43,8 @@ sealed class PersonBase {
                                             tiltaksType = Tiltakstype.valueOf(it.tiltakstype.name),
                                             gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
                                             gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate(),
-                                            kontaktPersonId = it.kontaktPersonId,
-                                            kontaktPersonEnhet = it.kontaktPersonEnhet)
+                                            kontaktpersonId = it.kontaktPersonId,
+                                            kontaktpersonEnhet = it.kontaktPersonEnhet)
                                 },
                                 bostedsadresse = Adresse.Exist(
                                         adresseType = AdresseType.valueOf(v.bostedsadresse.type.name),
@@ -166,8 +166,8 @@ data class PersonSf(
                         tiltakstype = PersonProto.Tiltakstype.valueOf(it.tiltaksType.name)
                         gyldigFraOgMed = it.gyldigFraOgMed?.format(DateTimeFormatter.ISO_DATE) ?: ""
                         gyldigTilOgMed = it.gyldigTilOgMed?.format(DateTimeFormatter.ISO_DATE) ?: ""
-                        kontaktPersonId = it.kontaktPersonId
-                        kontaktPersonEnhet = it.kontaktPersonEnhet
+                        kontaktPersonId = it.kontaktpersonId
+                        kontaktPersonEnhet = it.kontaktpersonEnhet
                     })
                 }
 
@@ -271,7 +271,7 @@ data class FamilieRelasjon(
 @Serializable
 data class UtflyttingFraNorge(
     val tilflyttingsland: String,
-    val tilflyttingsstedIUtlandet: String
+    val tilflyttingsstedIUtlandet: String?
 )
 
 @Serializable
@@ -311,8 +311,8 @@ data class Sikkerhetstiltak(
     val gyldigFraOgMed: LocalDate?,
     @Serializable(with = IsoLocalDateSerializer::class)
     val gyldigTilOgMed: LocalDate?,
-    val kontaktPersonId: String,
-    val kontaktPersonEnhet: String
+    val kontaktpersonId: String,
+    val kontaktpersonEnhet: String
 )
 
 @Serializable
@@ -325,7 +325,7 @@ data class Telefonnummer(
 @Serializable
 data class InnflyttingTilNorge(
     val fraflyttingsland: String,
-    val fraflyttingsstedIUtlandet: String
+    val fraflyttingsstedIUtlandet: String?
 )
 
 @Serializable

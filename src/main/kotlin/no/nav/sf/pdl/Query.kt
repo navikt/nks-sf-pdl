@@ -1,5 +1,4 @@
 package no.nav.sf.pdl
-
 import java.time.LocalDate
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
@@ -50,7 +49,7 @@ enum class FamilieRelasjonsRolle {
     BARN,
     MOR,
     FAR,
-    MORMOR
+    MEDMOR
 }
 
 @Serializable
@@ -64,7 +63,7 @@ enum class Sivilstandstype {
     REGISTRERT_PARTNER,
     SEPARERT_PARTNER,
     SKILT_PARTNER,
-    GJENLEVENDE_PARTNE
+    GJENLEVENDE_PARTNER
 }
 
 @Serializable
@@ -104,22 +103,22 @@ data class Identliste(
 
 @Serializable
 data class HentePerson(
-    val adressebeskyttelse: List<Adressebeskyttelse>,
-    val bostedsadresse: List<Bostedsadresse>,
-    val oppholdsadresse: List<Oppholdsadresse>,
-    val doedsfall: List<Doedsfall>,
-    var familierelasjoner: List<FamilieRelasjon>,
-    var innflyttingTilNorge: List<InnflyttingTilNorge>,
-    val folkeregisterpersonstatus: List<Folkeregisterpersonstatus>,
-    val sikkerhetstiltak: List<Sikkerhetstiltak>,
-    var statsborgerskap: List<Statsborgerskap>,
-    val sivilstand: List<Sivilstand>,
-    val telefonnummer: List<Telefonnummer>,
-    val kjoenn: List<Kjoenn>,
-    val navn: List<Navn>,
+    val adressebeskyttelse: List<Adressebeskyttelse> = listOf(),
+    val bostedsadresse: List<Bostedsadresse> = listOf(),
+    val oppholdsadresse: List<Oppholdsadresse> = listOf(), // oppholdsadresse
+    val doedsfall: List<Doedsfall> = listOf(),
+    var familierelasjoner: List<FamilieRelasjon> = listOf(),
+    var innflyttingTilNorge: List<InnflyttingTilNorge> = listOf(),
+    val folkeregisterpersonstatus: List<Folkeregisterpersonstatus> = listOf(),
+    val sikkerhetstiltak: List<Sikkerhetstiltak> = listOf(),
+    var statsborgerskap: List<Statsborgerskap> = listOf(),
+    val sivilstand: List<Sivilstand> = listOf(),
+    val telefonnummer: List<Telefonnummer> = listOf(),
+    val kjoenn: List<Kjoenn> = listOf(),
+    val navn: List<Navn> = listOf(),
     val geografiskTilknytning: GeografiskTilknytning? = null,
-    val utflyttingFraNorge: List<UtflyttingFraNorge>,
-    val tilrettelagtKommunikasjon: List<TilrettelagtKommunikasjon>
+    val utflyttingFraNorge: List<UtflyttingFraNorge> = listOf(),
+    val tilrettelagtKommunikasjon: List<TilrettelagtKommunikasjon> = listOf()
 ) {
 
     @Serializable
@@ -152,7 +151,8 @@ data class HentePerson(
     @Serializable
     data class Oppholdsadresse(
         val vegadresse: Vegadresse?,
-        val utenlandsAdresse: UtenlandsAdresse?,
+        val utenlandskAdresse: UtenlandskAdresse?, // utenlandskAdresse
+        val matrikkeladresse: Matrikkeladresse?,
         val metadata: Metadata
     ) {
 
@@ -166,7 +166,7 @@ data class HentePerson(
         )
 
         @Serializable
-        data class UtenlandsAdresse(
+        data class UtenlandskAdresse(
             val adressenavnNummer: String?,
             val bygningEtasjeLeilighet: String?,
             val postboksNummerNavn: String?,
@@ -174,6 +174,11 @@ data class HentePerson(
             val bySted: String?,
             val regionDistriktOmraade: String?,
             val landkode: String = ""
+        )
+
+        @Serializable
+        data class Matrikkeladresse(
+            val kommunenummer: String?
         )
     }
 
@@ -186,8 +191,8 @@ data class HentePerson(
 
     @Serializable
     data class InnflyttingTilNorge(
-        val fraflyttingsland: String = "",
-        val fraflyttingsstedIUtlandet: String = "",
+        val fraflyttingsland: String,
+        val fraflyttingsstedIUtlandet: String?,
         val metadata: Metadata
     )
 
@@ -200,9 +205,9 @@ data class HentePerson(
     )
 
     @Serializable
-    data class KontaktPerson(
-        val personident: String,
-        val enhet: String
+    data class Kontaktperson(
+        val personident: String?,
+        val enhet: String?
     )
 
     @Serializable
@@ -213,7 +218,7 @@ data class HentePerson(
         val gyldigFraOgMed: LocalDate? = null,
         @Serializable(with = IsoLocalDateSerializer::class)
         val gyldigTilOgMed: LocalDate? = null,
-        val kontaktPerson: KontaktPerson?,
+        val kontaktperson: Kontaktperson? = null,
         val metadata: Metadata
     )
 
@@ -269,28 +274,28 @@ data class HentePerson(
 
     @Serializable
     data class UtflyttingFraNorge(
-        val tilflyttingsland: String = "",
-        val tilflyttingsstedIUtlandet: String = "",
+        val tilflyttingsland: String,
+        val tilflyttingsstedIUtlandet: String?,
         val metadata: Metadata
     )
 
     @Serializable
     data class TilrettelagtKommunikasjon(
-        val talespraaktolk: Tolk,
+        val talespraaktolk: Tolk?,
             // Ignoring PDL as source for tegnspraaktolk
         val metadata: Metadata
     )
 
     @Serializable
     data class Tolk(
-        val spraak: String
+        val spraak: String?
     )
 
     @Serializable
     data class Telefonnummer(
-        val landskode: String = "",
-        val nummer: String = "",
-        val prioritet: String = "",
+        val landskode: String,
+        val nummer: String,
+        val prioritet: String,
         val metadata: Metadata
     )
 }
