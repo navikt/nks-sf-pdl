@@ -11,118 +11,160 @@ import no.nav.pdlsf.proto.PersonProto.PersonValue
 
 private val log = KotlinLogging.logger { }
 
-sealed class PersonBase {
-    companion object {
-        private fun createPersonTombstone(key: ByteArray): PersonBase =
-                runCatching { PersonTombestone(PersonProto.PersonKey.parseFrom(key).aktoerId) }
-                        .getOrDefault(PersonProtobufIssue)
+@Serializable
+data class Navn(
+    val fornavn: String?,
+    val mellomnavn: String?,
+    val etternavn: String?
+)
 
-        fun fromProto(key: ByteArray, value: ByteArray?): PersonBase =
-                if (value == null) Companion.createPersonTombstone(key) else
-                // runCatching {
-                    PersonProto.PersonValue.parseFrom(value).let { v ->
-                        PersonSf(
-                                aktoerId = PersonKey.parseFrom(key).aktoerId,
-                                folkeregisterId = v.folkeregisterId,
-                                fornavn = v.fornavn,
-                                mellomnavn = v.mellomnavn,
-                                etternavn = v.etternavn,
-                                familierelasjoner = v.familierelasjonerList.map { proto ->
-                                    FamilieRelasjon(relatertPersonsIdent = proto.relatertPersonsIdent,
-                                            relatertPersonsRolle = FamilieRelasjonsRolle.valueOf(proto.relatertPersonsRolle.name),
-                                            minRolleForPerson = FamilieRelasjonsRolle.valueOf(proto.minRolleForPerson.name))
-                                },
-                                folkeregisterpersonstatus = v.folkeregisterpersonstatus,
-                                innflyttingTilNorge = v.innflyttingTilNorgeList.map {
-                                    InnflyttingTilNorge(fraflyttingsland = it.fraflyttingsland,
-                                            fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet)
-                                },
-                                adressebeskyttelse = AdressebeskyttelseGradering.valueOf(v.adressebeskyttelse.name),
-                                sikkerhetstiltak = v.sikkerhetstiltakList.map {
-                                    Sikkerhetstiltak(beskrivelse = it.beskrivelse,
-                                            tiltaksType = Tiltakstype.valueOf(it.tiltakstype.name),
-                                            gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
-                                            gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate(),
-                                            kontaktpersonId = it.kontaktPersonId,
-                                            kontaktpersonEnhet = it.kontaktPersonEnhet)
-                                },
-                                bostedsadresse = Adresse.Exist(
-                                        adresseType = AdresseType.valueOf(v.bostedsadresse.type.name),
-                                        adresse = v.bostedsadresse.adresse,
-                                        postnummer = v.bostedsadresse.postnummer,
-                                        kommunenummer = v.bostedsadresse.kommunenummer
-                                ),
-                                oppholdsadresse = Adresse.Exist(
-                                        adresseType = AdresseType.valueOf(v.oppholdsadresse.type.name),
-                                        adresse = v.oppholdsadresse.adresse,
-                                        postnummer = v.oppholdsadresse.postnummer,
-                                        kommunenummer = v.oppholdsadresse.kommunenummer
-                                ),
-                                statsborgerskap = v.statsborgerskap,
-                                sivilstand = v.sivilstandList.map {
-                                    Sivilstand(
-                                            type = Sivilstandstype.valueOf(it.type.name),
-                                            gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
-                                            relatertVedSivilstand = it.relatertVedSivilstand)
-                                },
-                                kommunenummerFraGt = v.kommunenummeFraGt,
-                                kommunenummerFraAdresse = v.kommunenummeFraAdresse,
-                                kjoenn = KjoennType.valueOf(v.kjoenn.name),
-                                doedsfall = v.doedsfallList.map {
-                                    Doedsfall(it.doedsdato.toLocalDate())
-                                },
-                                telefonnummer = v.telefonnummerList.map {
-                                    Telefonnummer(
-                                            landskode = it.landkode,
-                                            nummer = it.nummer,
-                                            prioritet = it.prioritet
-                                    )
-                                },
-                                utflyttingFraNorge = v.utflyttingFraNorgeList.map {
-                                    UtflyttingFraNorge(tilflyttingsland = it.tilflyttingsland,
-                                            tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet)
-                                },
-                                talesspraaktolk = v.talesspraaktolkList
-                        )
-                    }
-    }
-    // }.getOrDefault(PersonProtobufIssue)
-}
+@Serializable
+data class Adresser(
+    val vegadresse: List<Vegadresse>,
+    val matrikkeladresse: List<Matrikkeladresse>,
+    val utlendskAdresse: List<UtenlandskAdresse>,
+    val ukjentBosted: List<UkjentBosted>
+)
 
-fun String?.toLocalDate(): LocalDate? =
-        if (this == null || this == "") null else LocalDate.parse(this, DateTimeFormatter.ISO_DATE)
+@Serializable
+data class Vegadresse(
+    val kommunenummer: String?,
+    val adressenavn: String?,
+    val husnummer: String?,
+    val husbokstav: String?,
+    val postnummer: String?,
+    val koordinater: String?
+)
 
-object PersonInvalid : PersonBase()
-object PersonProtobufIssue : PersonBase()
+@Serializable
+data class Matrikkeladresse(
+    val kommunenummer: String?,
+    val postnummer: String?,
+    val bydelsnummer: String?,
+    val koordinater: String?
+)
 
-data class PersonTombestone(
-    val aktoerId: String
-) : PersonBase() {
-    fun toPersonTombstoneProtoKey(): PersonKey =
-            PersonKey.newBuilder().apply {
-                aktoerId = this@PersonTombestone.aktoerId
-            }.build()
+@Serializable
+data class UkjentBosted(
+    val bostedskommune: String?
+)
+
+@Serializable
+data class UtenlandskAdresse(
+    val adressenavnNummer: String?,
+    val bygningEtasjeLeilighet: String?,
+    val postboksNummerNavn: String?,
+    val postkode: String?,
+    val bySted: String?,
+    val regionDistriktOmraade: String?,
+    val landkode: String?
+)
+
+enum class AdresseType {
+    VEGADRESSE,
+    UKJENTBOSTED,
+    UTENLANDSADRESSE
 }
 
 @Serializable
+data class FamilieRelasjon(
+    val relatertPersonsIdent: String,
+    val relatertPersonsRolle: FamilieRelasjonsRolle,
+    val minRolleForPerson: FamilieRelasjonsRolle?
+)
+
+@Serializable
+data class UtflyttingFraNorge(
+    val tilflyttingsland: String,
+    val tilflyttingsstedIUtlandet: String?
+)
+
+@Serializable
+sealed class Adresse {
+    @Serializable
+    object Missing : Adresse()
+    @Serializable
+    object Invalid : Adresse()
+
+    @Serializable
+    data class Exist(
+        val adresseType: AdresseType,
+        val adresse: String?,
+        val postnummer: String?,
+        val kommunenummer: String?
+    ) : Adresse()
+
+    @Serializable
+    data class Ukjent(
+        val adresseType: AdresseType,
+        val bostedsKommune: String?
+    ) : Adresse()
+
+    @Serializable
+    data class Utenlands(
+        val adresseType: AdresseType,
+        val adresse: String?,
+        val landkode: String
+    ) : Adresse()
+}
+
+@Serializable
+data class Sikkerhetstiltak(
+    val beskrivelse: String,
+    val tiltaksType: Tiltakstype,
+    @Serializable(with = IsoLocalDateSerializer::class)
+    val gyldigFraOgMed: LocalDate?,
+    @Serializable(with = IsoLocalDateSerializer::class)
+    val gyldigTilOgMed: LocalDate?,
+    val kontaktpersonId: String,
+    val kontaktpersonEnhet: String
+)
+
+@Serializable
+data class Telefonnummer(
+    val landskode: String,
+    val nummer: String,
+    val prioritet: Int
+)
+
+@Serializable
+data class InnflyttingTilNorge(
+    val fraflyttingsland: String,
+    val fraflyttingsstedIUtlandet: String?
+)
+
+@Serializable
+data class Sivilstand(
+    val type: Sivilstandstype,
+    @Serializable(with = IsoLocalDateSerializer::class)
+    val gyldigFraOgMed: LocalDate?,
+    val relatertVedSivilstand: String?
+)
+
+@Serializable
+data class Doedsfall(
+    @Serializable(with = IsoLocalDateSerializer::class)
+    val doedsdato: LocalDate?,
+    val master: String?
+)
+
+@Serializable
 data class PersonSf(
-    val aktoerId: String, // Ok
-    val folkeregisterId: String, // Folkeregisterident?
-    val fornavn: String, // Ok
-    val mellomnavn: String, // Ok
-    val etternavn: String, // Ok
-    val familierelasjoner: List<FamilieRelasjon>, // OK What is ident? folkeregister?
-    val folkeregisterpersonstatus: String, // status el forenkletStatus?  Just nu førsta status !historisk//TODO WARN IF THERE IS MORE THEN ONE OPTION?
-    val innflyttingTilNorge: List<InnflyttingTilNorge>,
-    val adressebeskyttelse: AdressebeskyttelseGradering,
+    val aktoerId: String, // OK
+    val folkeregisterId: String, // OK
+    val navn: List<Navn>,
+    val familierelasjoner: List<FamilieRelasjon>, // OK
+    val folkeregisterpersonstatus: List<String>, // OK
+    val innflyttingTilNorge: List<InnflyttingTilNorge>, // OK
+    val adressebeskyttelse: List<AdressebeskyttelseGradering>, // OK
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
-    val bostedsadresse: Adresse?,
-    val oppholdsadresse: Adresse?,
-    val statsborgerskap: String,
+    val bostedsadresse: Adresser,
+    val oppholdsadresse: Adresser,
+    val statsborgerskap: List<String?>,
     val sivilstand: List<Sivilstand>,
-    val kommunenummerFraGt: String,
-    val kommunenummerFraAdresse: String,
-    val kjoenn: KjoennType,
+    val kommunenummerFraGt: String?,
+    val kommunenummerFraAdresse: String?,
+    val kjoenn: List<String>,
         // val region: String = "",
         // val doed: Boolean,
     val doedsfall: List<Doedsfall>,
@@ -131,6 +173,7 @@ data class PersonSf(
     val talesspraaktolk: List<String>
 ) : PersonBase() {
 
+    /*
     fun toPersonProto(): Pair<PersonKey, PersonValue> =
             PersonKey.newBuilder().apply {
                 aktoerId = this@PersonSf.aktoerId
@@ -153,8 +196,8 @@ data class PersonSf(
 
                 this@PersonSf.innflyttingTilNorge.forEach {
                     addInnflyttingTilNorge(PersonProto.InnflyttingTilNorge.newBuilder().apply {
-                            fraflyttingsland = it.fraflyttingsland
-                            fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet
+                        fraflyttingsland = it.fraflyttingsland
+                        fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet
                     }.build())
                 }
 
@@ -234,7 +277,7 @@ data class PersonSf(
 
                 this@PersonSf.talesspraaktolk.forEach { addTalesspraaktolk(it) }
             }
-                    .build()
+                    .build()*/
 
     fun toJson(): String = no.nav.sf.library.json.stringify(serializer(), this)
 }
@@ -255,89 +298,95 @@ internal fun ByteArray.protobufSafeParseValue(): PersonValue = this.let { ba ->
     }
 }
 
-enum class AdresseType {
-    VEGADRESSE,
-    UKJENTBOSTED,
-    UTENLANDSADRESSE
+sealed class PersonBase {
+    companion object {
+        private fun createPersonTombstone(key: ByteArray): PersonBase =
+                runCatching { PersonTombestone(PersonProto.PersonKey.parseFrom(key).aktoerId) }
+                        .getOrDefault(PersonProtobufIssue)
+/*
+        fun fromProto(key: ByteArray, value: ByteArray?): PersonBase =
+                if (value == null) Companion.createPersonTombstone(key) else
+                // runCatching {
+                    PersonProto.PersonValue.parseFrom(value).let { v ->
+                        PersonSf(
+                                aktoerId = PersonKey.parseFrom(key).aktoerId,
+                                folkeregisterId = v.folkeregisterId,
+                                fornavn = v.fornavn,
+                                mellomnavn = v.mellomnavn,
+                                etternavn = v.etternavn,
+                                familierelasjoner = v.familierelasjonerList.map { proto ->
+                                    FamilieRelasjon(relatertPersonsIdent = proto.relatertPersonsIdent,
+                                            relatertPersonsRolle = FamilieRelasjonsRolle.valueOf(proto.relatertPersonsRolle.name),
+                                            minRolleForPerson = FamilieRelasjonsRolle.valueOf(proto.minRolleForPerson.name))
+                                },
+                                folkeregisterpersonstatus = v.folkeregisterpersonstatus,
+                                innflyttingTilNorge = v.innflyttingTilNorgeList.map {
+                                    InnflyttingTilNorge(fraflyttingsland = it.fraflyttingsland,
+                                            fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet)
+                                },
+                                adressebeskyttelse = AdressebeskyttelseGradering.valueOf(v.adressebeskyttelse.name),
+                                sikkerhetstiltak = v.sikkerhetstiltakList.map {
+                                    Sikkerhetstiltak(beskrivelse = it.beskrivelse,
+                                            tiltaksType = Tiltakstype.valueOf(it.tiltakstype.name),
+                                            gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
+                                            gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate(),
+                                            kontaktpersonId = it.kontaktPersonId,
+                                            kontaktpersonEnhet = it.kontaktPersonEnhet)
+                                },
+                                bostedsadresse = Adresse.Exist(
+                                        adresseType = AdresseType.valueOf(v.bostedsadresse.type.name),
+                                        adresse = v.bostedsadresse.adresse,
+                                        postnummer = v.bostedsadresse.postnummer,
+                                        kommunenummer = v.bostedsadresse.kommunenummer
+                                ),
+                                oppholdsadresse = Adresse.Exist(
+                                        adresseType = AdresseType.valueOf(v.oppholdsadresse.type.name),
+                                        adresse = v.oppholdsadresse.adresse,
+                                        postnummer = v.oppholdsadresse.postnummer,
+                                        kommunenummer = v.oppholdsadresse.kommunenummer
+                                ),
+                                statsborgerskap = v.statsborgerskap,
+                                sivilstand = v.sivilstandList.map {
+                                    Sivilstand(
+                                            type = Sivilstandstype.valueOf(it.type.name),
+                                            gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
+                                            relatertVedSivilstand = it.relatertVedSivilstand)
+                                },
+                                kommunenummerFraGt = v.kommunenummeFraGt,
+                                kommunenummerFraAdresse = v.kommunenummeFraAdresse,
+                                kjoenn = KjoennType.valueOf(v.kjoenn.name),
+                                doedsfall = v.doedsfallList.map {
+                                    Doedsfall(it.doedsdato.toLocalDate())
+                                },
+                                telefonnummer = v.telefonnummerList.map {
+                                    Telefonnummer(
+                                            landskode = it.landkode,
+                                            nummer = it.nummer,
+                                            prioritet = it.prioritet
+                                    )
+                                },
+                                utflyttingFraNorge = v.utflyttingFraNorgeList.map {
+                                    UtflyttingFraNorge(tilflyttingsland = it.tilflyttingsland,
+                                            tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet)
+                                },
+                                talesspraaktolk = v.talesspraaktolkList
+                        )
+                    }*/
+    }
+    // }.getOrDefault(PersonProtobufIssue)
 }
 
-@Serializable
-data class FamilieRelasjon(
-    val relatertPersonsIdent: String,
-    val relatertPersonsRolle: FamilieRelasjonsRolle,
-    val minRolleForPerson: FamilieRelasjonsRolle?
-)
+fun String?.toLocalDate(): LocalDate? =
+        if (this == null || this == "") null else LocalDate.parse(this, DateTimeFormatter.ISO_DATE)
 
-@Serializable
-data class UtflyttingFraNorge(
-    val tilflyttingsland: String,
-    val tilflyttingsstedIUtlandet: String?
-)
+object PersonInvalid : PersonBase()
+object PersonProtobufIssue : PersonBase()
 
-@Serializable
-sealed class Adresse {
-    @Serializable
-    object Missing : Adresse()
-    @Serializable
-    object Invalid : Adresse()
-
-    @Serializable
-    data class Exist(
-        val adresseType: AdresseType,
-        val adresse: String?,
-        val postnummer: String?,
-        val kommunenummer: String?
-    ) : Adresse()
-
-    @Serializable
-    data class Ukjent(
-        val adresseType: AdresseType,
-        val bostedsKommune: String?
-    ) : Adresse()
-
-    @Serializable
-    data class Utenlands(
-        val adresseType: AdresseType,
-        val adresse: String?,
-        val landkode: String
-    ) : Adresse()
+data class PersonTombestone(
+    val aktoerId: String
+) : PersonBase() {
+    fun toPersonTombstoneProtoKey(): PersonKey =
+            PersonKey.newBuilder().apply {
+                aktoerId = this@PersonTombestone.aktoerId
+            }.build()
 }
-
-@Serializable
-data class Sikkerhetstiltak(
-    val beskrivelse: String,
-    val tiltaksType: Tiltakstype,
-    @Serializable(with = IsoLocalDateSerializer::class)
-    val gyldigFraOgMed: LocalDate?,
-    @Serializable(with = IsoLocalDateSerializer::class)
-    val gyldigTilOgMed: LocalDate?,
-    val kontaktpersonId: String,
-    val kontaktpersonEnhet: String
-)
-
-@Serializable
-data class Telefonnummer(
-    val landskode: String,
-    val nummer: String,
-    val prioritet: String
-)
-
-@Serializable
-data class InnflyttingTilNorge(
-    val fraflyttingsland: String,
-    val fraflyttingsstedIUtlandet: String?
-)
-
-@Serializable
-data class Sivilstand(
-    val type: Sivilstandstype,
-    @Serializable(with = IsoLocalDateSerializer::class)
-    val gyldigFraOgMed: LocalDate?,
-    val relatertVedSivilstand: String?
-)
-
-@Serializable
-data class Doedsfall(
-    @Serializable(with = IsoLocalDateSerializer::class)
-    val doedsdato: LocalDate?
-)

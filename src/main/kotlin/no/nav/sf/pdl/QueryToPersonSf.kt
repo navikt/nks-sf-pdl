@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import java.time.LocalDate
 import mu.KotlinLogging
 
 private val log = KotlinLogging.logger { }
@@ -14,12 +13,10 @@ fun Query.toPersonSf(): PersonBase {
         PersonSf(
                 aktoerId = this.findAktoerId(), // ok first !historisk from idents
                 folkeregisterId = this.findFolkeregisterIdent(), // ok first !historisk from idents
-                fornavn = this.findNavn().fornavn, // ok first !historisk from navn
-                mellomnavn = this.findNavn().mellomnavn, // ok first !historisk from navn
-                etternavn = this.findNavn().etternavn, // ok first !historisk from navn
+                navn = this.hentPerson.navn.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                 familierelasjoner = this.findFamilieRelasjoner(),
-                folkeregisterpersonstatus = this.findFolkeregisterPersonStatus(),
-                adressebeskyttelse = this.findAdressebeskyttelse(), // first !historisk
+                folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.map { it.status },
+                adressebeskyttelse = this.hentPerson.adressebeskyttelse.map { it.gradering }, // first !historisk
                 innflyttingTilNorge = this.hentPerson.innflyttingTilNorge.map {
                     InnflyttingTilNorge(fraflyttingsland = it.fraflyttingsland,
                             fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet)
@@ -37,9 +34,8 @@ fun Query.toPersonSf(): PersonBase {
                 },
                 kommunenummerFraGt = this.findGtKommunenummer(),
                 kommunenummerFraAdresse = this.findAdresseKommunenummer(),
-                //region = kommunenummer.regionOfKommuneNummer(), //Let SF do this
-                kjoenn = this.findKjoenn(),
-                statsborgerskap = this.findStatsborgerskap(),
+                kjoenn = this.hentPerson.kjoenn.map { it.kjoenn.name },
+                statsborgerskap = this.hentPerson.statsborgerskap.map { it.land },
                 sivilstand = this.hentPerson.sivilstand.map {
                     Sivilstand(type = Sivilstandstype.valueOf(it.type.name),
                             gyldigFraOgMed = it.gyldigFraOgMed,
@@ -52,8 +48,10 @@ fun Query.toPersonSf(): PersonBase {
                 utflyttingFraNorge = this.hentPerson.utflyttingFraNorge.map {
                     UtflyttingFraNorge(tilflyttingsland = it.tilflyttingsland, tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet)
                 },
-                talesspraaktolk = this.hentPerson.tilrettelagtKommunikasjon.filter { it.talespraaktolk != null && !it.metadata.historisk && it.talespraaktolk.spraak != null }.map { it.talespraaktolk?.spraak ?: "" },
-                doedsfall = this.hentPerson.doedsfall.map { Doedsfall(doedsdato = it.doedsdato) } // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
+                talesspraaktolk = this.hentPerson.tilrettelagtKommunikasjon.filter { it.talespraaktolk != null && !it.metadata.historisk && it.talespraaktolk.spraak != null }.map {
+                    it.talespraaktolk?.spraak ?: ""
+                },
+                doedsfall = this.hentPerson.doedsfall.map { Doedsfall(doedsdato = it.doedsdato, master = it.metadata.master) } // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
@@ -167,63 +165,89 @@ private fun Query.findFamilieRelasjoner(): List<FamilieRelasjon> {
     }
 }
 
-private fun Query.findOppholdsAdresse(): Adresse {
-    return this.hentPerson.oppholdsadresse.let { oppholdsadresse ->
-        if (oppholdsadresse.isEmpty()) {
-            workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc()
-            Adresse.Missing
+fun HentePerson.Bostedsadresse.Koordinater.toKoordinaterString(): String? =
+        if (this.x == null || this.y == null) {
+            null
         } else {
-            oppholdsadresse.firstOrNull { !it.metadata.historisk }?.let {
-                it.vegadresse?.let { vegAdresse ->
-                    Adresse.Exist(
-                            adresseType = AdresseType.VEGADRESSE,
-                            adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + vegAdresse.husbokstav,
-                            postnummer = vegAdresse.postnummer,
-                            kommunenummer = vegAdresse.kommunenummer
-                    )
-                } ?: it.utenlandskAdresse?.let { utenlandskAdresse ->
-                    Adresse.Utenlands(
-                            adresseType = AdresseType.UTENLANDSADRESSE,
-                            adresse =
-                            utenlandskAdresse.adressenavnNummer + " " +
-                                    utenlandskAdresse.bygningEtasjeLeilighet + " " +
-                                    utenlandskAdresse.postboksNummerNavn + " " +
-                                    utenlandskAdresse.postkode + " " +
-                                    utenlandskAdresse.bySted + " " +
-                                    utenlandskAdresse.regionDistriktOmraade,
-                            landkode = utenlandskAdresse.landkode
-                    )
-                }
-            } ?: Adresse.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+            "${this.x},${this.y},${this.z ?: 0}"
         }
-    }
+
+fun HentePerson.Oppholdsadresse.Koordinater.toKoordinaterString(): String? =
+        if (this.x == null || this.y == null) {
+            null
+        } else {
+            "${this.x},${this.y},${this.z ?: 0}"
+        }
+
+private fun Query.findBostedsAdresse(): Adresser {
+    return Adresser(
+            vegadresse = this.hentPerson.bostedsadresse.filter { it.vegadresse != null }.map { it.vegadresse }
+                    .map {
+                        Vegadresse(kommunenummer = it?.kommunenummer,
+                                adressenavn = it?.adressenavn,
+                                husnummer = it?.husnummer,
+                                husbokstav = it?.husbokstav,
+                                postnummer = it?.postnummer,
+                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                    },
+            matrikkeladresse = this.hentPerson.bostedsadresse.filter { it.matrikkeladresse != null }.map { it.matrikkeladresse }
+                    .map {
+                        Matrikkeladresse(kommunenummer = it?.kommunenummer,
+                                postnummer = it?.postnummer,
+                                bydelsnummer = it?.bydelsnummer,
+                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                    },
+            ukjentBosted = this.hentPerson.bostedsadresse.filter { it.ukjentBosted != null }.map { it.ukjentBosted }
+                    .map {
+                        UkjentBosted(bostedskommune = it?.bostedskommune)
+                    },
+            utlendskAdresse = this.hentPerson.bostedsadresse.filter { it.utenlandskAdresse != null }.map { it.utenlandskAdresse }
+                    .map {
+                        UtenlandskAdresse(
+                                adressenavnNummer = it?.adressenavnNummer,
+                                bygningEtasjeLeilighet = it?.bygningEtasjeLeilighet,
+                                postboksNummerNavn = it?.postboksNummerNavn,
+                                postkode = it?.postkode,
+                                bySted = it?.bySted,
+                                regionDistriktOmraade = it?.regionDistriktOmraade,
+                                landkode = it?.landkode
+                        )
+                    }
+    )
 }
 
-private fun Query.findBostedsAdresse(): Adresse {
-    return this.hentPerson.bostedsadresse.let { bostedsadresse ->
-        if (bostedsadresse.isEmpty()) {
-            workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc()
-            Adresse.Missing
-        } else {
-            bostedsadresse.firstOrNull { !it.metadata.historisk }?.let {
-                it.vegadresse?.let { vegAdresse ->
-                    Adresse.Exist(
-                            adresseType = AdresseType.VEGADRESSE,
-                            adresse = vegAdresse.adressenavn + " " + vegAdresse.husnummer + vegAdresse.husbokstav,
-                            postnummer = vegAdresse.postnummer,
-                            kommunenummer = vegAdresse.kommunenummer
-                    )
-                } ?: it.ukjentBosted?.let { ukjentBosted ->
-                    if (ukjentBosted.findKommuneNummer() is Kommunenummer.Exist) {
-                        workMetrics.usedAddressTypes.labels(WMetrics.AddressType.UKJENTBOSTED.name).inc()
-                        Adresse.Ukjent(
-                                adresseType = AdresseType.UKJENTBOSTED,
-                                bostedsKommune = ukjentBosted.bostedskommune)
-                    } else Adresse.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.UKJENTBOSTED.name).inc() }
-                }
-            } ?: Adresse.Invalid.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
-        }
-    }
+private fun Query.findOppholdsAdresse(): Adresser {
+    return Adresser(
+            vegadresse = this.hentPerson.oppholdsadresse.filter { it.vegadresse != null }.map { it.vegadresse }
+                    .map {
+                        Vegadresse(kommunenummer = it?.kommunenummer,
+                                adressenavn = it?.adressenavn,
+                                husnummer = it?.husnummer,
+                                husbokstav = it?.husbokstav,
+                                postnummer = it?.postnummer,
+                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                    },
+            matrikkeladresse = this.hentPerson.oppholdsadresse.filter { it.matrikkeladresse != null }.map { it.matrikkeladresse }
+                    .map {
+                        Matrikkeladresse(kommunenummer = it?.kommunenummer,
+                                postnummer = it?.postnummer,
+                                bydelsnummer = it?.bydelsnummer,
+                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                    },
+            ukjentBosted = emptyList(),
+            utlendskAdresse = this.hentPerson.oppholdsadresse.filter { it.utenlandskAdresse != null }.map { it.utenlandskAdresse }
+                    .map {
+                        UtenlandskAdresse(
+                                adressenavnNummer = it?.adressenavnNummer,
+                                bygningEtasjeLeilighet = it?.bygningEtasjeLeilighet,
+                                postboksNummerNavn = it?.postboksNummerNavn,
+                                postkode = it?.postkode,
+                                bySted = it?.bySted,
+                                regionDistriktOmraade = it?.regionDistriktOmraade,
+                                landkode = it?.landkode
+                        )
+                    }
+    )
 }
 
 private fun Query.findAktoerId(): String {
@@ -244,29 +268,6 @@ private fun Query.findFolkeregisterIdent(): String {
         } else {
             hentIdenter.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT && !it.historisk }?.ident
                     ?: UKJENT_FRA_PDL
-        }
-    }
-}
-
-private fun Query.findAdressebeskyttelse(): AdressebeskyttelseGradering {
-    return this.hentPerson.adressebeskyttelse.let { list ->
-        if (list.isEmpty()) {
-            AdressebeskyttelseGradering.UGRADERT
-        } else {
-            list.firstOrNull { !it.metadata.historisk }?.let { AdressebeskyttelseGradering.valueOf(it.gradering.name) }
-                    ?: AdressebeskyttelseGradering.UGRADERT
-        }
-    }
-}
-
-private fun Query.findKjoenn(): KjoennType {
-    return this.hentPerson.kjoenn.let { kjoenn ->
-        if (kjoenn.isEmpty()) {
-            KjoennType.UKJENT
-        } else {
-            kjoenn.firstOrNull { !it.metadata.historisk }?.let {
-                KjoennType.valueOf(it.kjoenn.name)
-            } ?: KjoennType.UKJENT
         }
     }
 }
@@ -301,73 +302,6 @@ fun HentePerson.Bostedsadresse.UkjentBosted.findKommuneNummer(): Kommunenummer {
         workMetrics.invalidKommuneNummer.labels(this.bostedskommune).inc()
         return Kommunenummer.Invalid
     }
-}
-
-fun Query.findDoedsdato(): LocalDate? {
-    return this.hentPerson.doedsfall.firstOrNull { it.doedsdato != null }?.doedsdato
-}
-
-// fun String.regionOfKommuneNummer(): String {
-//    return if (this == UKJENT_FRA_PDL) this else this.substring(0, 2)
-// }
-
-fun Query.findNavn(): NavnBase {
-    return if (this.hentPerson.navn.isNullOrEmpty()) {
-        NavnBase.Ukjent()
-    } else {
-        this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == FREG && !it.metadata.historisk }?.let {
-            if (it.etternavn.isNotBlank() && it.fornavn.isNotBlank())
-                NavnBase.Freg(
-                        fornavn = it.fornavn,
-                        etternavn = it.etternavn,
-                        mellomnavn = it.mellomnavn.orEmpty()
-                )
-            else
-                NavnBase.Ukjent(
-                        fornavn = it.fornavn,
-                        etternavn = it.etternavn,
-                        mellomnavn = it.mellomnavn.orEmpty()
-                )
-        }
-                ?: this.hentPerson.navn.firstOrNull { it.metadata.master.toUpperCase() == PDL && !it.metadata.historisk }?.let {
-                    if (it.etternavn.isNotBlank() && it.fornavn.isNotBlank())
-                        NavnBase.Pdl(
-                                fornavn = it.fornavn,
-                                etternavn = it.etternavn,
-                                mellomnavn = it.mellomnavn.orEmpty()
-                        )
-                    else
-                        NavnBase.Ukjent(
-                                fornavn = it.fornavn,
-                                etternavn = it.etternavn,
-                                mellomnavn = it.mellomnavn.orEmpty()
-                        )
-                } ?: NavnBase.Ukjent()
-    }
-}
-
-sealed class NavnBase {
-    abstract val fornavn: String
-    abstract val mellomnavn: String
-    abstract val etternavn: String
-
-    data class Freg(
-        override val fornavn: String,
-        override val mellomnavn: String,
-        override val etternavn: String
-    ) : NavnBase()
-
-    data class Pdl(
-        override val fornavn: String,
-        override val mellomnavn: String,
-        override val etternavn: String
-    ) : NavnBase()
-
-    data class Ukjent(
-        override val fornavn: String = UKJENT_FRA_PDL,
-        override val mellomnavn: String = UKJENT_FRA_PDL,
-        override val etternavn: String = UKJENT_FRA_PDL
-    ) : NavnBase()
 }
 
 sealed class Kommunenummer {

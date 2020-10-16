@@ -335,7 +335,8 @@ internal fun work(ws: WorkSettings): Triple<WorkSettings, ExitReason, Cache.Exis
                             Pair<PersonProto.PersonKey, PersonProto.PersonValue?>(personBase.toPersonTombstoneProtoKey(), null)
                         }
                         is PersonSf -> {
-                            personBase.toPersonProto()
+                            return@consume KafkaConsumerStates.HasIssues // TODO remove
+                            // personBase.toPersonProto()
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
                     }

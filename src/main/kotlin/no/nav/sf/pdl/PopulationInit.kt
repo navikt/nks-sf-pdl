@@ -187,7 +187,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     return exitReason
 }
-
+/*
 fun PersonSf.measureKommune() {
     val kommuneLabel = if (this.kommunenummerFraGt == UKJENT_FRA_PDL) {
         UKJENT_FRA_PDL
@@ -198,3 +198,5 @@ fun PersonSf.measureKommune() {
     }
     workMetrics.kommune.labels(kommuneLabel).inc()
 }
+
+ */
