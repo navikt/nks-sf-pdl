@@ -201,7 +201,7 @@ private fun Query.findBostedsAdresse(): Adresser {
                     .map {
                         UkjentBosted(bostedskommune = it?.bostedskommune)
                     },
-            utlendskAdresse = this.hentPerson.bostedsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk}.map { it.utenlandskAdresse }
+            utlendskAdresse = this.hentPerson.bostedsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk }.map { it.utenlandskAdresse }
                     .map {
                         UtenlandskAdresse(
                                 adressenavnNummer = it?.adressenavnNummer,

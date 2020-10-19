@@ -68,14 +68,14 @@ enum class AdresseType {
 
 @Serializable
 data class FamilieRelasjon(
-    val relatertPersonsIdent: String,
-    val relatertPersonsRolle: String,
+    val relatertPersonsIdent: String?,
+    val relatertPersonsRolle: String?,
     val minRolleForPerson: String?
 )
 
 @Serializable
 data class UtflyttingFraNorge(
-    val tilflyttingsland: String,
+    val tilflyttingsland: String?,
     val tilflyttingsstedIUtlandet: String?
 )
 
@@ -110,32 +110,32 @@ sealed class Adresse {
 
 @Serializable
 data class Sikkerhetstiltak(
-    val beskrivelse: String,
-    val tiltaksType: String,
+    val beskrivelse: String?,
+    val tiltaksType: String?,
     @Serializable(with = IsoLocalDateSerializer::class)
     val gyldigFraOgMed: LocalDate?,
     @Serializable(with = IsoLocalDateSerializer::class)
     val gyldigTilOgMed: LocalDate?,
-    val kontaktpersonId: String,
-    val kontaktpersonEnhet: String
+    val kontaktpersonId: String?,
+    val kontaktpersonEnhet: String?
 )
 
 @Serializable
 data class Telefonnummer(
-    val landskode: String,
-    val nummer: String,
+    val landskode: String?,
+    val nummer: String?,
     val prioritet: Int
 )
 
 @Serializable
 data class InnflyttingTilNorge(
-    val fraflyttingsland: String,
+    val fraflyttingsland: String?,
     val fraflyttingsstedIUtlandet: String?
 )
 
 @Serializable
 data class Sivilstand(
-    val type: String,
+    val type: String?,
     @Serializable(with = IsoLocalDateSerializer::class)
     val gyldigFraOgMed: LocalDate?,
     val relatertVedSivilstand: String?
@@ -165,8 +165,6 @@ data class PersonSf(
     val kommunenummerFraGt: String?,
     val kommunenummerFraAdresse: String?,
     val kjoenn: List<String>,
-        // val region: String = "",
-        // val doed: Boolean,
     val doedsfall: List<Doedsfall>,
     val telefonnummer: List<Telefonnummer>,
     val utflyttingFraNorge: List<UtflyttingFraNorge>,
@@ -300,7 +298,7 @@ internal fun ByteArray.protobufSafeParseValue(): PersonValue = this.let { ba ->
 
 sealed class PersonBase {
     companion object {
-        private fun createPersonTombstone(key: ByteArray): PersonBase =
+        fun createPersonTombstone(key: ByteArray): PersonBase =
                 runCatching { PersonTombestone(PersonProto.PersonKey.parseFrom(key).aktoerId) }
                         .getOrDefault(PersonProtobufIssue)
 /*

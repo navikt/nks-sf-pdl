@@ -10,66 +10,53 @@ message PersonKey {
   string aktoer_id = 1;
 }
 
-// default value will be the one with 0
-enum Gradering {
-  UGRADERT = 0;
-  FORTROLIG = 1;
-  STRENGT_FORTROLIG = 2;
-  STRENGT_FORTROLIG_UTLAND = 3;
+message Navn {
+  string fornavn = 1;
+  string mellomnavn = 2;
+  string etternavn = 3;
 }
 
-enum Kjoenn {
-  MANN = 0;
-  KVINNE = 1;
-  UKJENT = 2;
+message Vegadresse {
+  string kommunenummer = 1;
+  string adressenavn = 2;
+  string husnummer = 3;
+  string husbokstav = 4;
+  string postnummer = 5;
+  string koordinater = 6;
 }
 
-enum AdresseType {
-    VEGADRESSE = 0;
-    UKJENTBOSTED = 1;
-    UTENLANDSADRESSE = 2;
+message Matrikkeladresse {
+  string kommunenummer = 1;
+  string postnummer = 2;
+    string bydelsnummer = 3;
+    string koordinater = 4;
 }
 
-enum FamilieRelasjonsRolle {
-    BARN = 0;
-    MOR = 1;
-    FAR = 2;
-    MORMOR = 3;
+message UkjentBosted {
+  string bostedskommune = 1;
 }
 
-enum SivilstandType {
-    UOPPGITT = 0;
-    UGIFT = 1;
-    GIFT = 2;
-    ENKE_ELLER_ENKEMANN = 3;
-    SKILT = 4;
-    SEPARERT = 5;
-    REGISTRERT_PARTNER = 6;
-    SEPARERT_PARTNER = 7;
-    SKILT_PARTNER = 8;
-    GJENLEVENDE_PARTNER = 9;
+message UtenlandskAdresse {
+  string adressenavnNummer = 1;
+  string bygningEtasjeLeilighet = 2;
+  string postboksNummerNavn = 3;
+  string postkode = 4;
+  string bySted = 5;
+  string regionDistriktOmraade = 6;
+  string landkode = 7;
 }
 
-enum Tiltakstype {
-    FYUS = 0;
-    TFUS = 1;
-    FTUS = 2;
-    TOAN = 3;
-  }
-
-message Adresse {
-    AdresseType type = 1;
-    string adresse = 2;
-    string postnummer = 3;
-    string kommunenummer = 4;
-    string bostedskommune = 5;
-    string landkode = 6;
+message Adresser {
+  repeated Vegadresse vegadresse = 1;
+  repeated Matrikkeladresse matrikkeladresse = 2;
+  repeated UtenlandskAdresse utenlandskAdresse = 3;
+  repeated UkjentBosted ukjentBosted = 4;
 }
 
 message Familierelasjon {
   string relatertPersonsIdent = 1;
-  FamilieRelasjonsRolle relatertPersonsRolle = 2;
-  FamilieRelasjonsRolle minRolleForPerson = 3;
+  string relatertPersonsRolle = 2;
+  string minRolleForPerson = 3;
 }
 
 message UtflyttingFraNorge {
@@ -84,15 +71,15 @@ message InnflyttingTilNorge {
 
 message Sikkerhetstiltak {
     string beskrivelse = 1;
-    Tiltakstype tiltakstype = 2;
+    string tiltakstype = 2;
     string gyldigFraOgMed = 3;
     string gyldigTilOgMed = 4;
-    string kontaktPersonId = 5;
-    string kontaktPersonEnhet = 6;
+    string kontaktpersonId = 5;
+    string kontaktpersonEnhet = 6;
 }
 
 message Sivilstand {
-  SivilstandType type = 1;
+  string type = 1;
   string gyldigFraOgMed = 2;
   string relatertVedSivilstand = 3;
 }
@@ -100,32 +87,31 @@ message Sivilstand {
 message Telefonnummer {
   string landkode = 1;
   string nummer = 2;
-  string prioritet = 3;
+  int32 prioritet = 3;
 }
 
 message Doedsfall {
     string doedsdato = 1;
+    string master = 2;
 }
 
 // this message will be the value part of kafka payload
 message PersonValue {
   // aktoerid will be placed as key
   string folkeregisterId = 1;
-  string fornavn = 2;
-  string mellomnavn = 3;
-  string etternavn = 4;
-  repeated Familierelasjon familierelasjoner = 5;
-  string folkeregisterpersonstatus = 6;
+  repeated Navn navn = 2;
+  repeated Familierelasjon familierelasjoner = 3;
+  repeated string folkeregisterpersonstatus = 4;
   repeated InnflyttingTilNorge innflyttingTilNorge = 7;
-  Gradering adressebeskyttelse = 8;
+  repeated string adressebeskyttelse = 8;
   repeated Sikkerhetstiltak sikkerhetstiltak = 9;
-  Adresse bostedsadresse = 10;
-  Adresse oppholdsadresse = 11;
-  string statsborgerskap = 12;
+  Adresser bostedsadresse = 10;
+  Adresser oppholdsadresse = 11;
+  repeated string statsborgerskap = 12;
   repeated Sivilstand sivilstand = 13;
   string kommunenummeFraGt = 14;
   string kommunenummeFraAdresse = 15;
-  Kjoenn kjoenn = 16;
+  repeated string kjoenn = 16;
   repeated Doedsfall doedsfall = 18;
   repeated Telefonnummer telefonnummer = 19;
   repeated UtflyttingFraNorge utflyttingFraNorge = 20;
