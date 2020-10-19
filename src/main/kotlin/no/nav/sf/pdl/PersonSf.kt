@@ -69,8 +69,8 @@ enum class AdresseType {
 @Serializable
 data class FamilieRelasjon(
     val relatertPersonsIdent: String,
-    val relatertPersonsRolle: FamilieRelasjonsRolle,
-    val minRolleForPerson: FamilieRelasjonsRolle?
+    val relatertPersonsRolle: String,
+    val minRolleForPerson: String?
 )
 
 @Serializable
@@ -111,7 +111,7 @@ sealed class Adresse {
 @Serializable
 data class Sikkerhetstiltak(
     val beskrivelse: String,
-    val tiltaksType: Tiltakstype,
+    val tiltaksType: String,
     @Serializable(with = IsoLocalDateSerializer::class)
     val gyldigFraOgMed: LocalDate?,
     @Serializable(with = IsoLocalDateSerializer::class)
@@ -135,7 +135,7 @@ data class InnflyttingTilNorge(
 
 @Serializable
 data class Sivilstand(
-    val type: Sivilstandstype,
+    val type: String,
     @Serializable(with = IsoLocalDateSerializer::class)
     val gyldigFraOgMed: LocalDate?,
     val relatertVedSivilstand: String?
@@ -156,7 +156,7 @@ data class PersonSf(
     val familierelasjoner: List<FamilieRelasjon>, // OK
     val folkeregisterpersonstatus: List<String>, // OK
     val innflyttingTilNorge: List<InnflyttingTilNorge>, // OK
-    val adressebeskyttelse: List<AdressebeskyttelseGradering>, // OK
+    val adressebeskyttelse: List<String>, // OK
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     val bostedsadresse: Adresser,
     val oppholdsadresse: Adresser,
