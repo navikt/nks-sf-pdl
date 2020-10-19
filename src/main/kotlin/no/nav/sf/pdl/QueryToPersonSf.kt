@@ -13,11 +13,11 @@ fun Query.toPersonSf(): PersonBase {
         PersonSf(
                 aktoerId = this.findAktoerId(), // ok first !historisk from idents
                 folkeregisterId = this.findFolkeregisterIdent(), // ok first !historisk from idents
-                navn = this.hentPerson.navn.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
+                navn = this.hentPerson.navn.filter { !it.metadata.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                 familierelasjoner = this.findFamilieRelasjoner(),
-                folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.map { it.status },
-                adressebeskyttelse = this.hentPerson.adressebeskyttelse.map { it.gradering }, // first !historisk
-                innflyttingTilNorge = this.hentPerson.innflyttingTilNorge.map {
+                folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.filter { !it.metadata.historisk }.map { it.status },
+                adressebeskyttelse = this.hentPerson.adressebeskyttelse.filter { !it.metadata.historisk }.map { it.gradering }, // first !historisk
+                innflyttingTilNorge = this.hentPerson.innflyttingTilNorge.filter { !it.metadata.historisk }.map {
                     InnflyttingTilNorge(fraflyttingsland = it.fraflyttingsland,
                             fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet)
                 },
@@ -34,9 +34,9 @@ fun Query.toPersonSf(): PersonBase {
                 },
                 kommunenummerFraGt = this.findGtKommunenummer(),
                 kommunenummerFraAdresse = this.findAdresseKommunenummer(),
-                kjoenn = this.hentPerson.kjoenn.map { it.kjoenn.name },
-                statsborgerskap = this.hentPerson.statsborgerskap.map { it.land },
-                sivilstand = this.hentPerson.sivilstand.map {
+                kjoenn = this.hentPerson.kjoenn.filter { !it.metadata.historisk }.map { it.kjoenn.name },
+                statsborgerskap = this.hentPerson.statsborgerskap.filter { !it.metadata.historisk }.map { it.land },
+                sivilstand = this.hentPerson.sivilstand.filter { !it.metadata.historisk }.map {
                     Sivilstand(type = Sivilstandstype.valueOf(it.type.name),
                             gyldigFraOgMed = it.gyldigFraOgMed,
                             relatertVedSivilstand = it.relatertVedSivilstand)
@@ -45,13 +45,13 @@ fun Query.toPersonSf(): PersonBase {
                         .map { hTnr ->
                             Telefonnummer(landskode = hTnr.landskode, nummer = hTnr.nummer, prioritet = hTnr.prioritet)
                         },
-                utflyttingFraNorge = this.hentPerson.utflyttingFraNorge.map {
+                utflyttingFraNorge = this.hentPerson.utflyttingFraNorge.filter { !it.metadata.historisk }.map {
                     UtflyttingFraNorge(tilflyttingsland = it.tilflyttingsland, tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet)
                 },
                 talesspraaktolk = this.hentPerson.tilrettelagtKommunikasjon.filter { it.talespraaktolk != null && !it.metadata.historisk && it.talespraaktolk.spraak != null }.map {
                     it.talespraaktolk?.spraak ?: ""
                 },
-                doedsfall = this.hentPerson.doedsfall.map { Doedsfall(doedsdato = it.doedsdato, master = it.metadata.master) } // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
+                doedsfall = this.hentPerson.doedsfall.filter { !it.metadata.historisk }.map { Doedsfall(doedsdato = it.doedsdato, master = it.metadata.master) } // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }
