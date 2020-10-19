@@ -16,7 +16,7 @@ fun Query.toPersonSf(): PersonBase {
                 navn = this.hentPerson.navn.filter { !it.metadata.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                 familierelasjoner = this.findFamilieRelasjoner(),
                 folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.filter { !it.metadata.historisk }.map { it.status },
-                adressebeskyttelse = this.hentPerson.adressebeskyttelse.filter { !it.metadata.historisk }.map { it.gradering }, // first !historisk
+                adressebeskyttelse = this.hentPerson.adressebeskyttelse.filter { !it.metadata.historisk }.map { it.gradering.toString() }, // first !historisk
                 innflyttingTilNorge = this.hentPerson.innflyttingTilNorge.filter { !it.metadata.historisk }.map {
                     InnflyttingTilNorge(fraflyttingsland = it.fraflyttingsland,
                             fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet)
@@ -25,7 +25,7 @@ fun Query.toPersonSf(): PersonBase {
                 oppholdsadresse = this.findOppholdsAdresse(), // TODO filter metadata.historisk på alla
                 sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.filter { !it.metadata.historisk }.map { hS ->
                     Sikkerhetstiltak(beskrivelse = hS.beskrivelse,
-                            tiltaksType = hS.tiltakstype,
+                            tiltaksType = hS.tiltakstype.toString(),
                             gyldigFraOgMed = hS.gyldigFraOgMed,
                             gyldigTilOgMed = hS.gyldigTilOgMed,
                             kontaktpersonId = hS.kontaktperson?.let { k -> k.personident } ?: UKJENT_FRA_PDL,
@@ -37,7 +37,7 @@ fun Query.toPersonSf(): PersonBase {
                 kjoenn = this.hentPerson.kjoenn.filter { !it.metadata.historisk }.map { it.kjoenn.name },
                 statsborgerskap = this.hentPerson.statsborgerskap.filter { !it.metadata.historisk }.map { it.land },
                 sivilstand = this.hentPerson.sivilstand.filter { !it.metadata.historisk }.map {
-                    Sivilstand(type = Sivilstandstype.valueOf(it.type.name),
+                    Sivilstand(type = Sivilstandstype.valueOf(it.type.name).toString(),
                             gyldigFraOgMed = it.gyldigFraOgMed,
                             relatertVedSivilstand = it.relatertVedSivilstand)
                 },
@@ -159,8 +159,8 @@ private fun Query.findFamilieRelasjoner(): List<FamilieRelasjon> {
     return this.hentPerson.familierelasjoner.filter { fr -> !fr.metadata.historisk }.map { fr ->
         FamilieRelasjon(
                 relatertPersonsIdent = fr.relatertPersonsIdent,
-                relatertPersonsRolle = fr.relatertPersonsRolle,
-                minRolleForPerson = fr.minRolleForPerson
+                relatertPersonsRolle = fr.relatertPersonsRolle.toString(),
+                minRolleForPerson = fr.minRolleForPerson.toString()
         )
     }
 }
