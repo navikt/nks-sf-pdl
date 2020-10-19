@@ -181,7 +181,7 @@ fun HentePerson.Oppholdsadresse.Koordinater.toKoordinaterString(): String? =
 
 private fun Query.findBostedsAdresse(): Adresser {
     return Adresser(
-            vegadresse = this.hentPerson.bostedsadresse.filter { it.vegadresse != null }.map { it.vegadresse }
+            vegadresse = this.hentPerson.bostedsadresse.filter { it.vegadresse != null && !it.metadata.historisk }.map { it.vegadresse }
                     .map {
                         Vegadresse(kommunenummer = it?.kommunenummer,
                                 adressenavn = it?.adressenavn,
@@ -190,18 +190,18 @@ private fun Query.findBostedsAdresse(): Adresser {
                                 postnummer = it?.postnummer,
                                 koordinater = it?.koordinater?.let { it.toKoordinaterString() })
                     },
-            matrikkeladresse = this.hentPerson.bostedsadresse.filter { it.matrikkeladresse != null }.map { it.matrikkeladresse }
+            matrikkeladresse = this.hentPerson.bostedsadresse.filter { it.matrikkeladresse != null && !it.metadata.historisk }.map { it.matrikkeladresse }
                     .map {
                         Matrikkeladresse(kommunenummer = it?.kommunenummer,
                                 postnummer = it?.postnummer,
                                 bydelsnummer = it?.bydelsnummer,
                                 koordinater = it?.koordinater?.let { it.toKoordinaterString() })
                     },
-            ukjentBosted = this.hentPerson.bostedsadresse.filter { it.ukjentBosted != null }.map { it.ukjentBosted }
+            ukjentBosted = this.hentPerson.bostedsadresse.filter { it.ukjentBosted != null && !it.metadata.historisk }.map { it.ukjentBosted }
                     .map {
                         UkjentBosted(bostedskommune = it?.bostedskommune)
                     },
-            utlendskAdresse = this.hentPerson.bostedsadresse.filter { it.utenlandskAdresse != null }.map { it.utenlandskAdresse }
+            utlendskAdresse = this.hentPerson.bostedsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk}.map { it.utenlandskAdresse }
                     .map {
                         UtenlandskAdresse(
                                 adressenavnNummer = it?.adressenavnNummer,
@@ -218,7 +218,7 @@ private fun Query.findBostedsAdresse(): Adresser {
 
 private fun Query.findOppholdsAdresse(): Adresser {
     return Adresser(
-            vegadresse = this.hentPerson.oppholdsadresse.filter { it.vegadresse != null }.map { it.vegadresse }
+            vegadresse = this.hentPerson.oppholdsadresse.filter { it.vegadresse != null && !it.metadata.historisk }.map { it.vegadresse }
                     .map {
                         Vegadresse(kommunenummer = it?.kommunenummer,
                                 adressenavn = it?.adressenavn,
@@ -227,7 +227,7 @@ private fun Query.findOppholdsAdresse(): Adresser {
                                 postnummer = it?.postnummer,
                                 koordinater = it?.koordinater?.let { it.toKoordinaterString() })
                     },
-            matrikkeladresse = this.hentPerson.oppholdsadresse.filter { it.matrikkeladresse != null }.map { it.matrikkeladresse }
+            matrikkeladresse = this.hentPerson.oppholdsadresse.filter { it.matrikkeladresse != null && !it.metadata.historisk }.map { it.matrikkeladresse }
                     .map {
                         Matrikkeladresse(kommunenummer = it?.kommunenummer,
                                 postnummer = it?.postnummer,
@@ -235,7 +235,7 @@ private fun Query.findOppholdsAdresse(): Adresser {
                                 koordinater = it?.koordinater?.let { it.toKoordinaterString() })
                     },
             ukjentBosted = emptyList(),
-            utlendskAdresse = this.hentPerson.oppholdsadresse.filter { it.utenlandskAdresse != null }.map { it.utenlandskAdresse }
+            utlendskAdresse = this.hentPerson.oppholdsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk }.map { it.utenlandskAdresse }
                     .map {
                         UtenlandskAdresse(
                                 adressenavnNummer = it?.adressenavnNummer,
