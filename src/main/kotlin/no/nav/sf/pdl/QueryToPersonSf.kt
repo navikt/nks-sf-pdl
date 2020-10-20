@@ -34,6 +34,8 @@ fun Query.toPersonSf(): PersonBase {
                 },
                 kommunenummerFraGt = this.findGtKommunenummer(),
                 kommunenummerFraAdresse = this.findAdresseKommunenummer(),
+                bydelsnummerFraGt = this.findGtBydelsnummer(),
+                bydelsnummerFraAdresse = this.findAdresseBydelsnummer(),
                 kjoenn = this.hentPerson.kjoenn.filter { !it.metadata.historisk }.map { it.kjoenn.name },
                 statsborgerskap = this.hentPerson.statsborgerskap.filter { !it.metadata.historisk }.map { it.land },
                 sivilstand = this.hentPerson.sivilstand.filter { !it.metadata.historisk }.map {
@@ -113,6 +115,14 @@ private fun Query.findGtKommunenummer(): String {
     }
 }
 
+private fun Query.findGtBydelsnummer(): String =
+    this.hentPerson.geografiskTilknytning?.let { gt -> // Not really a Kommunenummer
+                if (!gt.gtBydel.isNullOrEmpty()) {
+                    gt.gtBydel ?: ""
+                } else {
+                    UKJENT_FRA_PDL
+                } } ?: UKJENT_FRA_PDL
+
 fun Query.findAdresseKommunenummer(): String {
     return this.hentPerson.bostedsadresse.let { bostedsadresse ->
         if (bostedsadresse.isNullOrEmpty()) {
@@ -141,14 +151,20 @@ fun Query.findAdresseKommunenummer(): String {
     }
 }
 
-private fun Query.findStatsborgerskap(): String {
-    return this.hentPerson.statsborgerskap.let { statsborgerskap ->
-        if (statsborgerskap.isEmpty()) {
+fun Query.findAdresseBydelsnummer(): String {
+    return this.hentPerson.bostedsadresse.let { bostedsadresse ->
+        if (bostedsadresse.isNullOrEmpty()) {
             UKJENT_FRA_PDL
         } else {
-            statsborgerskap.joinToString {
-                "${it.land}"
-            }
+            bostedsadresse.firstOrNull { !it.metadata.historisk }?.let {
+                it.vegadresse?.let { vegadresse ->
+                    vegadresse.bydelsnummer ?: UKJENT_FRA_PDL
+                } ?: it.matrikkeladresse?.let { matrikkeladresse ->
+                    matrikkeladresse.bydelsnummer ?: UKJENT_FRA_PDL
+                } ?: it.ukjentBosted?.let {
+                    UKJENT_FRA_PDL
+                }
+            } ?: UKJENT_FRA_PDL
         }
     }
 }
@@ -186,6 +202,7 @@ private fun Query.findBostedsAdresse(): Adresser {
                                 husnummer = it?.husnummer,
                                 husbokstav = it?.husbokstav,
                                 postnummer = it?.postnummer,
+                                bydelsnummer = it?.bydelsnummer,
                                 koordinater = it?.koordinater?.toKoordinaterString())
                     },
             matrikkeladresse = this.hentPerson.bostedsadresse.filter { it.matrikkeladresse != null && !it.metadata.historisk }.map { it.matrikkeladresse }
@@ -223,6 +240,7 @@ private fun Query.findOppholdsAdresse(): Adresser {
                                 husnummer = it?.husnummer,
                                 husbokstav = it?.husbokstav,
                                 postnummer = it?.postnummer,
+                                bydelsnummer = it?.bydelsnummer,
                                 koordinater = it?.koordinater?.toKoordinaterString())
                     },
             matrikkeladresse = this.hentPerson.oppholdsadresse.filter { it.matrikkeladresse != null && !it.metadata.historisk }.map { it.matrikkeladresse }

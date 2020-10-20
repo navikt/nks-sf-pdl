@@ -136,6 +136,7 @@ data class HentePerson(
             val husnummer: String?,
             val husbokstav: String?,
             val postnummer: String?,
+            val bydelsnummer: String?,
             val koordinater: Koordinater? = null
         )
 
@@ -186,6 +187,7 @@ data class HentePerson(
             val husnummer: String?,
             val husbokstav: String?,
             val postnummer: String?,
+            val bydelsnummer: String?,
             val koordinater: Koordinater? = null
         )
 

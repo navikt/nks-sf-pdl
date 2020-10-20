@@ -25,8 +25,8 @@ class WorkTests : StringSpec() {
             val query3 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(QUERY_JSON3))
 
             query1.toPersonSf() shouldBe PersonBase
-            //query2.toPersonSf() shouldBe PersonBase
-            //query3.toPersonSf() shouldBe PersonBase
+            // query2.toPersonSf() shouldBe PersonBase
+            // query3.toPersonSf() shouldBe PersonBase
         }
 
         /*

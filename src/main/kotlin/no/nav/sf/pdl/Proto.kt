@@ -64,6 +64,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                             husnummer = it.husnummer ?: ""
                             husbokstav = it.husbokstav ?: ""
                             postnummer = it.postnummer ?: ""
+                            bydelsnummer = it.bydelsnummer ?: ""
                             koordinater = it.koordinater ?: ""
                         })
                     }
@@ -101,6 +102,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                             husnummer = it.husnummer ?: ""
                             husbokstav = it.husbokstav ?: ""
                             postnummer = it.postnummer ?: ""
+                            bydelsnummer = it.bydelsnummer ?: ""
                             koordinater = it.koordinater ?: ""
                         })
                     }
@@ -140,9 +142,13 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                     })
                 }
 
-                kommunenummeFraGt = it.kommunenummerFraGt
+                kommunenummerFraGt = it.kommunenummerFraGt
 
-                kommunenummeFraAdresse = it.kommunenummerFraAdresse
+                bydelsnummerFraGt = it.bydelsnummerFraGt
+
+                kommunenummerFraAdresse = it.kommunenummerFraAdresse
+
+                bydelsnummerFraAdresse = it.bydelsnummerFraAdresse
 
                 it.kjoenn.forEach {
                     addKjoenn(it ?: "")
@@ -222,6 +228,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                             husnummer = it.husnummer.stringOrNull(),
                                             husbokstav = it.husbokstav.stringOrNull(),
                                             postnummer = it.postnummer.stringOrNull(),
+                                            bydelsnummer = it.bydelsnummer.stringOrNull(),
                                             koordinater = it.koordinater.stringOrNull()
                                     )
                                 },
@@ -256,6 +263,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                             husnummer = it.husnummer.stringOrNull(),
                                             husbokstav = it.husbokstav.stringOrNull(),
                                             postnummer = it.postnummer.stringOrNull(),
+                                            bydelsnummer = it.bydelsnummer.stringOrNull(),
                                             koordinater = it.koordinater.stringOrNull()
                                     )
                                 },
@@ -290,8 +298,10 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                     relatertVedSivilstand = it.relatertVedSivilstand.stringOrNull()
                             )
                         },
-                        kommunenummerFraGt = v.kommunenummeFraGt.stringOrNull(),
-                        kommunenummerFraAdresse = v.kommunenummeFraAdresse.stringOrNull(),
+                        kommunenummerFraGt = v.kommunenummerFraGt.stringOrNull(),
+                        bydelsnummerFraGt = v.bydelsnummerFraGt.stringOrNull(),
+                        kommunenummerFraAdresse = v.kommunenummerFraAdresse.stringOrNull(),
+                        bydelsnummerFraAdresse = v.bydelsnummerFraAdresse.stringOrNull(),
                         kjoenn = v.kjoennList,
                         doedsfall = v.doedsfallList.map {
                             Doedsfall(

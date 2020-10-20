@@ -33,6 +33,7 @@ data class Vegadresse(
     val husnummer: String?,
     val husbokstav: String?,
     val postnummer: String?,
+    val bydelsnummer: String?,
     val koordinater: String?
 )
 
@@ -164,6 +165,8 @@ data class PersonSf(
     val sivilstand: List<Sivilstand>,
     val kommunenummerFraGt: String?,
     val kommunenummerFraAdresse: String?,
+    val bydelsnummerFraGt: String?,
+    val bydelsnummerFraAdresse: String?,
     val kjoenn: List<String>,
     val doedsfall: List<Doedsfall>,
     val telefonnummer: List<Telefonnummer>,
