@@ -22,7 +22,7 @@ fun Query.toPersonSf(): PersonBase {
                             fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet)
                 },
                 bostedsadresse = this.findBostedsAdresse(),
-                oppholdsadresse = this.findOppholdsAdresse(), // TODO filter metadata.historisk på alla
+                oppholdsadresse = this.findOppholdsAdresse(),
                 sikkerhetstiltak = this.hentPerson.sikkerhetstiltak.filter { !it.metadata.historisk }.map { hS ->
                     Sikkerhetstiltak(beskrivelse = hS.beskrivelse,
                             tiltaksType = hS.tiltakstype.toString(),
@@ -37,7 +37,7 @@ fun Query.toPersonSf(): PersonBase {
                 bydelsnummerFraGt = this.findGtBydelsnummer(),
                 bydelsnummerFraAdresse = this.findAdresseBydelsnummer(),
                 kjoenn = this.hentPerson.kjoenn.filter { !it.metadata.historisk }.map { it.kjoenn.name },
-                statsborgerskap = this.hentPerson.statsborgerskap.filter { !it.metadata.historisk }.map { it.land },
+                statsborgerskap = this.hentPerson.statsborgerskap.filter { !it.metadata.historisk && it.land != null }.map { it.land?:"" },
                 sivilstand = this.hentPerson.sivilstand.filter { !it.metadata.historisk }.map {
                     Sivilstand(type = Sivilstandstype.valueOf(it.type.name).toString(),
                             gyldigFraOgMed = it.gyldigFraOgMed,
@@ -216,7 +216,7 @@ private fun Query.findBostedsAdresse(): Adresser {
                     .map {
                         UkjentBosted(bostedskommune = it?.bostedskommune)
                     },
-            utlendskAdresse = this.hentPerson.bostedsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk }.map { it.utenlandskAdresse }
+            utenlandskAdresse = this.hentPerson.bostedsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk }.map { it.utenlandskAdresse }
                     .map {
                         UtenlandskAdresse(
                                 adressenavnNummer = it?.adressenavnNummer,
@@ -251,7 +251,7 @@ private fun Query.findOppholdsAdresse(): Adresser {
                                 koordinater = it?.koordinater?.toKoordinaterString())
                     },
             ukjentBosted = emptyList(),
-            utlendskAdresse = this.hentPerson.oppholdsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk }.map { it.utenlandskAdresse }
+            utenlandskAdresse = this.hentPerson.oppholdsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk }.map { it.utenlandskAdresse }
                     .map {
                         UtenlandskAdresse(
                                 adressenavnNummer = it?.adressenavnNummer,

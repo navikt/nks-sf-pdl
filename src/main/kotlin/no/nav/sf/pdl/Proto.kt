@@ -81,7 +81,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                             bostedskommune = it.bostedskommune ?: ""
                         })
                     }
-                    it.bostedsadresse.utlendskAdresse.forEach {
+                    it.bostedsadresse.utenlandskAdresse.forEach {
                         addUtenlandskAdresse(PersonProto.UtenlandskAdresse.newBuilder().apply {
                             adressenavnNummer = it.adressenavnNummer ?: ""
                             bygningEtasjeLeilighet = it.bygningEtasjeLeilighet ?: ""
@@ -119,7 +119,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                             bostedskommune = it.bostedskommune ?: ""
                         })
                     }
-                    it.oppholdsadresse.utlendskAdresse.forEach {
+                    it.oppholdsadresse.utenlandskAdresse.forEach {
                         addUtenlandskAdresse(PersonProto.UtenlandskAdresse.newBuilder().apply {
                             adressenavnNummer = it.adressenavnNummer ?: ""
                             bygningEtasjeLeilighet = it.bygningEtasjeLeilighet ?: ""
@@ -243,7 +243,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                 ukjentBosted = v.bostedsadresse.ukjentBostedList.map {
                                     UkjentBosted(bostedskommune = it.bostedskommune.stringOrNull())
                                 },
-                                utlendskAdresse = v.bostedsadresse.utenlandskAdresseList.map {
+                                utenlandskAdresse = v.bostedsadresse.utenlandskAdresseList.map {
                                     UtenlandskAdresse(
                                             adressenavnNummer = it.adressenavnNummer.stringOrNull(),
                                             bygningEtasjeLeilighet = it.bygningEtasjeLeilighet.stringOrNull(),
@@ -278,7 +278,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                 ukjentBosted = v.oppholdsadresse.ukjentBostedList.map {
                                     UkjentBosted(bostedskommune = it.bostedskommune.stringOrNull())
                                 },
-                                utlendskAdresse = v.oppholdsadresse.utenlandskAdresseList.map {
+                                utenlandskAdresse = v.oppholdsadresse.utenlandskAdresseList.map {
                                     UtenlandskAdresse(
                                             adressenavnNummer = it.adressenavnNummer.stringOrNull(),
                                             bygningEtasjeLeilighet = it.bygningEtasjeLeilighet.stringOrNull(),

@@ -22,7 +22,7 @@ data class Navn(
 data class Adresser(
     val vegadresse: List<Vegadresse>,
     val matrikkeladresse: List<Matrikkeladresse>,
-    val utlendskAdresse: List<UtenlandskAdresse>,
+    val utenlandskAdresse: List<UtenlandskAdresse>,
     val ukjentBosted: List<UkjentBosted>
 )
 
@@ -161,7 +161,7 @@ data class PersonSf(
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     val bostedsadresse: Adresser,
     val oppholdsadresse: Adresser,
-    val statsborgerskap: List<String?>,
+    val statsborgerskap: List<String>,
     val sivilstand: List<Sivilstand>,
     val kommunenummerFraGt: String?,
     val kommunenummerFraAdresse: String?,
