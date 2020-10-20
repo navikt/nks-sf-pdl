@@ -22,14 +22,15 @@ message Vegadresse {
   string husnummer = 3;
   string husbokstav = 4;
   string postnummer = 5;
-  string koordinater = 6;
+  string bydelsnummer = 6;
+  string koordinater = 7;
 }
 
 message Matrikkeladresse {
   string kommunenummer = 1;
   string postnummer = 2;
-    string bydelsnummer = 3;
-    string koordinater = 4;
+  string bydelsnummer = 3;
+  string koordinater = 4;
 }
 
 message UkjentBosted {
@@ -102,18 +103,20 @@ message PersonValue {
   repeated Navn navn = 2;
   repeated Familierelasjon familierelasjoner = 3;
   repeated string folkeregisterpersonstatus = 4;
-  repeated InnflyttingTilNorge innflyttingTilNorge = 7;
-  repeated string adressebeskyttelse = 8;
-  repeated Sikkerhetstiltak sikkerhetstiltak = 9;
-  Adresser bostedsadresse = 10;
-  Adresser oppholdsadresse = 11;
-  repeated string statsborgerskap = 12;
-  repeated Sivilstand sivilstand = 13;
-  string kommunenummeFraGt = 14;
-  string kommunenummeFraAdresse = 15;
+  repeated InnflyttingTilNorge innflyttingTilNorge = 5;
+  repeated string adressebeskyttelse = 6;
+  repeated Sikkerhetstiltak sikkerhetstiltak = 7;
+  Adresser bostedsadresse = 8;
+  Adresser oppholdsadresse = 9;
+  repeated string statsborgerskap = 10;
+  repeated Sivilstand sivilstand = 11;
+  string kommunenummerFraGt = 12;
+  string bydelsnummerFraGt = 13;
+  string kommunenummerFraAdresse = 14;
+  string bydelsnummerFraAdresse = 15;
   repeated string kjoenn = 16;
-  repeated Doedsfall doedsfall = 18;
-  repeated Telefonnummer telefonnummer = 19;
-  repeated UtflyttingFraNorge utflyttingFraNorge = 20;
-  repeated string talesspraaktolk = 21;
+  repeated Doedsfall doedsfall = 17;
+  repeated Telefonnummer telefonnummer = 18;
+  repeated UtflyttingFraNorge utflyttingFraNorge = 19;
+  repeated string talesspraaktolk = 20;
 }
