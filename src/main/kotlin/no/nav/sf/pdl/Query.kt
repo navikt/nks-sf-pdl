@@ -136,7 +136,7 @@ data class HentePerson(
             val husnummer: String?,
             val husbokstav: String?,
             val postnummer: String?,
-            val koordinater: Koordinater?
+            val koordinater: Koordinater? = null
         )
 
         @Serializable
@@ -151,7 +151,7 @@ data class HentePerson(
             val kommunenummer: String?,
             val postnummer: String?,
             val bydelsnummer: String?,
-            val koordinater: Koordinater
+            val koordinater: Koordinater?
         )
 
         @Serializable
@@ -173,7 +173,7 @@ data class HentePerson(
 
     @Serializable
     data class Oppholdsadresse(
-        val vegadresse: Vegadresse?,
+        val vegadresse: Vegadresse? = null,
         val utenlandskAdresse: UtenlandskAdresse?, // utenlandskAdresse
         val matrikkeladresse: Matrikkeladresse?,
         val oppholdAnnetSted: String?,
@@ -186,7 +186,7 @@ data class HentePerson(
             val husnummer: String?,
             val husbokstav: String?,
             val postnummer: String?,
-            val koordinater: Koordinater?
+            val koordinater: Koordinater? = null
         )
 
         @Serializable
@@ -194,7 +194,7 @@ data class HentePerson(
             val kommunenummer: String?,
             val postnummer: String?,
             val bydelsnummer: String?,
-            val koordinater: Bostedsadresse.Koordinater
+            val koordinater: Bostedsadresse.Koordinater?
         )
 
         @Serializable
@@ -210,9 +210,9 @@ data class HentePerson(
 
         @Serializable
         data class Koordinater(
-            val x: Float?,
-            val y: Float?,
-            val z: Float?
+            val x: Float? = null,
+            val y: Float? = null,
+            val z: Float? = null
         )
     }
 

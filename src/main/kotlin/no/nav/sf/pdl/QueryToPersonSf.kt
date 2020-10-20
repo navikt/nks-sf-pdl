@@ -28,8 +28,8 @@ fun Query.toPersonSf(): PersonBase {
                             tiltaksType = hS.tiltakstype.toString(),
                             gyldigFraOgMed = hS.gyldigFraOgMed,
                             gyldigTilOgMed = hS.gyldigTilOgMed,
-                            kontaktpersonId = hS.kontaktperson?.let { k -> k.personident } ?: UKJENT_FRA_PDL,
-                            kontaktpersonEnhet = hS.kontaktperson?.let { k -> k.enhet } ?: UKJENT_FRA_PDL
+                            kontaktpersonId = hS.kontaktperson?.personident ?: UKJENT_FRA_PDL,
+                            kontaktpersonEnhet = hS.kontaktperson?.enhet ?: UKJENT_FRA_PDL
                     )
                 },
                 kommunenummerFraGt = this.findGtKommunenummer(),
@@ -63,9 +63,7 @@ private fun Query.findFolkeregisterPersonStatus(): String {
         if (folkeRegisterPersonStatus.isEmpty()) {
             UKJENT_FRA_PDL
         } else {
-            folkeRegisterPersonStatus.firstOrNull { !it.metadata.historisk }?.let { folkeRegisterPersonStatus ->
-                folkeRegisterPersonStatus.status
-            } ?: UKJENT_FRA_PDL
+            folkeRegisterPersonStatus.firstOrNull { !it.metadata.historisk }?.status ?: UKJENT_FRA_PDL
         }
     }
 }
@@ -188,14 +186,14 @@ private fun Query.findBostedsAdresse(): Adresser {
                                 husnummer = it?.husnummer,
                                 husbokstav = it?.husbokstav,
                                 postnummer = it?.postnummer,
-                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                                koordinater = it?.koordinater?.toKoordinaterString())
                     },
             matrikkeladresse = this.hentPerson.bostedsadresse.filter { it.matrikkeladresse != null && !it.metadata.historisk }.map { it.matrikkeladresse }
                     .map {
                         Matrikkeladresse(kommunenummer = it?.kommunenummer,
                                 postnummer = it?.postnummer,
                                 bydelsnummer = it?.bydelsnummer,
-                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                                koordinater = it?.koordinater?.toKoordinaterString())
                     },
             ukjentBosted = this.hentPerson.bostedsadresse.filter { it.ukjentBosted != null && !it.metadata.historisk }.map { it.ukjentBosted }
                     .map {
@@ -225,14 +223,14 @@ private fun Query.findOppholdsAdresse(): Adresser {
                                 husnummer = it?.husnummer,
                                 husbokstav = it?.husbokstav,
                                 postnummer = it?.postnummer,
-                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                                koordinater = it?.koordinater?.toKoordinaterString())
                     },
             matrikkeladresse = this.hentPerson.oppholdsadresse.filter { it.matrikkeladresse != null && !it.metadata.historisk }.map { it.matrikkeladresse }
                     .map {
                         Matrikkeladresse(kommunenummer = it?.kommunenummer,
                                 postnummer = it?.postnummer,
                                 bydelsnummer = it?.bydelsnummer,
-                                koordinater = it?.koordinater?.let { it.toKoordinaterString() })
+                                koordinater = it?.koordinater?.toKoordinaterString())
                     },
             ukjentBosted = emptyList(),
             utlendskAdresse = this.hentPerson.oppholdsadresse.filter { it.utenlandskAdresse != null && !it.metadata.historisk }.map { it.utenlandskAdresse }

@@ -8,10 +8,12 @@
           "adressenavn": "",
           "husnummer": "",
           "husbokstav": null,
-          "postnummer": ""
+          "postnummer": "",
+          "koordinater": null
         },
         "matrikkeladresse": null,
         "ukjentBosted": null,
+        "utenlandskAdresse": null,
         "metadata": {
           "historisk": false,
           "master": "Freg"
@@ -25,9 +27,12 @@
           "adressenavn": "",
           "husnummer": "",
           "husbokstav": "",
-          "postnummer": ""
+          "postnummer": "",
+          "koordinater": null
         },
-        "utenlandsAdresse": {
+        "oppholdAnnetSted": null,
+        "matrikkeladresse": null,
+        "utenlandskAdresse": {
           "adressenavnNummer": null,
           "bygningEtasjeLeilighet": null,
           "postboksNummerNavn": null,
