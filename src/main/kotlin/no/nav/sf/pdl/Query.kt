@@ -125,7 +125,7 @@ data class HentePerson(
     data class Bostedsadresse(
         val vegadresse: Vegadresse?,
         val matrikkeladresse: Matrikkeladresse?,
-        val utenlandskAdresse: UtenlandskAdresse?,
+        val utenlandskAdresse: UtenlandskAdresse? = null,
         val ukjentBosted: UkjentBosted?,
         val metadata: Metadata
     ) {
@@ -136,7 +136,7 @@ data class HentePerson(
             val husnummer: String?,
             val husbokstav: String?,
             val postnummer: String?,
-            val bydelsnummer: String?,
+            val bydelsnummer: String? = null,
             val koordinater: Koordinater? = null
         )
 
@@ -149,10 +149,10 @@ data class HentePerson(
 
         @Serializable
         data class Matrikkeladresse(
-            val kommunenummer: String?,
-            val postnummer: String?,
-            val bydelsnummer: String?,
-            val koordinater: Koordinater?
+            val kommunenummer: String? = null,
+            val postnummer: String? = null,
+            val bydelsnummer: String? = null,
+            val koordinater: Koordinater? = null
         )
 
         @Serializable
@@ -175,19 +175,19 @@ data class HentePerson(
     @Serializable
     data class Oppholdsadresse(
         val vegadresse: Vegadresse? = null,
-        val utenlandskAdresse: UtenlandskAdresse?, // utenlandskAdresse
-        val matrikkeladresse: Matrikkeladresse?,
-        val oppholdAnnetSted: String?,
+        val utenlandskAdresse: UtenlandskAdresse? = null, // utenlandskAdresse
+        val matrikkeladresse: Matrikkeladresse? = null,
+        val oppholdAnnetSted: String? = null,
         val metadata: Metadata
     ) {
         @Serializable
         data class Vegadresse(
-            val kommunenummer: String?,
-            val adressenavn: String?,
-            val husnummer: String?,
-            val husbokstav: String?,
-            val postnummer: String?,
-            val bydelsnummer: String?,
+            val kommunenummer: String? = null,
+            val adressenavn: String? = null,
+            val husnummer: String? = null,
+            val husbokstav: String? = null,
+            val postnummer: String? = null,
+            val bydelsnummer: String? = null,
             val koordinater: Koordinater? = null
         )
 

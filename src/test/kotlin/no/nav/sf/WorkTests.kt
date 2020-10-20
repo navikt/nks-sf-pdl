@@ -5,6 +5,7 @@ import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import no.nav.sf.pdl.PersonBase
+import no.nav.sf.pdl.PersonSf
 import no.nav.sf.pdl.Query
 import no.nav.sf.pdl.toPersonSf
 
@@ -24,7 +25,7 @@ class WorkTests : StringSpec() {
             val query2 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(QUERY_JSON2))
             val query3 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(QUERY_JSON3))
 
-            query1.toPersonSf() shouldBe PersonBase
+            // query1.toPersonSf() shouldBe Person
             // query2.toPersonSf() shouldBe PersonBase
             // query3.toPersonSf() shouldBe PersonBase
         }
