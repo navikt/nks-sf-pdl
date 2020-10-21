@@ -37,7 +37,7 @@ fun Query.toPersonSf(): PersonBase {
                 bydelsnummerFraGt = this.findGtBydelsnummer(),
                 bydelsnummerFraAdresse = this.findAdresseBydelsnummer(),
                 kjoenn = this.hentPerson.kjoenn.filter { !it.metadata.historisk }.map { it.kjoenn.name },
-                statsborgerskap = this.hentPerson.statsborgerskap.filter { !it.metadata.historisk && it.land != null }.map { it.land?:"" },
+                statsborgerskap = this.hentPerson.statsborgerskap.filter { !it.metadata.historisk && it.land != null }.map { it.land ?: "" },
                 sivilstand = this.hentPerson.sivilstand.filter { !it.metadata.historisk }.map {
                     Sivilstand(type = Sivilstandstype.valueOf(it.type.name).toString(),
                             gyldigFraOgMed = it.gyldigFraOgMed,

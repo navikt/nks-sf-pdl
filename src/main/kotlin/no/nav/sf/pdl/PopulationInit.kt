@@ -3,12 +3,15 @@ package no.nav.sf.pdl
 import kotlin.streams.toList
 import mu.KotlinLogging
 import no.nav.sf.library.AKafkaConsumer
+import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
+import no.nav.sf.library.send
+import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 private val log = KotlinLogging.logger {}
 
-internal fun parsePdlJson(cr: ConsumerRecord<String, String?>): PersonBase {
+internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase {
     if (cr.value() == null) {
         workMetrics.noOfInitialTombestone.inc()
         return PersonTombestone(aktoerId = cr.key())
@@ -41,16 +44,15 @@ internal fun parsePdlJson(cr: ConsumerRecord<String, String?>): PersonBase {
 }
 
 fun List<Pair<String, PersonBase>>.isValid(): Boolean {
-    return filterIsInstance<PersonInvalid>().isEmpty()
+    return this.filterIsInstance<PersonInvalid>().isEmpty()
 }
 
 var heartBeatConsumer: Int = 0
 
 internal fun initLoadTest(ws: WorkSettings) {
-    workMetrics.clearAll()
-    log.info { "Init test run commence..." }
+    workMetrics.initRecordsParsedTest.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdl,
+            config = ws.kafkaConsumerPdlAlternative,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )
@@ -62,11 +64,12 @@ internal fun initLoadTest(ws: WorkSettings) {
 
         workMetrics.initRecordsParsedTest.inc(cRecords.count().toDouble())
         cRecords.forEach { cr -> resultListTest.add(cr.key()) }
-        if (heartBeatConsumer == 0) {
-            log.info { "Test phase Successfully consumed a batch (This is prompted 100000th consume batch)" }
-        }
-        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
 
+        if (heartBeatConsumer == 0) {
+            log.debug { "Investigate Test phase Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
+        }
+
+        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
         KafkaConsumerStates.IsOk
     }
     heartBeatConsumer = 0
@@ -74,26 +77,14 @@ internal fun initLoadTest(ws: WorkSettings) {
     log.info { "Init test run : Total records from topic: ${resultListTest.size}" }
     workMetrics.initRecordsParsedTest.set(resultListTest.size.toDouble())
     log.info { "Init test run : Total unique records from topic: ${resultListTest.stream().distinct().toList().size}" }
-    heartBeatConsumer = 0
 }
 
 internal fun initLoad(ws: WorkSettings): ExitReason {
-    // initLoadTest(ws)
+    workMetrics.clearAll()
 
-    // workMetrics.clearAll()
+    log.info { "Init: Commencing reading all records on topic $kafkaPDLTopic" }
 
-    /*
-    if (ws.filter is FilterBase.Missing) {
-        log.warn { "initLoad - No filter for activities, leaving" }
-        return ExitReason.NoFilter
-    }
-    val filter = ws.filter as FilterBase.Exists
-
-     */
-
-    log.info { "Commencing reading all records on topic $kafkaPDLTopic" }
-
-    val resultList: MutableList<Pair<String, PersonBase>> = mutableListOf()
+    val resultList: MutableList<Pair<ByteArray, ByteArray?>> = mutableListOf()
 
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerPdl,
@@ -101,102 +92,96 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             fromBeginning = true
     )
 
+    var initParseBatchOk = true
     kafkaConsumerPdl.consume { cRecords ->
         if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
-
-        workMetrics.initRecordsParsed.inc(cRecords.count().toDouble())
-        cRecords.forEach { cr -> resultList.add(Pair(cr.key(), parsePdlJson(cr))) }
+        val parsedBatch: MutableList<Pair<String, PersonBase>> = mutableListOf()
+        cRecords.forEach { cr -> parsedBatch.add(Pair(cr.key(), parsePdlJsonOnInit(cr))) }
         if (heartBeatConsumer == 0) {
-            log.debug { "Successfully consumed a batch (This is prompted 100000th consume batch)" }
+            log.info { "Init: Successfully consumed a batch (This is prompted first and each 100000th consume batch) Batch size: ${parsedBatch.size}" }
         }
         heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
 
-        KafkaConsumerStates.IsOk
+        if (parsedBatch.isValid()) {
+            // TODO Any statistics checks on person values from topic (before distinct/latest per key) can be added here:
+            workMetrics.initRecordsParsed.inc(cRecords.count().toDouble())
+            parsedBatch.map {
+                when (val personBase = it.second) {
+                    is PersonTombestone -> {
+                        resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
+                    }
+                    is PersonSf -> {
+                        val personProto = personBase.toPersonProto()
+                        resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
+                    }
+                    else -> {
+                        log.error { "Should never arrive here" }; initParseBatchOk = false; KafkaConsumerStates.HasIssues
+                    }
+                }
+            }
+            KafkaConsumerStates.IsOk
+        } else {
+            initParseBatchOk = false
+            KafkaConsumerStates.HasIssues
+        }
     }
-
-    if (!resultList.isValid()) {
-        log.error { "Result contains invalid records" }
+    if (!initParseBatchOk) {
+        log.error { "Init: Result contains invalid records" }
         return ExitReason.InvalidCache
     }
+    log.info { "Init: Number of records from topic $kafkaPDLTopic is ${resultList.size}" }
 
-    log.info { "Number of records from topic $kafkaPDLTopic is ${resultList.size}" }
+    val latestRecords = resultList.toMap() // Remove duplicates. Done after topic consuming is finished (using a map of ~10M crashed consuming phase)
 
-    val latestRecords = resultList.toMap() // Remove duplicates
+    log.info { "Init: Number of unique aktoersIds (and corresponding messages to handle) on topic $kafkaPDLTopic is ${latestRecords.size}" }
 
-    log.info { "Number of unique aktoersIds (and corresponding messages to handle) on topic $kafkaPDLTopic is ${latestRecords.size}" }
+    var numberOfDeadPeopleFound = 0
 
-    val numberOfDeadPeopleFound = latestRecords.filter { r -> r.value is PersonSf && (r.value as PersonSf).doedsfall.isNotEmpty() }.size
-
-    log.info { "Number of aktoersIds that is dead people $numberOfDeadPeopleFound" }
+    // Measuring round
+    latestRecords.forEach {
+        when (val personBase = PersonBaseFromProto(it.key, it.value)) {
+            // TODO Here we can measure for statistics and make checks for unexpected values:
+            is PersonSf -> {
+                workMetrics.noOfInitialKakfaRecordsPdl.inc()
+                if (personBase.isDead()) numberOfDeadPeopleFound++
+            }
+            is PersonTombestone -> {
+                workMetrics.noOfInitialKakfaRecordsPdl.inc()
+            }
+            else -> {
+                log.error { "Init: Found unexpected person base when measuring" }
+            }
+        }
+    }
+    log.info { "Init: Number of aktoersIds that is dead people: $numberOfDeadPeopleFound. Number alive: ${workMetrics.noOfInitialKakfaRecordsPdl.get().toInt() - numberOfDeadPeopleFound}" }
     workMetrics.deadPersons.set(numberOfDeadPeopleFound.toDouble())
 
-    val filteredRecords = latestRecords.filter { r -> r.value is PersonTombestone ||
-            (r.value is PersonSf &&
-                    (r.value as PersonSf).doedsfall.isEmpty() /*&&
-                    (!ws.filterEnabled || filter.approved(r.value as PersonSf, true))*/)
-    } /*.map {
-        if (it.value is PersonSf) {
-            (it.value as PersonSf).measureKommune()
-            if (it.key == "1000025964669") { log.info { "Found reference person in filtering" } }
-            (it.value as PersonSf).toPersonProto()
-        } else {
-            Pair<PersonProto.PersonKey, PersonProto.PersonValue?>((it.value as PersonTombestone).toPersonTombstoneProtoKey(), null)
-        }
-    }*/.toList()/*.asSequence()*/
-
-    log.info { "Number of records filtered, translated and ready to send ${filteredRecords.count().toDouble()}" }
-    workMetrics.noOfInitialKakfaRecordsPdl.set(filteredRecords.count().toDouble())
-
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
+    var producerCount: Int = 0
 
-    var produceCount: Int = 0
-
-    // TODO No publishing. Give ten last json object in logs (Important! Only deploy to preprod)
-
-    val filteredPersons = filteredRecords.filter { r -> r.second is PersonSf }
-
-    for (i in 0..9) {
-        log.info("Last resulting person jsons (${i + 1} of 10): \n${(filteredPersons[filteredPersons.count() - i - 1].second)}")
-    }
-    /*
-    filteredRecords.chunked(500000).forEach {
-        log.info { "Creating producer for batch ${produceCount++}" }
+    latestRecords.toList().asSequence().chunked(500000).forEach {
+        log.info { "Init: Creating producer for batch ${producerCount++}" }
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerPerson
         ).produce {
             it.fold(true) { acc, pair ->
                 acc && pair.second?.let {
-                    send(kafkaPersonTopic, pair.first.toByteArray(), it.toByteArray()).also { workMetrics.initiallyPublishedPersons.inc() }
-                } ?: sendNullValue(kafkaPersonTopic, pair.first.toByteArray()).also { workMetrics.initiallyPublishedTombestones.inc() }
+                    send(kafkaPersonTopic, pair.first, it).also { workMetrics.initiallyPublishedPersons.inc() }
+                } ?: sendNullValue(kafkaPersonTopic, pair.first).also { workMetrics.initiallyPublishedTombestones.inc() }
             }.let { sent ->
                 when (sent) {
                     true -> exitReason = ExitReason.Work
                     false -> {
                         exitReason = ExitReason.InvalidCache
                         workMetrics.producerIssues.inc()
-                        log.error { "Init load - Producer $produceCount has issues sending to topic" }
+                        log.error { "Init load - Producer $producerCount has issues sending to topic" }
                     }
                 }
             }
         }
     }
 
-     */
-
     log.info { "Init load - Done with publishing to topic exitReason is Ok? ${exitReason.isOK()} " }
 
     return exitReason
 }
-/*
-fun PersonSf.measureKommune() {
-    val kommuneLabel = if (this.kommunenummerFraGt == UKJENT_FRA_PDL) {
-        UKJENT_FRA_PDL
-    } else {
-        PostnummerService.getKommunenummer(this.kommunenummerFraGt)?.let {
-            it
-        } ?: workMetrics.kommune_number_not_found.labels(this.kommunenummerFraGt).inc().let { NOT_FOUND_IN_REGISTER }
-    }
-    workMetrics.kommune.labels(kommuneLabel).inc()
-}
-
- */
