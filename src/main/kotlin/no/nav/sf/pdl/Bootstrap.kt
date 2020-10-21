@@ -24,7 +24,9 @@ object Bootstrap {
     private val log = KotlinLogging.logger { }
 
     fun start(ws: WorkSettings = WorkSettings()) {
-        log.info { "Starting" }
+        log.info { "Starting - grace period 20 s for sidecar" }
+        conditionalWait(20000)
+        log.info { "Starting - post grace period" }
         enableNAISAPI {
             initLoadTest(ws)
             initLoad(ws)
@@ -51,7 +53,7 @@ object Bootstrap {
 
     private fun conditionalWait(ms: Long = bootstrapWaitTime) =
             runBlocking {
-                log.info { "Will wait $ms ms before starting all over" }
+                log.info { "Will wait $ms ms" }
 
                 val cr = launch {
                     runCatching { delay(ms) }

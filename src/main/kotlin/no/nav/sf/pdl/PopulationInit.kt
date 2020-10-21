@@ -44,7 +44,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
 }
 
 fun List<Pair<String, PersonBase>>.isValid(): Boolean {
-    return this.filterIsInstance<PersonInvalid>().isEmpty()
+    return this.filterIsInstance<PersonInvalid>().isEmpty() && this.filterIsInstance<PersonProtobufIssue>().isEmpty()
 }
 
 var heartBeatConsumer: Int = 0
@@ -95,8 +95,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     var initParseBatchOk = true
     kafkaConsumerPdl.consume { cRecords ->
         if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
-        val parsedBatch: MutableList<Pair<String, PersonBase>> = mutableListOf()
-        cRecords.forEach { cr -> parsedBatch.add(Pair(cr.key(), parsePdlJsonOnInit(cr))) }
+        val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr -> Pair(cr.key(), parsePdlJsonOnInit(cr)) }
         if (heartBeatConsumer == 0) {
             log.info { "Init: Successfully consumed a batch (This is prompted first and each 100000th consume batch) Batch size: ${parsedBatch.size}" }
         }
@@ -153,7 +152,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             }
         }
     }
-    log.info { "Init: Number of aktoersIds that is dead people: $numberOfDeadPeopleFound. Number alive: ${workMetrics.noOfInitialKakfaRecordsPdl.get().toInt() - numberOfDeadPeopleFound}" }
+    log.info { "Init: Number of aktoersIds that is dead people: $numberOfDeadPeopleFound. Number alive and tombstones: ${workMetrics.noOfInitialKakfaRecordsPdl.get().toInt() - numberOfDeadPeopleFound}" }
     workMetrics.deadPersons.set(numberOfDeadPeopleFound.toDouble())
 
     var exitReason: ExitReason = ExitReason.NoKafkaProducer

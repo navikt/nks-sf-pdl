@@ -70,8 +70,6 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
 
     workMetrics.clearAll()
 
-    // TODO : Check if preprod and apply a filter or limit amount messages
-
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
     AKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerPerson
