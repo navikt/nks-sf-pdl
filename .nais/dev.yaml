@@ -55,8 +55,6 @@ spec:
       value: nks-sf-pdl-v1
     - name: KAFKA_USER
       value: srvsfpdl
-    - name: IGNORE_PERSON_UNKOWN
-      value: 'TRUE'
     - name: MS_BETWEEN_WORK
       value: '600000'
     - name: VAULT_INSTANCE
