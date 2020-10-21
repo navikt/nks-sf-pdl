@@ -49,7 +49,10 @@ fun List<Pair<String, PersonBase>>.isValid(): Boolean {
 
 var heartBeatConsumer: Int = 0
 
+var retry: Int = 0
+
 internal fun initLoadTest(ws: WorkSettings) {
+    log.info { "Start init test" }
     workMetrics.initRecordsParsedTest.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerPdlAlternative,
@@ -59,20 +62,30 @@ internal fun initLoadTest(ws: WorkSettings) {
 
     val resultListTest: MutableList<String> = mutableListOf()
 
-    kafkaConsumerPdlTest.consume { cRecords ->
-        if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
+    while (workMetrics.initRecordsParsedTest.get() == 0.0) {
+        kafkaConsumerPdlTest.consume { cRecords ->
+            if (cRecords.isEmpty) {
+                if (workMetrics.initRecordsParsedTest.get() == 0.0) {
+                    log.info { "Did not get any messages on retry ${++retry}, will wait 60 s and try again" }
+                    Bootstrap.conditionalWait(60000)
+                    return@consume KafkaConsumerStates.IsOk
+                } else {
+                    return@consume KafkaConsumerStates.IsFinished
+                }
+            }
 
-        workMetrics.initRecordsParsedTest.inc(cRecords.count().toDouble())
-        cRecords.forEach { cr -> resultListTest.add(cr.key()) }
+            workMetrics.initRecordsParsedTest.inc(cRecords.count().toDouble())
+            cRecords.forEach { cr -> resultListTest.add(cr.key()) }
 
-        if (heartBeatConsumer == 0) {
-            log.debug { "Investigate Test phase Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
+            if (heartBeatConsumer == 0) {
+                log.info { "Init test phase Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
+            }
+
+            heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
+            KafkaConsumerStates.IsOk
         }
-
-        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
-        KafkaConsumerStates.IsOk
+        heartBeatConsumer = 0
     }
-    heartBeatConsumer = 0
 
     log.info { "Init test run : Total records from topic: ${resultListTest.size}" }
     workMetrics.initRecordsParsedTest.set(resultListTest.size.toDouble())
@@ -87,7 +100,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     val resultList: MutableList<Pair<ByteArray, ByteArray?>> = mutableListOf()
 
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdl,
+            config = ws.kafkaConsumerPdlAlternative,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )
