@@ -2,33 +2,37 @@ package no.nav.sf
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldNotBe
-import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import no.nav.sf.pdl.InvalidQuery
 import no.nav.sf.pdl.PersonInvalid
 import no.nav.sf.pdl.Query
 import no.nav.sf.pdl.toPersonSf
 
-private const val HYBRIDQUERY_JSON = "/pdlTopicValues/hybridquery.json"
-private const val QUERY_JSON2 = "/queryJson/query2.json"
+private const val HYBRIDQUERY_JSON = "/mock/hybridquery.json"
+private const val JSON1 = "/mock/json1.json"
 private const val QUERY_JSON3 = "/queryJson/query3.json"
 
 private val jsonNonStrict = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
 
-@ExperimentalStdlibApi
-@ImplicitReflectionSerializer
 class WorkTests : StringSpec() {
 
     init {
         "Verify mapping of query to PersonSf" {
             val query1 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(HYBRIDQUERY_JSON))
-            val query2 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(QUERY_JSON2))
+            val query2 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(JSON1))
             val query3 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(QUERY_JSON3))
 
+            query1 shouldNotBe InvalidQuery
+            query2 shouldNotBe InvalidQuery
+
             query1.toPersonSf() shouldNotBe PersonInvalid
-            // query2.toPersonSf() shouldBe PersonInvalid
-            // query3.toPersonSf() shouldBe PersonInvalid
+            query2.toPersonSf() shouldNotBe PersonInvalid
         }
+    }
+
+    internal fun getStringFromResource(path: String) =
+            WorkTests::class.java.getResourceAsStream(path).bufferedReader().use { it.readText() }
 
         /*
         "Verify exists check on cache" {
@@ -110,10 +114,5 @@ class WorkTests : StringSpec() {
 //        "work should exit correctly for different situations - NoFilter" {
 //
 //            work(WorkSettings(filter = FilterBase.Missing)).second.shouldBeInstanceOf<ExitReason.NoFilter>()
-//        }
-    }
-
-    @ImplicitReflectionSerializer
-    internal fun getStringFromResource(path: String) =
-            WorkTests::class.java.getResourceAsStream(path).bufferedReader().use { it.readText() }
+//        }}
 }
