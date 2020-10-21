@@ -31,7 +31,7 @@ class WorkTests : StringSpec() {
         }
     }
 
-    internal fun getStringFromResource(path: String) =
+    private fun getStringFromResource(path: String) =
             WorkTests::class.java.getResourceAsStream(path).bufferedReader().use { it.readText() }
 
         /*
