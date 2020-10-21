@@ -32,6 +32,10 @@ spec:
     requests:
       cpu: 100m
       memory: 2048Mi
+  accessPolicy:
+    outbound:
+      external:
+        - host: kafka-schema-registry.nais.adeo.no
   envFrom:
     - secret: nks-sf-pdl-secret
   filesFrom:
