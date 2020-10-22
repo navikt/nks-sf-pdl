@@ -21,7 +21,6 @@ class WorkTests : StringSpec() {
         "Verify mapping of query to PersonSf" {
             val query1 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(HYBRIDQUERY_JSON))
             val query2 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(JSON1))
-            val query3 = jsonNonStrict.parse(Query.serializer(), getStringFromResource(QUERY_JSON3))
 
             query1 shouldNotBe InvalidQuery
             query2 shouldNotBe InvalidQuery
