@@ -28,7 +28,7 @@ object Bootstrap {
         conditionalWait(20000)
         log.info { "Starting - post grace period" }
         enableNAISAPI {
-            initLoadTest(ws)
+            // initLoadTest(ws)
             initLoad(ws)
             /*
             if (ws.initialLoad) { initLoad(ws ) }
