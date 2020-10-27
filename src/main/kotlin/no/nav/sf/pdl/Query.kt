@@ -136,7 +136,7 @@ data class HentePerson(
             val husnummer: String?,
             val husbokstav: String?,
             val postnummer: String?,
-            val bydelsnummer: String? = null,
+            val bydelsnummer: String? = null, // Data fields missing in preprod, this makes it optional
             val koordinater: Koordinater? = null
         )
 
@@ -151,7 +151,7 @@ data class HentePerson(
         data class Matrikkeladresse(
             val kommunenummer: String? = null,
             val postnummer: String? = null,
-            val bydelsnummer: String? = null,
+            val bydelsnummer: String? = null, // Data fields missing in preprod, this makes it optional
             val koordinater: Koordinater? = null
         )
 
