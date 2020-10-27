@@ -25,9 +25,12 @@ object Bootstrap {
 
     fun start(ws: WorkSettings = WorkSettings()) {
         log.info { "Starting - grace period 20 s for sidecar" }
-        conditionalWait(20000)
+        conditionalWait(30000)
         log.info { "Starting - post grace period" }
         enableNAISAPI {
+            log.info { "Starting - additional grace period 20 s after enableNAISAPI" }
+            conditionalWait(30000)
+            log.info { "Starting - post grace period enableNAISAPI" }
             // initLoadTest(ws)
             initLoad(ws)
             /*
