@@ -140,29 +140,21 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                         is PersonSf -> {
                             val personSf = it.second as PersonSf
 
-                            if (personSf.kommunenummerFraGt != null &&
-                                    personSf.kommunenummerFraAdresse != null) {
-                                workMetrics.kommunenummerFraGt.inc()
-                                workMetrics.kommunenummerFraAdresse.inc()
-                            } else if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
+                            if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
                                     personSf.kommunenummerFraGt == UKJENT_FRA_PDL) {
                                 workMetrics.noKommuneNummerFromAdresseOrGt.inc()
-                            } else if (personSf.kommunenummerFraAdresse != null) {
+                            } else if (personSf.kommunenummerFraAdresse != UKJENT_FRA_PDL) {
                                 workMetrics.kommunenummerFraAdresse.inc()
-                            } else if (personSf.kommunenummerFraGt != null) {
+                            } else if (personSf.kommunenummerFraGt != UKJENT_FRA_PDL) {
                                 workMetrics.kommunenummerFraGt.inc()
                             }
 
-                            if (personSf.bydelsnummerFraGt != null &&
-                                    personSf.bydelsnummerFraAdresse != null) {
-                                workMetrics.bydelsnummerFraGt.inc()
-                                workMetrics.bydelsnummerFraAdresse.inc()
-                            } else if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
+                            if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
                                     personSf.kommunenummerFraGt == UKJENT_FRA_PDL) {
                                 workMetrics.noBydelsNummerFromAdresseOrGt.inc()
-                            } else if (personSf.bydelsnummerFraAdresse != null) {
+                            } else if (personSf.bydelsnummerFraAdresse != UKJENT_FRA_PDL) {
                                 workMetrics.bydelsnummerFraAdresse.inc()
-                            } else if (personSf.bydelsnummerFraGt != null) {
+                            } else if (personSf.bydelsnummerFraGt != UKJENT_FRA_PDL) {
                                 workMetrics.bydelsnummerFraGt.inc()
                             }
 
