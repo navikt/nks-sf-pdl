@@ -93,6 +93,7 @@ internal fun initLoadTest(ws: WorkSettings) {
 }
 
 internal fun initLoad(ws: WorkSettings): ExitReason {
+    retry = 0
     workMetrics.clearAll()
 
     log.info { "Init: Commencing reading all records on topic $kafkaPDLTopic" }
@@ -114,10 +115,11 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             }
             if (cRecords.isEmpty) {
                 if (workMetrics.initRecordsParsed.get() == 0.0) {
-                    log.info { "Did not get any messages on retry ${++retry}, will wait 60 s and try again" }
+                    log.info { "Init: Did not get any messages on retry ${++retry}, will wait 60 s and try again" }
                     Bootstrap.conditionalWait(60000)
                     return@consume KafkaConsumerStates.IsOk
                 } else {
+                    log.info { "Init: I find no more records from topic. Will finish" }
                     return@consume KafkaConsumerStates.IsFinished
                 }
             }
