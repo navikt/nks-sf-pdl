@@ -106,51 +106,62 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     )
 
     var initParseBatchOk = true
-    kafkaConsumerPdl.consume { cRecords ->
-        if (heartBeatConsumer == 0) {
-            log.info { "Init: Fetched a set of crecords (This is prompted first and each 10000th consume batch) Records size: ${cRecords.count()}" }
-        }
-        if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
-        val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr -> Pair(cr.key(), parsePdlJsonOnInit(cr)) }
-        if (heartBeatConsumer == 0) {
-            log.info { "Init: Successfully consumed a batch (This is prompted first and each 10000th consume batch) Batch size: ${parsedBatch.size}" }
-        }
-        heartBeatConsumer = ((heartBeatConsumer + 1) % 10000)
 
-        if (parsedBatch.isValid()) {
-            // TODO Any statistics checks on person values from topic (before distinct/latest per key) can be added here:
-            workMetrics.initRecordsParsed.inc(cRecords.count().toDouble())
-            parsedBatch.map {
-                when (val personBase = it.second) {
-                    is PersonTombestone -> {
-                        resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
-                    }
-                    is PersonSf -> {
-                        val personSf = it.second as PersonSf
-
-                        if (personSf.kommunenummerFraGt != null && personSf.kommunenummerFraAdresse != null) {
-                            workMetrics.kommunenummerFraGt.inc()
-                            workMetrics.kommunenummerFraAdresse.inc()
-                        } else if (personSf.kommunenummerFraAdresse != null) {
-                            workMetrics.kommunenummerFraAdresse.inc()
-                        } else if (personSf.kommunenummerFraGt != null) {
-                            workMetrics.kommunenummerFraGt.inc()
-                        } else if (personSf.kommunenummerFraAdresse == null && personSf.kommunenummerFraGt == null) {
-                            workMetrics.noKommuneNummerFromAdresseOrGt.inc()
-                        }
-
-                        val personProto = personBase.toPersonProto()
-                        resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
-                    }
-                    else -> {
-                        log.error { "Should never arrive here" }; initParseBatchOk = false; KafkaConsumerStates.HasIssues
-                    }
+    while (workMetrics.initRecordsParsed.get() == 0.0) {
+        kafkaConsumerPdl.consume { cRecords ->
+            if (heartBeatConsumer == 0) {
+                log.info { "Init: Fetched a set of crecords (This is prompted first and each 10000th consume batch) Records size: ${cRecords.count()}" }
+            }
+            if (cRecords.isEmpty) {
+                if (workMetrics.initRecordsParsed.get() == 0.0) {
+                    log.info { "Did not get any messages on retry ${++retry}, will wait 60 s and try again" }
+                    Bootstrap.conditionalWait(60000)
+                    return@consume KafkaConsumerStates.IsOk
+                } else {
+                    return@consume KafkaConsumerStates.IsFinished
                 }
             }
-            KafkaConsumerStates.IsOk
-        } else {
-            initParseBatchOk = false
-            KafkaConsumerStates.HasIssues
+            val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr -> Pair(cr.key(), parsePdlJsonOnInit(cr)) }
+            if (heartBeatConsumer == 0) {
+                log.info { "Init: Successfully consumed a batch (This is prompted first and each 10000th consume batch) Batch size: ${parsedBatch.size}" }
+            }
+            heartBeatConsumer = ((heartBeatConsumer + 1) % 10000)
+
+            if (parsedBatch.isValid()) {
+                // TODO Any statistics checks on person values from topic (before distinct/latest per key) can be added here:
+                workMetrics.initRecordsParsed.inc(cRecords.count().toDouble())
+                parsedBatch.map {
+                    when (val personBase = it.second) {
+                        is PersonTombestone -> {
+                            resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
+                        }
+                        is PersonSf -> {
+                            val personSf = it.second as PersonSf
+
+                            if (personSf.kommunenummerFraGt != null && personSf.kommunenummerFraAdresse != null) {
+                                workMetrics.kommunenummerFraGt.inc()
+                                workMetrics.kommunenummerFraAdresse.inc()
+                            } else if (personSf.kommunenummerFraAdresse != null) {
+                                workMetrics.kommunenummerFraAdresse.inc()
+                            } else if (personSf.kommunenummerFraGt != null) {
+                                workMetrics.kommunenummerFraGt.inc()
+                            } else if (personSf.kommunenummerFraAdresse == null && personSf.kommunenummerFraGt == null) {
+                                workMetrics.noKommuneNummerFromAdresseOrGt.inc()
+                            }
+
+                            val personProto = personBase.toPersonProto()
+                            resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
+                        }
+                        else -> {
+                            log.error { "Should never arrive here" }; initParseBatchOk = false; KafkaConsumerStates.HasIssues
+                        }
+                    }
+                }
+                KafkaConsumerStates.IsOk
+            } else {
+                initParseBatchOk = false
+                KafkaConsumerStates.HasIssues
+            }
         }
     }
     if (!initParseBatchOk) {
