@@ -24,12 +24,12 @@ object Bootstrap {
     private val log = KotlinLogging.logger { }
 
     fun start(ws: WorkSettings = WorkSettings()) {
-        log.info { "Starting - grace period 20 s for sidecar" }
+        log.info { "Starting - grace period 30 s for sidecar" }
         conditionalWait(30000)
         log.info { "Starting - post grace period" }
         enableNAISAPI {
-            log.info { "Starting - additional grace period 20 s after enableNAISAPI" }
-            conditionalWait(30000)
+            log.info { "Starting - additional grace period 2 m after enableNAISAPI" }
+            conditionalWait(120000)
             log.info { "Starting - post grace period enableNAISAPI" }
             // initLoadTest(ws)
             initLoad(ws)
