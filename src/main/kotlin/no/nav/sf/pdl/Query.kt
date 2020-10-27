@@ -195,7 +195,7 @@ data class HentePerson(
         data class Matrikkeladresse(
             val kommunenummer: String?,
             val postnummer: String?,
-            val bydelsnummer: String?,
+            val bydelsnummer: String? = null,
             val koordinater: Bostedsadresse.Koordinater?
         )
 
