@@ -160,6 +160,21 @@ data class WMetrics(
             .name("kommunenummer_fra_gt")
             .help("kommunenummer_fra_gt")
             .register(),
+    val noBydelsNummerFromAdresseOrGt: Gauge = Gauge
+            .build()
+            .name("no_bydelsnummer_from_adresse_or_gt")
+            .help("no_bydelsnummer_from_adresse_or_gt")
+            .register(),
+    val bydelsnummerFraAdresse: Gauge = Gauge
+            .build()
+            .name("bydelsnummer_fra_adresse")
+            .help("bydelsnummer_fra_adresse")
+            .register(),
+    val bydelsnummerFraGt: Gauge = Gauge
+            .build()
+            .name("bydelsnummer_fra_gt")
+            .help("bydelsnummer_fra_gt")
+            .register(),
 // GT metrics start
     val gtKommunenrFraKommuneMissing: Gauge = Gauge
             .build()
