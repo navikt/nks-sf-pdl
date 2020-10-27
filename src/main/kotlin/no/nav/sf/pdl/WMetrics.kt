@@ -260,6 +260,7 @@ data class WMetrics(
 
         this.noKommuneNummerFromAdresseOrGt.clear()
         this.kommunenummerFraAdresse.clear()
+        this.kommunenummerFraGt.clear()
 
         this.noInvalidKommuneNummer.clear()
         this.invalidKommuneNummer.clear()
