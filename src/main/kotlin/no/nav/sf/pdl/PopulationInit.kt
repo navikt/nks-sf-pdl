@@ -18,7 +18,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
     } else {
         when (val query = cr.value()?.getQueryFromJson() ?: InvalidQuery) {
             InvalidQuery -> {
-                log.error { "Unable to parse topic value PDL" }
+                log.error { "Init: Unable to parse topic value PDL" }
                 workMetrics.invalidPersonsParsed.inc()
                 return PersonInvalid
             }
@@ -33,7 +33,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
                         return PersonInvalid
                     }
                     else -> {
-                        log.error { "Unhandled PersonBase from Query.toPersonSf" }
+                        log.error { "Init: Unhandled PersonBase from Query.toPersonSf" }
                         workMetrics.invalidPersonsParsed.inc()
                         return PersonInvalid
                     }
@@ -107,12 +107,15 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     var initParseBatchOk = true
     kafkaConsumerPdl.consume { cRecords ->
+        if (heartBeatConsumer == 0) {
+            log.info { "Init: Fetched a set of crecords (This is prompted first and each 10000th consume batch) Records size: ${cRecords.count()}" }
+        }
         if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
         val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr -> Pair(cr.key(), parsePdlJsonOnInit(cr)) }
         if (heartBeatConsumer == 0) {
-            log.info { "Init: Successfully consumed a batch (This is prompted first and each 100000th consume batch) Batch size: ${parsedBatch.size}" }
+            log.info { "Init: Successfully consumed a batch (This is prompted first and each 10000th consume batch) Batch size: ${parsedBatch.size}" }
         }
-        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
+        heartBeatConsumer = ((heartBeatConsumer + 1) % 10000)
 
         if (parsedBatch.isValid()) {
             // TODO Any statistics checks on person values from topic (before distinct/latest per key) can be added here:
