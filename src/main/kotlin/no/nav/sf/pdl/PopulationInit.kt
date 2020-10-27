@@ -18,7 +18,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
     } else {
         when (val query = cr.value()?.getQueryFromJson() ?: InvalidQuery) {
             InvalidQuery -> {
-                log.error { "Init: Unable to parse topic value PDL" }
+                log.error { "Init: Unable to parse topic value PDL Message:\n${cr.value()}" }
                 workMetrics.invalidPersonsParsed.inc()
                 return PersonInvalid
             }
