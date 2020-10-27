@@ -138,16 +138,30 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                         is PersonSf -> {
                             val personSf = it.second as PersonSf
 
-                            if (personSf.kommunenummerFraGt != null && personSf.kommunenummerFraAdresse != null) {
+                            if (personSf.kommunenummerFraGt != null &&
+                                    personSf.kommunenummerFraAdresse != null) {
                                 workMetrics.kommunenummerFraGt.inc()
                                 workMetrics.kommunenummerFraAdresse.inc()
+                            }  else if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
+                                    personSf.kommunenummerFraGt == UKJENT_FRA_PDL) {
+                                workMetrics.noKommuneNummerFromAdresseOrGt.inc()
                             } else if (personSf.kommunenummerFraAdresse != null) {
                                 workMetrics.kommunenummerFraAdresse.inc()
                             } else if (personSf.kommunenummerFraGt != null) {
                                 workMetrics.kommunenummerFraGt.inc()
+                            }
+
+                            if (personSf.bydelsnummerFraGt != null &&
+                                    personSf.bydelsnummerFraAdresse != null) {
+                                workMetrics.bydelsnummerFraGt.inc()
+                                workMetrics.bydelsnummerFraAdresse.inc()
                             } else if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
                                     personSf.kommunenummerFraGt == UKJENT_FRA_PDL) {
-                                workMetrics.noKommuneNummerFromAdresseOrGt.inc()
+                                workMetrics.noBydelsNummerFromAdresseOrGt.inc()
+                            } else if (personSf.bydelsnummerFraAdresse != null) {
+                                workMetrics.bydelsnummerFraAdresse.inc()
+                            } else if (personSf.bydelsnummerFraGt != null) {
+                                workMetrics.bydelsnummerFraGt.inc()
                             }
 
                             val personProto = personBase.toPersonProto()
