@@ -144,7 +144,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                                     personSf.kommunenummerFraAdresse != null) {
                                 workMetrics.kommunenummerFraGt.inc()
                                 workMetrics.kommunenummerFraAdresse.inc()
-                            }  else if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
+                            } else if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
                                     personSf.kommunenummerFraGt == UKJENT_FRA_PDL) {
                                 workMetrics.noKommuneNummerFromAdresseOrGt.inc()
                             } else if (personSf.kommunenummerFraAdresse != null) {
