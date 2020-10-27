@@ -31,7 +31,7 @@ spec:
       memory: 8Gi
     requests:
       cpu: 100m
-      memory: 2Gi
+      memory: 3Gi
   accessPolicy:
     outbound:
       external:
