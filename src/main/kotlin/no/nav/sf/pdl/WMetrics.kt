@@ -145,6 +145,21 @@ data class WMetrics(
             .labelNames("kommunenummer")
             .help("invalid_kommunenummer")
             .register(),
+    val noKommuneNummerFromAdresseOrGt: Gauge = Gauge
+            .build()
+            .name("no_kommunenummer_from_adresse_or_gt")
+            .help("no_kommunenummer_from_adresse_or_gt")
+            .register(),
+    val kommunenummerFraAdresse: Gauge = Gauge
+            .build()
+            .name("kommunenummer_fra_adresse")
+            .help("kommunenummer_fra_adresse")
+            .register(),
+    val kommunenummerFraGt: Gauge = Gauge
+            .build()
+            .name("kommunenummer_fra_gt")
+            .help("kommunenummer_fra_gt")
+            .register(),
 // GT metrics start
     val gtKommunenrFraKommuneMissing: Gauge = Gauge
             .build()
@@ -242,6 +257,9 @@ data class WMetrics(
         this.gtUtland.clear()
         this.gtUdefinert.clear()
         this.gtMissing.clear()
+
+        this.noKommuneNummerFromAdresseOrGt.clear()
+        this.kommunenummerFraAdresse.clear()
 
         this.noInvalidKommuneNummer.clear()
         this.invalidKommuneNummer.clear()

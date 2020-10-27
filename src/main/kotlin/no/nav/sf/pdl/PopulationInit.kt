@@ -123,6 +123,19 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                         resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
                     }
                     is PersonSf -> {
+                        val personSf = it.second as PersonSf
+
+                        if (personSf.kommunenummerFraGt != null && personSf.kommunenummerFraAdresse != null) {
+                            workMetrics.kommunenummerFraGt.inc()
+                            workMetrics.kommunenummerFraAdresse.inc()
+                        } else if (personSf.kommunenummerFraAdresse != null) {
+                            workMetrics.kommunenummerFraAdresse.inc()
+                        } else if (personSf.kommunenummerFraGt != null) {
+                            workMetrics.kommunenummerFraGt.inc()
+                        } else if (personSf.kommunenummerFraAdresse == null && personSf.kommunenummerFraGt == null) {
+                            workMetrics.noKommuneNummerFromAdresseOrGt.inc()
+                        }
+
                         val personProto = personBase.toPersonProto()
                         resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
                     }
@@ -169,7 +182,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     workMetrics.deadPersons.set(numberOfDeadPeopleFound.toDouble())
 
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
-    var producerCount: Int = 0
+    var producerCount = 0
 
     latestRecords.toList().asSequence().chunked(500000).forEach {
         log.info { "Init: Creating producer for batch ${producerCount++}" }

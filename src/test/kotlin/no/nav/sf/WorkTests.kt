@@ -11,7 +11,6 @@ import no.nav.sf.pdl.toPersonSf
 
 private const val HYBRIDQUERY_JSON = "/mock/hybridquery.json"
 private const val JSON1 = "/mock/json1.json"
-private const val QUERY_JSON3 = "/queryJson/query3.json"
 
 private val jsonNonStrict = Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true, isLenient = true))
 
