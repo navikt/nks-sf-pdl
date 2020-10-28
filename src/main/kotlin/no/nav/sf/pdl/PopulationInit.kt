@@ -138,26 +138,6 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                             resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
                         }
                         is PersonSf -> {
-                            val personSf = it.second as PersonSf
-
-                            if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
-                                    personSf.kommunenummerFraGt == UKJENT_FRA_PDL) {
-                                workMetrics.noKommuneNummerFromAdresseOrGt.inc()
-                            } else if (personSf.kommunenummerFraAdresse != UKJENT_FRA_PDL) {
-                                workMetrics.kommunenummerFraAdresse.inc()
-                            } else if (personSf.kommunenummerFraGt != UKJENT_FRA_PDL) {
-                                workMetrics.kommunenummerFraGt.inc()
-                            }
-
-                            if (personSf.bydelsnummerFraAdresse == UKJENT_FRA_PDL &&
-                                    personSf.bydelsnummerFraGt == UKJENT_FRA_PDL) {
-                                workMetrics.noBydelsNummerFromAdresseOrGt.inc()
-                            } else if (personSf.bydelsnummerFraAdresse != UKJENT_FRA_PDL) {
-                                workMetrics.bydelsnummerFraAdresse.inc()
-                            } else if (personSf.bydelsnummerFraGt != UKJENT_FRA_PDL) {
-                                workMetrics.bydelsnummerFraGt.inc()
-                            }
-
                             val personProto = personBase.toPersonProto()
                             resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
                         }
@@ -192,6 +172,52 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             is PersonSf -> {
                 workMetrics.noOfInitialKakfaRecordsPdl.inc()
                 if (personBase.isDead()) numberOfDeadPeopleFound++
+
+                when {
+                    personBase.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
+                            personBase.kommunenummerFraGt == UKJENT_FRA_PDL -> {
+                        workMetrics.noKommuneNummerFromAdresseOrGt.inc()
+                    }
+                    personBase.kommunenummerFraGt != UKJENT_FRA_PDL &&
+                            personBase.kommunenummerFraAdresse == UKJENT_FRA_PDL -> {
+                        workMetrics.kommunenummerFraGt.inc()
+                    }
+                    personBase.kommunenummerFraGt == UKJENT_FRA_PDL &&
+                            personBase.kommunenummerFraAdresse != UKJENT_FRA_PDL -> {
+                        workMetrics.kommunenummerFraAdresse.inc()
+                    }
+                    personBase.kommunenummerFraGt != UKJENT_FRA_PDL &&
+                            personBase.kommunenummerFraAdresse != UKJENT_FRA_PDL -> {
+
+                        if (personBase.kommunenummerFraGt == personBase.kommunenummerFraAdresse) {
+                            workMetrics.kommunenummerFraAdresseOgGtErLike.inc()
+                        } else {
+                            workMetrics.kommunenummerFraAdresseOgGtErIkkeLike.inc()
+                        }
+                    }
+
+                    personBase.bydelsnummerFraAdresse == UKJENT_FRA_PDL &&
+                            personBase.bydelsnummerFraGt == UKJENT_FRA_PDL -> {
+                        workMetrics.noBydelsNummerFromAdresseOrGt.inc()
+                    }
+                    personBase.bydelsnummerFraGt != UKJENT_FRA_PDL &&
+                            personBase.bydelsnummerFraAdresse == UKJENT_FRA_PDL -> {
+                        workMetrics.bydelsnummerFraGt.inc()
+                    }
+                    personBase.bydelsnummerFraGt == UKJENT_FRA_PDL &&
+                            personBase.bydelsnummerFraAdresse != UKJENT_FRA_PDL -> {
+                        workMetrics.bydelsnummerFraAdresse.inc()
+                    }
+                    personBase.bydelsnummerFraGt != UKJENT_FRA_PDL &&
+                            personBase.bydelsnummerFraAdresse != UKJENT_FRA_PDL -> {
+
+                        if (personBase.bydelsnummerFraGt == personBase.bydelsnummerFraAdresse) {
+                            workMetrics.bydelsnummerFraAdresseOgGtErLike.inc()
+                        } else {
+                            workMetrics.bydelsnummerFraAdresseOgGtErIkkeLike.inc()
+                        }
+                    }
+                }
             }
             is PersonTombestone -> {
                 workMetrics.noOfInitialKakfaRecordsPdl.inc()

@@ -160,6 +160,16 @@ data class WMetrics(
             .name("kommunenummer_fra_gt")
             .help("kommunenummer_fra_gt")
             .register(),
+    val kommunenummerFraAdresseOgGtErLike: Gauge = Gauge
+            .build()
+            .name("kommunenummer_fra_adresse_og_gt_er_like")
+            .help("kommunenummer_fra_adresse_og_gt_er_like")
+            .register(),
+    val kommunenummerFraAdresseOgGtErIkkeLike: Gauge = Gauge
+            .build()
+            .name("kommunenummer_fra_adresse_og_gt_er_ikke_like")
+            .help("kommunenummer_fra_adresse_og_gt_er_ikke_like")
+            .register(),
     val noBydelsNummerFromAdresseOrGt: Gauge = Gauge
             .build()
             .name("no_bydelsnummer_from_adresse_or_gt")
@@ -174,6 +184,16 @@ data class WMetrics(
             .build()
             .name("bydelsnummer_fra_gt")
             .help("bydelsnummer_fra_gt")
+            .register(),
+    val bydelsnummerFraAdresseOgGtErLike: Gauge = Gauge
+            .build()
+            .name("bydelsnummer_fra_adresse_og_gt_er_like")
+            .help("bydelsnummer_fra_adresse_og_gt_er_like")
+            .register(),
+    val bydelsnummerFraAdresseOgGtErIkkeLike: Gauge = Gauge
+            .build()
+            .name("bydelsnummer_fra_adresse_og_gt_er_ikke_like")
+            .help("bydelsnummer_fra_adresse_og_gt_er_ikke_like")
             .register(),
 // GT metrics start
     val gtKommunenrFraKommuneMissing: Gauge = Gauge
