@@ -149,8 +149,8 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                                 workMetrics.kommunenummerFraGt.inc()
                             }
 
-                            if (personSf.kommunenummerFraAdresse == UKJENT_FRA_PDL &&
-                                    personSf.kommunenummerFraGt == UKJENT_FRA_PDL) {
+                            if (personSf.bydelsnummerFraAdresse == UKJENT_FRA_PDL &&
+                                    personSf.bydelsnummerFraGt == UKJENT_FRA_PDL) {
                                 workMetrics.noBydelsNummerFromAdresseOrGt.inc()
                             } else if (personSf.bydelsnummerFraAdresse != UKJENT_FRA_PDL) {
                                 workMetrics.bydelsnummerFraAdresse.inc()
