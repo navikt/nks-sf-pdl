@@ -296,6 +296,14 @@ data class WMetrics(
         this.noKommuneNummerFromAdresseOrGt.clear()
         this.kommunenummerFraAdresse.clear()
         this.kommunenummerFraGt.clear()
+        this.kommunenummerFraAdresseOgGtErLike.clear()
+        this.kommunenummerFraAdresseOgGtErIkkeLike.clear()
+
+        this.noBydelsNummerFromAdresseOrGt.clear()
+        this.bydelsnummerFraGt.clear()
+        this.bydelsnummerFraAdresse.clear()
+        this.bydelsnummerFraAdresseOgGtErLike.clear()
+        this.bydelsnummerFraAdresseOgGtErIkkeLike.clear()
 
         this.noInvalidKommuneNummer.clear()
         this.invalidKommuneNummer.clear()
