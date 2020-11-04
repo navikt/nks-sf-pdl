@@ -22,6 +22,7 @@ private val log = KotlinLogging.logger {}
 const val EV_kafkaProducerTopic = "KAFKA_PRODUCER_TOPIC"
 const val EV_kafkaConsumerTopic = "KAFKA_TOPIC"
 const val EV_kafkaSchemaReg = "KAFKA_SCREG"
+const val EV_kafkaBrokersOnPrem = "KAFKA_BROKERS_ON_PREM"
 
 // Work vault dependencies
 const val VAULT_initialLoad = "InitialLoad"
@@ -46,7 +47,8 @@ data class WorkSettings(
     val kafkaConsumerPdlAlternative: Map<String, Any> = AKafkaConsumer.configAlternativeBase + mapOf<String, Any>(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
-            "schema.registry.url" to kafkaSchemaReg
+            "schema.registry.url" to kafkaSchemaReg,
+            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to AnEnvironment.getEnvOrDefault(EV_kafkaBrokersOnPrem, "Missing $EV_kafkaBrokersOnPrem")
     ),
 
     val initialLoad: Boolean = AVault.getSecretOrDefault(VAULT_initialLoad) == true.toString()
