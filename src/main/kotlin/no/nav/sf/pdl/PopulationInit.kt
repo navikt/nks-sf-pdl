@@ -100,10 +100,16 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     val resultList: MutableList<Pair<ByteArray, ByteArray?>> = mutableListOf()
 
+    log.info { "Defining Consumer for pdl read" }
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerPdlAlternative,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
+    )
+
+    log.info { "Defining producer for person write" }
+    val kafkaProducerPerson = AKafkaConsumer<String, String?>(
+            config = ws.kafkaProducerPerson
     )
 
     var initParseBatchOk = true
