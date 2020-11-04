@@ -40,6 +40,8 @@ spec:
     - secret: nks-sf-pdl-secret
   filesFrom:
     - secret: nks-sf-pdl-secret
+  kafka:
+    pool: nav-dev # enum of nav-dev, nav-prod
   env:
     - name: KAFKA_BROKERS
       value: SASL_SSL://b27apvl00045.preprod.local:8443,SASL_SSL://b27apvl00046.preprod.local:8443,SASL_SSL://b27apvl00047.preprod.local:8443
@@ -56,7 +58,7 @@ spec:
     - name: KAFKA_TOPIC
       value: aapen-person-pdl-dokument-v1
     - name: KAFKA_PRODUCER_TOPIC
-      value: nks-sf-pdl-v1
+      value: teamnks.nks-sf-pdl-v2
     - name: KAFKA_USER
       value: srvsfpdl
     - name: MS_BETWEEN_WORK
