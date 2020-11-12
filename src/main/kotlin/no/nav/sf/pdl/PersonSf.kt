@@ -151,22 +151,22 @@ data class Doedsfall(
 
 @Serializable
 data class PersonSf(
-    val aktoerId: String, // OK
-    val folkeregisterId: String, // OK
+    val aktoerId: String,
+    val folkeregisterId: List<String>,
     val navn: List<Navn>,
-    val familierelasjoner: List<FamilieRelasjon>, // OK
-    val folkeregisterpersonstatus: List<String>, // OK
-    val innflyttingTilNorge: List<InnflyttingTilNorge>, // OK
-    val adressebeskyttelse: List<String>, // OK
+    val familierelasjoner: List<FamilieRelasjon>,
+    val folkeregisterpersonstatus: List<String>,
+    val innflyttingTilNorge: List<InnflyttingTilNorge>,
+    val adressebeskyttelse: List<String>,
     val sikkerhetstiltak: List<Sikkerhetstiltak>,
     val bostedsadresse: Adresser,
     val oppholdsadresse: Adresser,
     val statsborgerskap: List<String>,
     val sivilstand: List<Sivilstand>,
-    val kommunenummerFraGt: String?,
-    val kommunenummerFraAdresse: String?,
-    val bydelsnummerFraGt: String?,
-    val bydelsnummerFraAdresse: String?,
+    val kommunenummerFraGt: String,
+    val kommunenummerFraAdresse: String,
+    val bydelsnummerFraGt: String,
+    val bydelsnummerFraAdresse: String,
     val kjoenn: List<String>,
     val doedsfall: List<Doedsfall>,
     val telefonnummer: List<Telefonnummer>,

@@ -2,334 +2,98 @@ package no.nav.sf.pdl
 
 import io.prometheus.client.Gauge
 
+fun registerGauge(name: String): Gauge {
+    return Gauge.build().name(name).help(name).register()
+}
+
+fun registerLabelGauge(name: String, label: String): Gauge {
+    return Gauge.build().name(name).help(name).labelNames(label).register()
+}
+
 data class WMetrics(
-    val noOfKakfaRecordsPdl: Gauge = Gauge
-            .build()
-            .name("no_kafkarecords_pdl_gauge")
-            .help("No. of kafka records pdl")
-            .register(),
-    val noOfInitialKakfaRecordsPdl: Gauge = Gauge
-            .build()
-            .name("no_initial_kafkarecords_pdl_gauge")
-            .help("No. of kafka records pdl")
-            .register(),
-    val noOfInitialTombestone: Gauge = Gauge
-            .build()
-            .name("no_initial_tombestones")
-            .help("No. of kafka records pdl")
-            .register(),
+    val testRunRecordsParsed: Gauge = registerGauge("test_run_records_parsed"), // Undistinct at test run
 
-    val noOfInitialPersonSf: Gauge = Gauge
-            .build()
-            .name("no_initial_parsed_persons")
-            .help("No. of parsed person sf")
-            .register(),
+    val initialRecordsParsed: Gauge = registerGauge("initial_records_parsed"), // Undistinct at init
 
-    val noOfTombestone: Gauge = Gauge
-            .build()
-            .name("no_tombestones")
-            .help("No. of kafka records pdl")
-            .register(),
+    val initialPersons: Gauge = registerGauge("initial_persons"), // Undistinct at init
+    val initialTombstones: Gauge = registerGauge("initial_tombstones"), // Undistinct at init
 
-    val noOfPersonSf: Gauge = Gauge
-            .build()
-            .name("no_parsed_persons")
-            .help("No. of parsed person sf")
-            .register(),
+    val initialPublishedPersons: Gauge = registerGauge("initial_published_persons"),
+    val initialPublishedTombstones: Gauge = registerGauge("initial_published_tombstones"),
 
-    val sizeOfCache: Gauge = Gauge
-            .build()
-            .name("size_of_cache")
-            .help("Size of person cache")
-            .register(),
+    val deadPersons: Gauge = registerGauge("dead_persons"), // distinct at init and work
+    val deadPersonsWithoutDate: Gauge = registerGauge("dead_persons_without_date"), // distinct at init and work
+    val livingPersons: Gauge = registerGauge("living_persons"), // distinct at init and work
+    val tombstones: Gauge = registerGauge("tombstones"), // distinct at init and work
 
-    val usedAddressTypes: Gauge = Gauge
-            .build()
-            .name("used_address_gauge")
-            .labelNames("type")
-            .help("No. of address types used in last work session")
-            .register(),
-    val initiallyPublishedPersons: Gauge = Gauge
-            .build()
-            .name("initially_published_person_gauge")
-            .help("No. of persons published to kafka in last work session")
-            .register(),
-    val publishedPersons: Gauge = Gauge
-            .build()
-            .name("published_person_gauge")
-            .help("No. of persons published to kafka in last work session")
-            .register(),
-    val initiallyPublishedTombestones: Gauge = Gauge
-            .build()
-            .name("initially_published_tombestone_gauge")
-            .help("No. of persons published to kafka in last work session")
-            .register(),
-    val publishedTombestones: Gauge = Gauge
-            .build()
-            .name("published_tombestone_gauge")
-            .help("No. of tombestones published to kafka in last work session")
-            .register(),
-    val cacheIsNewOrUpdated_noKey: Gauge = Gauge
-            .build()
-            .name("cache_no_key")
-            .help("cache no key")
-            .register(),
-    val cacheIsNewOrUpdated_differentHash: Gauge = Gauge
-            .build()
-            .name("cache_different_hash")
-            .help("cache different hash")
-            .register(),
-    val cacheIsNewOrUpdated_existing_to_tombestone: Gauge = Gauge
-            .build()
-            .name("cache_existing_to")
-            .help("cache existing to")
-            .register(),
-    val cacheIsNewOrUpdated_no_blocked: Gauge = Gauge
-            .build()
-            .name("cache_no_blocked")
-            .help("cache no blocked")
-            .register(),
-    val filterApproved: Gauge = Gauge
-            .build()
-            .name("filter_approved")
-            .help("filter approved")
-            .register(),
-    val filterDisproved: Gauge = Gauge
-            .build()
-            .name("filter_disproved")
-            .help("filter disproved")
-            .register(),
-    val initialFilterApproved: Gauge = Gauge
-            .build()
-            .name("initial_filter_approved")
-            .help("filter approved")
-            .register(),
-    val initialFilterDisproved: Gauge = Gauge
-            .build()
-            .name("initial_filter_disproved")
-            .help("filter disproved")
-            .register(),
-    val consumerIssues: Gauge = Gauge
-            .build()
-            .name("consumer_issues")
-            .help("consumer issues")
-            .register(),
-    val producerIssues: Gauge = Gauge
-            .build()
-            .name("producer_issues")
-            .help("producer issues")
-            .register(),
-    val latestInitBatch: Gauge = Gauge
-            .build()
-            .name("latest_init_batch")
-            .help("latest init batch")
-            .register(),
-    val initRecordsParsed: Gauge = Gauge
-            .build()
-            .name("init_records_parsed")
-            .help("init_records_parsed")
-            .register(),
-    val initRecordsParsedTest: Gauge = Gauge
-            .build()
-            .name("init_records_parsed_test")
-            .help("init_records_parsed_test")
-            .register(),
-    val noInvalidKommuneNummer: Gauge = Gauge
-            .build()
-            .name("no_invalid_kommunenummer")
-            .help("no_invalid_kommunenummer")
-            .register(),
-    val invalidKommuneNummer: Gauge = Gauge
-            .build()
-            .name("invalid_kommunenummer")
-            .labelNames("kommunenummer")
-            .help("invalid_kommunenummer")
-            .register(),
-    val noKommuneNummerFromAdresseOrGt: Gauge = Gauge
-            .build()
-            .name("no_kommunenummer_from_adresse_or_gt")
-            .help("no_kommunenummer_from_adresse_or_gt")
-            .register(),
-    val kommunenummerFraAdresse: Gauge = Gauge
-            .build()
-            .name("kommunenummer_fra_adresse")
-            .help("kommunenummer_fra_adresse")
-            .register(),
-    val kommunenummerFraGt: Gauge = Gauge
-            .build()
-            .name("kommunenummer_fra_gt")
-            .help("kommunenummer_fra_gt")
-            .register(),
-    val kommunenummerFraAdresseOgGtErLike: Gauge = Gauge
-            .build()
-            .name("kommunenummer_fra_adresse_og_gt_er_like")
-            .help("kommunenummer_fra_adresse_og_gt_er_like")
-            .register(),
-    val kommunenummerFraAdresseOgGtErIkkeLike: Gauge = Gauge
-            .build()
-            .name("kommunenummer_fra_adresse_og_gt_er_ikke_like")
-            .help("kommunenummer_fra_adresse_og_gt_er_ikke_like")
-            .register(),
-    val noBydelsNummerFromAdresseOrGt: Gauge = Gauge
-            .build()
-            .name("no_bydelsnummer_from_adresse_or_gt")
-            .help("no_bydelsnummer_from_adresse_or_gt")
-            .register(),
-    val bydelsnummerFraAdresse: Gauge = Gauge
-            .build()
-            .name("bydelsnummer_fra_adresse")
-            .help("bydelsnummer_fra_adresse")
-            .register(),
-    val bydelsnummerFraGt: Gauge = Gauge
-            .build()
-            .name("bydelsnummer_fra_gt")
-            .help("bydelsnummer_fra_gt")
-            .register(),
-    val bydelsnummerFraAdresseOgGtErLike: Gauge = Gauge
-            .build()
-            .name("bydelsnummer_fra_adresse_og_gt_er_like")
-            .help("bydelsnummer_fra_adresse_og_gt_er_like")
-            .register(),
-    val bydelsnummerFraAdresseOgGtErIkkeLike: Gauge = Gauge
-            .build()
-            .name("bydelsnummer_fra_adresse_og_gt_er_ikke_like")
-            .help("bydelsnummer_fra_adresse_og_gt_er_ikke_like")
-            .register(),
-// GT metrics start
-    val gtKommunenrFraKommuneMissing: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_fra_kommune_missing")
-            .help("gt_kommunenr_fra_kommune_missing")
-            .register(),
-    val gtKommunenrFraKommune: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_fra_kommune")
-            .help("gt_kommunenr_fra_kommune")
-            .register(),
-    val gtKommuneInvalid: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_invalid")
-            .help("gt_kommunenr_invalid")
-            .register(),
-    val gtKommunenrFraBydelMissing: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_fra_bydel_missing")
-            .help("gt_kommunenr_fra_bydel_missing")
-            .register(),
-    val gtKommunenrFraBydel: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_fra_bydel")
-            .help("gt_kommunenr_fra_bydel")
-            .register(),
-    val gtBydelInvalid: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_fra_bydel_invalid")
-            .help("gt_kommunenr_fra_bydel_invalid")
-            .register(),
-    val gtUtland: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_gttype_utland")
-            .help("gt_kommunenr_gttype_utland")
-            .register(),
-    val gtUdefinert: Gauge = Gauge
-            .build()
-            .name("gt_kommunenr_gttype_udefinert")
-            .help("gt_kommunenr_gttype_udefinert")
-            .register(),
-    val gtMissing: Gauge = Gauge
-            .build()
-            .name("gt_missing")
-            .help("gt_missing")
-            .register(),
+    val recordsParsed: Gauge = registerGauge("records_parsed"), // Undistinct at work
 
-// GT metrics end
-    val kommune: Gauge = Gauge
-            .build()
-            .name("kommune")
-            .labelNames("kommune")
-            .help("kommune")
-            .register(),
-    val kommune_number_not_found: Gauge = Gauge
-            .build()
-            .name("kommune_number_not_found")
-            .labelNames("kommune_number")
-            .help("kommune_number_not_found")
-            .register(),
-    val deadPersons: Gauge = Gauge
-            .build()
-            .name("dead_persons")
-            .help("dead_persons")
-            .register(),
-    val lastCharParsed: Gauge = Gauge
-            .build()
-            .name("last_char_parsed")
-            .labelNames("char_int")
-            .help("last_char_parsed")
-            .register(),
-    val invalidPersonsParsed: Gauge = Gauge
-            .build()
-            .name("invalid_persons_parsed")
-            .help("invalid_persons_parsed")
-            .register()
+    val publishedPersons: Gauge = registerGauge("published_persons"),
+    val publishedTombstones: Gauge = registerGauge("published_tombstones"),
+
+    val consumerIssues: Gauge = registerGauge("consumer_issues"),
+    val producerIssues: Gauge = registerGauge("producer_issues"),
+
+    val kommunenummerMissing: Gauge = registerGauge("kommunenummer_missing"),
+    val kommunenummerOnlyFromAdresse: Gauge = registerGauge("kommunenummer_only_from_adresse"),
+    val kommunenummerOnlyFromGt: Gauge = registerGauge("kommunenummer_only_from_gt"),
+    val kommunenummerFromBothAdresseAndGt: Gauge = registerGauge("kommunenummer_from_both_adresse_and_gt"),
+    val kommunenummerFromAdresseAndGtIsTheSame: Gauge = registerGauge("kommunenummer_from_adresse_and_gt_is_the_same"),
+    val kommunenummerFromAdresseAndGtDiffer: Gauge = registerGauge("kommunenummer_from_adresse_and_gt_differ"),
+
+    val bydelsnummerMissing: Gauge = registerGauge("bydelsnummer_missing"),
+    val bydelsnummerOnlyFromAdresse: Gauge = registerGauge("bydelsnummer_only_from_adresse"),
+    val bydelsnummerOnlyFromGt: Gauge = registerGauge("bydelsnummer_only_from_gt"),
+    val bydelsnummerFromBothAdresseAndGt: Gauge = registerGauge("bydelsnummer_from_both_adresse_and_gt"),
+    val bydelsnummerFromAdresseAndGtIsTheSame: Gauge = registerGauge("bydelsnummer_from_adresse_and_gt_is_the_same"),
+    val bydelsnummerFromAdresseAndGtDiffer: Gauge = registerGauge("bydelsnummer_from_adresse_and_gt_differ"),
+
+    val kommune: Gauge = registerLabelGauge("kommune", "kommune"),
+    val kommune_number_not_found: Gauge = registerLabelGauge("kommune_number_not_found", "kommune_number")
 ) {
-    enum class AddressType {
-        VEGAADRESSE, MATRIKKELADRESSE, UKJENTBOSTED, INGEN
+    fun clearAll() {
+        testRunRecordsParsed.clear()
+
+        initialRecordsParsed.clear()
+        initialPersons.clear()
+        initialTombstones.clear()
+        initialPublishedPersons.clear()
+        initialPublishedTombstones.clear()
+
+        deadPersons.clear()
+        livingPersons.clear()
+        tombstones.clear()
+
+        publishedPersons.clear()
+        publishedTombstones.clear()
+
+        consumerIssues.clear()
+        producerIssues.clear()
+
+        kommunenummerMissing.clear()
+        kommunenummerOnlyFromAdresse.clear()
+        kommunenummerOnlyFromGt.clear()
+        kommunenummerFromAdresseAndGtIsTheSame.clear()
+        kommunenummerFromAdresseAndGtDiffer.clear()
+
+        bydelsnummerMissing.clear()
+        bydelsnummerOnlyFromAdresse.clear()
+        bydelsnummerOnlyFromGt.clear()
+        bydelsnummerFromAdresseAndGtIsTheSame.clear()
+        bydelsnummerFromAdresseAndGtDiffer.clear()
+
+        kommune.clear()
+        kommune_number_not_found.clear()
     }
 
-    fun clearAll() {
-        this.initRecordsParsedTest.clear()
-        this.deadPersons.clear()
-        this.lastCharParsed.clear()
-        this.invalidPersonsParsed.clear()
-
-        this.kommune.clear()
-        this.gtKommunenrFraKommuneMissing.clear()
-        this.gtKommunenrFraKommune.clear()
-        this.gtKommuneInvalid.clear()
-        this.gtKommunenrFraBydelMissing.clear()
-        this.gtKommunenrFraBydel.clear()
-        this.gtBydelInvalid.clear()
-        this.gtUtland.clear()
-        this.gtUdefinert.clear()
-        this.gtMissing.clear()
-
-        this.noKommuneNummerFromAdresseOrGt.clear()
-        this.kommunenummerFraAdresse.clear()
-        this.kommunenummerFraGt.clear()
-        this.kommunenummerFraAdresseOgGtErLike.clear()
-        this.kommunenummerFraAdresseOgGtErIkkeLike.clear()
-
-        this.noBydelsNummerFromAdresseOrGt.clear()
-        this.bydelsnummerFraGt.clear()
-        this.bydelsnummerFraAdresse.clear()
-        this.bydelsnummerFraAdresseOgGtErLike.clear()
-        this.bydelsnummerFraAdresseOgGtErIkkeLike.clear()
-
-        this.noInvalidKommuneNummer.clear()
-        this.invalidKommuneNummer.clear()
-        this.initRecordsParsed.clear()
-        this.latestInitBatch.clear()
-        this.noOfPersonSf.clear()
-        this.noOfTombestone.clear()
-        this.noOfKakfaRecordsPdl.clear()
-        this.noOfInitialKakfaRecordsPdl.clear()
-        this.noOfInitialPersonSf.clear()
-        this.noOfInitialTombestone.clear()
-        this.sizeOfCache.clear()
-        this.usedAddressTypes.clear()
-        this.publishedPersons.clear()
-        this.publishedTombestones.clear()
-        this.initiallyPublishedPersons.clear()
-        this.initiallyPublishedTombestones.clear()
-        this.cacheIsNewOrUpdated_differentHash.clear()
-        this.cacheIsNewOrUpdated_existing_to_tombestone.clear()
-        this.cacheIsNewOrUpdated_noKey.clear()
-        this.cacheIsNewOrUpdated_no_blocked.clear()
-        this.filterApproved.clear()
-        this.filterDisproved.clear()
-        this.initialFilterApproved.clear()
-        this.initialFilterDisproved.clear()
-        this.consumerIssues.clear()
-        this.producerIssues.clear()
+    fun measureKommune(kommunenummer: String) {
+        val kommuneLabel = if (kommunenummer == UKJENT_FRA_PDL) {
+            UKJENT_FRA_PDL
+        } else {
+            PostnummerService.getKommunenummer(kommunenummer)?.let {
+                it
+            } ?: workMetrics.kommune_number_not_found.labels(kommunenummer).inc().let { NOT_FOUND_IN_REGISTER }
+        }
+        workMetrics.kommune.labels(kommuneLabel).inc()
     }
 }

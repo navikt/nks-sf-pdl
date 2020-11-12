@@ -99,7 +99,7 @@ message Doedsfall {
 // this message will be the value part of kafka payload
 message PersonValue {
   // aktoerid will be placed as key
-  string folkeregisterId = 1;
+  repeated string folkeregisterId = 1;
   repeated Navn navn = 2;
   repeated Familierelasjon familierelasjoner = 3;
   repeated string folkeregisterpersonstatus = 4;

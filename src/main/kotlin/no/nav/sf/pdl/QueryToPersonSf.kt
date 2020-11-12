@@ -1,6 +1,7 @@
 package no.nav.sf.pdl
 
 import mu.KotlinLogging
+import org.apache.commons.lang3.StringUtils
 
 private val log = KotlinLogging.logger { }
 
@@ -12,7 +13,7 @@ fun Query.toPersonSf(): PersonBase {
     return runCatching {
         PersonSf(
                 aktoerId = this.findAktoerId(), // ok first !historisk from idents
-                folkeregisterId = this.findFolkeregisterIdent(), // ok first !historisk from idents
+                folkeregisterId = this.findFolkeregisterIdent(), // !historisk from idents
                 navn = this.hentPerson.navn.filter { !it.metadata.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                 familierelasjoner = this.findFamilieRelasjoner(),
                 folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.filter { !it.metadata.historisk }.map { it.status },
@@ -75,38 +76,30 @@ private fun Query.findGtKommunenummer(): String {
         when (gt.gtType) {
             GtType.KOMMUNE -> {
                 if (gt.gtKommune.isNullOrEmpty()) {
-                    workMetrics.gtKommunenrFraKommuneMissing.inc()
                     Kommunenummer.Missing
                 } else if ((gt.gtKommune.length == 4) || gt.gtKommune.all { c -> c.isDigit() }) {
-                    workMetrics.gtKommunenrFraKommune.inc()
                     Kommunenummer.Exist(gt.gtKommune)
                 } else {
-                    workMetrics.gtKommuneInvalid.inc()
                     Kommunenummer.Invalid
                 }
             }
             GtType.BYDEL -> {
                 if (gt.gtBydel.isNullOrEmpty()) {
-                    workMetrics.gtKommunenrFraBydelMissing.inc()
                     Kommunenummer.Missing
                 } else if ((gt.gtBydel.length == 6) || gt.gtBydel.all { c -> c.isDigit() }) {
-                    workMetrics.gtKommunenrFraBydel.inc()
                     Kommunenummer.Exist(gt.gtBydel.substring(0, 4))
                 } else {
-                    workMetrics.gtBydelInvalid.inc()
                     Kommunenummer.Invalid
                 }
             }
             GtType.UTLAND -> {
-                workMetrics.gtUtland.inc()
                 Kommunenummer.GtUtland
             }
             GtType.UDEFINERT -> {
-                workMetrics.gtUdefinert.inc()
                 Kommunenummer.GtUdefinert
             }
         }
-    } ?: workMetrics.gtMissing.inc().let { Kommunenummer.Missing }
+    } ?: Kommunenummer.Missing
 
     return if (kommunenr is Kommunenummer.Exist)
         kommunenr.knummer
@@ -118,7 +111,7 @@ private fun Query.findGtKommunenummer(): String {
 private fun Query.findGtBydelsnummer(): String =
     this.hentPerson.geografiskTilknytning?.let { gt -> // Not really a Kommunenummer
                 if (!gt.gtBydel.isNullOrEmpty()) {
-                    gt.gtBydel ?: ""
+                    gt.gtBydel
                 } else {
                     UKJENT_FRA_PDL
                 } } ?: UKJENT_FRA_PDL
@@ -126,27 +119,23 @@ private fun Query.findGtBydelsnummer(): String =
 fun Query.findAdresseKommunenummer(): String {
     return this.hentPerson.bostedsadresse.let { bostedsadresse ->
         if (bostedsadresse.isNullOrEmpty()) {
-            workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc()
             UKJENT_FRA_PDL
         } else {
             bostedsadresse.firstOrNull { !it.metadata.historisk }?.let {
                 it.vegadresse?.let { vegadresse ->
                     if (vegadresse.findKommuneNummer() is Kommunenummer.Exist) {
-                        workMetrics.usedAddressTypes.labels(WMetrics.AddressType.VEGAADRESSE.name).inc()
                         vegadresse.kommunenummer
                     } else null
                 } ?: it.matrikkeladresse?.let { matrikkeladresse ->
                     if (matrikkeladresse.findKommuneNummer() is Kommunenummer.Exist) {
-                        workMetrics.usedAddressTypes.labels(WMetrics.AddressType.MATRIKKELADRESSE.name).inc()
                         matrikkeladresse.kommunenummer
                     } else null
                 } ?: it.ukjentBosted?.let { ukjentBosted ->
                     if (ukjentBosted.findKommuneNummer() is Kommunenummer.Exist) {
-                        workMetrics.usedAddressTypes.labels(WMetrics.AddressType.UKJENTBOSTED.name).inc()
                         ukjentBosted.bostedskommune
                     } else null
                 }
-            } ?: UKJENT_FRA_PDL.also { workMetrics.usedAddressTypes.labels(WMetrics.AddressType.INGEN.name).inc() }
+            } ?: UKJENT_FRA_PDL
         }
     }
 }
@@ -267,25 +256,20 @@ private fun Query.findOppholdsAdresse(): Adresser {
 }
 
 private fun Query.findAktoerId(): String {
-    return this.hentIdenter.identer.let { it ->
+    return this.hentIdenter.identer.filter { it.gruppe == IdentGruppe.AKTORID && !it.historisk }.let { it ->
         if (it.isEmpty()) {
             UKJENT_FRA_PDL
         } else {
-            hentIdenter.identer.firstOrNull { it.gruppe == IdentGruppe.AKTORID && !it.historisk }?.ident
-                    ?: UKJENT_FRA_PDL
+            if (it.size > 1) {
+                log.error { "More then one non-historic aktoersid found: ${StringUtils.join(it, ",")}" }
+            }
+            it.firstOrNull()?.ident ?: UKJENT_FRA_PDL
         }
     }
 }
 
-private fun Query.findFolkeregisterIdent(): String {
-    return this.hentIdenter.identer.let { it ->
-        if (it.isEmpty()) {
-            UKJENT_FRA_PDL
-        } else {
-            hentIdenter.identer.firstOrNull { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT && !it.historisk }?.ident
-                    ?: UKJENT_FRA_PDL
-        }
-    }
+private fun Query.findFolkeregisterIdent(): List<String> {
+    return this.hentIdenter.identer.filter { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT && !it.historisk }.map { it.ident }
 }
 
 fun HentePerson.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {
@@ -294,6 +278,7 @@ fun HentePerson.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {
     } else if ((this.kommunenummer.length == 4) || this.kommunenummer.all { c -> c.isDigit() }) {
         return Kommunenummer.Exist(this.kommunenummer)
     } else {
+        log.error { "Found invalid kommunenummer ${this.kommunenummer}" }
         return Kommunenummer.Invalid
     }
 }
@@ -304,6 +289,7 @@ fun HentePerson.Bostedsadresse.Matrikkeladresse.findKommuneNummer(): Kommunenumm
     } else if ((this.kommunenummer.length == 4) || this.kommunenummer.all { c -> c.isDigit() }) {
         return Kommunenummer.Exist(this.kommunenummer)
     } else {
+        log.error { "Found invalid kommunenummer ${this.kommunenummer}" }
         return Kommunenummer.Invalid
     }
 }
@@ -314,8 +300,7 @@ fun HentePerson.Bostedsadresse.UkjentBosted.findKommuneNummer(): Kommunenummer {
     } else if ((this.bostedskommune.length == 4) || this.bostedskommune.all { c -> c.isDigit() }) {
         return Kommunenummer.Exist(this.bostedskommune)
     } else {
-        workMetrics.noInvalidKommuneNummer.inc()
-        workMetrics.invalidKommuneNummer.labels(this.bostedskommune).inc()
+        log.error { "Invalid kommunenr found: ${this.bostedskommune}" }
         return Kommunenummer.Invalid
     }
 }

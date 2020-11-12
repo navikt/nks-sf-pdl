@@ -13,7 +13,10 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
             PersonProto.PersonKey.newBuilder().apply {
                 aktoerId = it.aktoerId
             }.build() to PersonProto.PersonValue.newBuilder().apply {
-                folkeregisterId = it.folkeregisterId ?: ""
+                it.folkeregisterId.forEach {
+                    addFolkeregisterId(it)
+                }
+
                 it.navn.forEach {
                     addNavn(PersonProto.Navn.newBuilder().apply {
                         fornavn = it.fornavn ?: ""
@@ -190,7 +193,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
             PersonProto.PersonValue.parseFrom(value).let { v ->
                 PersonSf(
                         aktoerId = PersonProto.PersonKey.parseFrom(key).aktoerId,
-                        folkeregisterId = v.folkeregisterId,
+                        folkeregisterId = v.folkeregisterIdList,
                         navn = v.navnList.map { Navn(
                                 fornavn = it.fornavn.stringOrNull(),
                                 mellomnavn = it.mellomnavn.stringOrNull(),
@@ -298,10 +301,10 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                     relatertVedSivilstand = it.relatertVedSivilstand.stringOrNull()
                             )
                         },
-                        kommunenummerFraGt = v.kommunenummerFraGt.stringOrNull(),
-                        bydelsnummerFraGt = v.bydelsnummerFraGt.stringOrNull(),
-                        kommunenummerFraAdresse = v.kommunenummerFraAdresse.stringOrNull(),
-                        bydelsnummerFraAdresse = v.bydelsnummerFraAdresse.stringOrNull(),
+                        kommunenummerFraGt = v.kommunenummerFraGt,
+                        bydelsnummerFraGt = v.bydelsnummerFraGt,
+                        kommunenummerFraAdresse = v.kommunenummerFraAdresse,
+                        bydelsnummerFraAdresse = v.bydelsnummerFraAdresse,
                         kjoenn = v.kjoennList,
                         doedsfall = v.doedsfallList.map {
                             Doedsfall(
