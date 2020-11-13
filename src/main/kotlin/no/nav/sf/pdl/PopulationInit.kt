@@ -43,7 +43,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
 }
 
 fun List<Pair<String, PersonBase>>.isValid(): Boolean {
-    return this.filterIsInstance<PersonInvalid>().isEmpty() && this.filterIsInstance<PersonProtobufIssue>().isEmpty()
+    return this.map { it.second }.filterIsInstance<PersonInvalid>().isEmpty() && this.map { it.second }.filterIsInstance<PersonProtobufIssue>().isEmpty()
 }
 
 var heartBeatConsumer: Int = 0

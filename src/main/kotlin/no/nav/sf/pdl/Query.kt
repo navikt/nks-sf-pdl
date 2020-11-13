@@ -227,7 +227,7 @@ data class HentePerson(
 
     @Serializable
     data class InnflyttingTilNorge(
-        val fraflyttingsland: String,
+        val fraflyttingsland: String?,
         val fraflyttingsstedIUtlandet: String?,
         val metadata: Metadata
     )
@@ -310,7 +310,7 @@ data class HentePerson(
 
     @Serializable
     data class UtflyttingFraNorge(
-        val tilflyttingsland: String,
+        val tilflyttingsland: String?,
         val tilflyttingsstedIUtlandet: String?,
         val metadata: Metadata
     )
