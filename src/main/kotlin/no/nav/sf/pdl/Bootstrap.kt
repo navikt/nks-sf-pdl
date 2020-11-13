@@ -46,11 +46,11 @@ object Bootstrap {
         val stop = ShutdownHook.isActive() || PrestopHook.isActive()
         when {
             stop -> Unit
-            !stop -> /*{
+            !stop -> {
                 log.info { "Continue to loop" }
                 loop(work(ws).first
                         .also { conditionalWait() })
-            }*/ conditionalWait()
+            }
         }
     }
 

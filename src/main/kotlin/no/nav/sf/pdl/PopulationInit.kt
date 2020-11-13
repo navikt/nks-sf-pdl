@@ -3,6 +3,7 @@ package no.nav.sf.pdl
 import java.time.LocalDate
 import kotlin.streams.toList
 import mu.KotlinLogging
+import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
@@ -12,6 +13,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 
 private val log = KotlinLogging.logger {}
 
+fun keyAsByteArray(key: String): ByteArray {
+    return PersonProto.PersonKey.newBuilder().apply {
+        aktoerId = key
+    }.build().toByteArray()
+}
 internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase {
     if (cr.value() == null) {
         workMetrics.initialTombstones.inc()
@@ -97,7 +103,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     log.info { "Init: Commencing reading all records on topic $kafkaPDLTopic" }
 
-    val resultList: MutableList<Pair<ByteArray, ByteArray?>> = mutableListOf()
+    val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
 
     log.info { "Defining Consumer for pdl read" }
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
@@ -135,11 +141,13 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                 parsedBatch.map {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
-                            resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
+                            resultList.add(Pair(it.first, null))
+                            // resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
                         }
                         is PersonSf -> {
                             val personProto = personBase.toPersonProto()
-                            resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
+                            resultList.add(Pair(it.first, personProto.second.toByteArray()))
+                            // resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
                         }
                         else -> {
                             log.error { "Should never arrive here" }; initParseBatchOk = false; KafkaConsumerStates.HasIssues
@@ -165,7 +173,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     var earliestDeath: LocalDate? = null
     // Measuring round
     latestRecords.forEach {
-        when (val personBase = PersonBaseFromProto(it.key, it.value)) {
+        when (val personBase = PersonBaseFromProto(keyAsByteArray(it.key), it.value)) {
             // TODO Here we can measure for statistics and make checks for unexpected values:
             is PersonSf -> {
                 if (personBase.isDead()) {
@@ -204,7 +212,8 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                             workMetrics.kommunenummerFromAdresseAndGtDiffer.inc()
                         }
                     }
-
+                }
+                when {
                     personBase.bydelsnummerFraAdresse == UKJENT_FRA_PDL && personBase.bydelsnummerFraGt == UKJENT_FRA_PDL -> {
                         workMetrics.bydelsnummerMissing.inc()
                     }
@@ -251,8 +260,8 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
         ).produce {
             it.fold(true) { acc, pair ->
                 acc && pair.second?.let {
-                    send(kafkaPersonTopic, pair.first, it).also { workMetrics.initialPublishedPersons.inc() }
-                } ?: sendNullValue(kafkaPersonTopic, pair.first).also { workMetrics.initialPublishedTombstones.inc() }
+                    send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
+                } ?: sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
             }.let { sent ->
                 when (sent) {
                     true -> exitReason = ExitReason.Work
