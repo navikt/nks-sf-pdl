@@ -111,12 +111,10 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             fromBeginning = true
     )
 
-    var logFail = ""
     var initParseBatchOk = true
 
     while (workMetrics.initialRecordsParsed.get() == 0.0) {
         kafkaConsumerPdl.consume { cRecords ->
-            if (resultList.size == 19800) { log.info { "Init error log: Enter batch possible fail" } }
             if (heartBeatConsumer == 0) {
                 log.info { "Init: Fetched a set of records (This is prompted first and each 10000th consume batch) Records size: ${cRecords.count()}" }
             }
@@ -131,9 +129,6 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                 }
             }
             val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr ->
-                if (resultList.size == 19800) {
-                    log.info { "Init error log, candidate for fail at parse:\nkey:${cr.key()}\n${cr.value()}" }
-                }
                 Pair(cr.key(), parsePdlJsonOnInit(cr))
             }
             if (heartBeatConsumer == 0) {
@@ -147,18 +142,11 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                 parsedBatch.forEach {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
-                            if (resultList.size == 19800) log.info { "Before add T" }
                             resultList.add(Pair(it.first, null))
-                            if (resultList.size == 19800) log.info { "After add T" }
                         }
                         is PersonSf -> {
-                            if (resultList.size == 19800) log.info { "Before add P" }
-                            if (resultList.size == 19800) {
-                                log.info { "Init error log, candidate for fail at personSf json: \n${personBase.toJson()}" }
-                            }
                             val personProto = personBase.toPersonProto()
                             resultList.add(Pair(it.first, personProto.second.toByteArray()))
-                            if (resultList.size == 19800) log.info { "After add P" }
                         }
                         else -> {
                             log.error { "Should never arrive here" }; initParseBatchOk = false; KafkaConsumerStates.HasIssues

@@ -199,7 +199,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                         embete = it.embete ?: ""
                         navn = it.navn ?: ""
                         motpartsPersonident = it.motpartsPersonident ?: ""
-                        omfang = it.omfang
+                        omfang = it.omfang ?: ""
                         omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade
                     })
                 }
