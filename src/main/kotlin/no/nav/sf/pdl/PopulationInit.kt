@@ -111,10 +111,12 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             fromBeginning = true
     )
 
+    var logFail = ""
     var initParseBatchOk = true
 
     while (workMetrics.initialRecordsParsed.get() == 0.0) {
         kafkaConsumerPdl.consume { cRecords ->
+            if (resultList.size == 19800) { log.info { "Init error log: Enter batch possible fail" } }
             if (heartBeatConsumer == 0) {
                 log.info { "Init: Fetched a set of records (This is prompted first and each 10000th consume batch) Records size: ${cRecords.count()}" }
             }
@@ -128,7 +130,12 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                     return@consume KafkaConsumerStates.IsFinished
                 }
             }
-            val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr -> Pair(cr.key(), parsePdlJsonOnInit(cr)) }
+            val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr ->
+                if (resultList.size == 19800) {
+                    log.info { "Init error log, candidate for fail at parse:\nkey:${cr.key()}\n${cr.value()}" }
+                }
+                Pair(cr.key(), parsePdlJsonOnInit(cr))
+            }
             if (heartBeatConsumer == 0) {
                 log.info { "Init: Successfully consumed a batch (This is prompted first and each 10000th consume batch) Batch size: ${parsedBatch.size}" }
             }
@@ -137,14 +144,18 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             if (parsedBatch.isValid()) {
                 // TODO Any statistics checks on person values from topic (before distinct/latest per key) can be added here:
                 workMetrics.initialRecordsParsed.inc(cRecords.count().toDouble())
-                parsedBatch.map {
+                parsedBatch.forEach {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
+                            if (resultList.size == 19800) log.info { "Before add T" }
                             resultList.add(Pair(it.first, null))
+                            if (resultList.size == 19800) log.info { "After add T" }
                         }
                         is PersonSf -> {
+                            if (resultList.size == 19800) log.info { "Before add P" }
                             val personProto = personBase.toPersonProto()
                             resultList.add(Pair(it.first, personProto.second.toByteArray()))
+                            if (resultList.size == 19800) log.info { "After add P" }
                         }
                         else -> {
                             log.error { "Should never arrive here" }; initParseBatchOk = false; KafkaConsumerStates.HasIssues
