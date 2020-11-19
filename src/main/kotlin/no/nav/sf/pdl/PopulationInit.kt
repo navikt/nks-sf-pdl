@@ -153,6 +153,9 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                         }
                         is PersonSf -> {
                             if (resultList.size == 19800) log.info { "Before add P" }
+                            if (resultList.size == 19800) {
+                                log.info { "Init error log, candidate for fail at personSf json: \n${personBase.toJson()}" }
+                            }
                             val personProto = personBase.toPersonProto()
                             resultList.add(Pair(it.first, personProto.second.toByteArray()))
                             if (resultList.size == 19800) log.info { "After add P" }
