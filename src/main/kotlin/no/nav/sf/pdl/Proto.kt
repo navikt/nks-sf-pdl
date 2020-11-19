@@ -196,7 +196,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                 it.vergemaalEllerFremtidsfullmakt.forEach {
                     addVergemaalEllerFremtidsfullmakt(PersonProto.VergemaalEllerFremtidsfullmakt.newBuilder().apply {
                         type = it.type
-                        embete = it.embete
+                        embete = it.embete ?: ""
                         navn = it.navn ?: ""
                         motpartsPersonident = it.motpartsPersonident ?: ""
                         omfang = it.omfang
@@ -359,7 +359,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                         vergemaalEllerFremtidsfullmakt = v.vergemaalEllerFremtidsfullmaktList.map {
                             VergemaalEllerFremtidsfullmakt(
                                     type = it.type,
-                                    embete = it.embete,
+                                    embete = it.embete.stringOrNull(),
                                     navn = it.navn.stringOrNull(),
                                     motpartsPersonident = it.motpartsPersonident.stringOrNull(),
                                     omfang = it.omfang.stringOrNull(),

@@ -352,7 +352,7 @@ data class HentePerson(
     @Serializable
     data class VergemaalEllerFremtidsfullmakt(
         val type: String,
-        val embete: String,
+        val embete: String?,
         val vergeEllerFullmektig: VergeEllerFullmektig,
         val metadata: Metadata
     )

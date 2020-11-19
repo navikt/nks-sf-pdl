@@ -163,7 +163,7 @@ data class Fullmakt( // TODO Do not turn any enum repr. as strings to anything b
 @Serializable
 data class VergemaalEllerFremtidsfullmakt(
     val type: String,
-    val embete: String,
+    val embete: String?,
     val navn: String?,
     val motpartsPersonident: String?,
     val omfang: String?,
