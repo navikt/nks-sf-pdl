@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import java.time.LocalDate
 import kotlin.streams.toList
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
@@ -107,7 +106,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     log.info { "Defining Consumer for pdl read" }
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdlAlternative,
+            config = ws.kafkaConsumerPdl,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )
@@ -142,12 +141,10 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
                             resultList.add(Pair(it.first, null))
-                            // resultList.add(Pair(personBase.toPersonTombstoneProtoKey().toByteArray(), null))
                         }
                         is PersonSf -> {
                             val personProto = personBase.toPersonProto()
                             resultList.add(Pair(it.first, personProto.second.toByteArray()))
-                            // resultList.add(Pair(personProto.first.toByteArray(), personProto.second.toByteArray()))
                         }
                         else -> {
                             log.error { "Should never arrive here" }; initParseBatchOk = false; KafkaConsumerStates.HasIssues
@@ -170,73 +167,12 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     val latestRecords = resultList.toMap() // Remove duplicates. Done after topic consuming is finished (due to updating a map of ~10M entries crashed consuming phase)
     log.info { "Init: Number of unique aktoersIds (and corresponding messages to handle) on topic $kafkaPDLTopic is ${latestRecords.size}" }
 
-    var earliestDeath: LocalDate? = null
     // Measuring round
     latestRecords.forEach {
         when (val personBase = PersonBaseFromProto(keyAsByteArray(it.key), it.value)) {
             // TODO Here we can measure for statistics and make checks for unexpected values:
             is PersonSf -> {
-                if (personBase.isDead()) {
-                    workMetrics.deadPersons.inc()
-                    if (personBase.doedsfall.any { it.doedsdato != null }) {
-                        personBase.doedsfall.filter { it.doedsdato != null }.forEach { doedsfall ->
-                            doedsfall.doedsdato?.let {
-                                earliestDeath = if (earliestDeath == null) {
-                                    it
-                                } else {
-                                    if (it.isBefore(earliestDeath)) it else earliestDeath
-                                }
-                            }
-                        }
-                    } else {
-                        workMetrics.deadPersonsWithoutDate.inc()
-                    }
-                } else {
-                    workMetrics.livingPersons.inc()
-                }
-                when {
-                    personBase.kommunenummerFraAdresse == UKJENT_FRA_PDL && personBase.kommunenummerFraGt == UKJENT_FRA_PDL -> {
-                        workMetrics.kommunenummerMissing.inc()
-                    }
-                    personBase.kommunenummerFraGt != UKJENT_FRA_PDL && personBase.kommunenummerFraAdresse == UKJENT_FRA_PDL -> {
-                        workMetrics.kommunenummerOnlyFromGt.inc()
-                    }
-                    personBase.kommunenummerFraGt == UKJENT_FRA_PDL && personBase.kommunenummerFraAdresse != UKJENT_FRA_PDL -> {
-                        workMetrics.kommunenummerOnlyFromAdresse.inc()
-                    }
-                    personBase.kommunenummerFraGt != UKJENT_FRA_PDL && personBase.kommunenummerFraAdresse != UKJENT_FRA_PDL -> {
-                        workMetrics.kommunenummerFromBothAdresseAndGt.inc()
-                        if (personBase.kommunenummerFraGt == personBase.kommunenummerFraAdresse) {
-                            workMetrics.kommunenummerFromAdresseAndGtIsTheSame.inc()
-                        } else {
-                            workMetrics.kommunenummerFromAdresseAndGtDiffer.inc()
-                        }
-                    }
-                }
-                when {
-                    personBase.bydelsnummerFraAdresse == UKJENT_FRA_PDL && personBase.bydelsnummerFraGt == UKJENT_FRA_PDL -> {
-                        workMetrics.bydelsnummerMissing.inc()
-                    }
-                    personBase.bydelsnummerFraGt != UKJENT_FRA_PDL && personBase.bydelsnummerFraAdresse == UKJENT_FRA_PDL -> {
-                        workMetrics.bydelsnummerOnlyFromGt.inc()
-                    }
-                    personBase.bydelsnummerFraGt == UKJENT_FRA_PDL && personBase.bydelsnummerFraAdresse != UKJENT_FRA_PDL -> {
-                        workMetrics.bydelsnummerOnlyFromAdresse.inc()
-                    }
-                    personBase.bydelsnummerFraGt != UKJENT_FRA_PDL && personBase.bydelsnummerFraAdresse != UKJENT_FRA_PDL -> {
-                        workMetrics.bydelsnummerFromBothAdresseAndGt.inc()
-                        if (personBase.bydelsnummerFraGt == personBase.bydelsnummerFraAdresse) {
-                            workMetrics.bydelsnummerFromAdresseAndGtIsTheSame.inc()
-                        } else {
-                            workMetrics.bydelsnummerFromAdresseAndGtDiffer.inc()
-                        }
-                    }
-                }
-                if (personBase.kommunenummerFraGt != UKJENT_FRA_PDL) {
-                    workMetrics.measureKommune(personBase.kommunenummerFraGt)
-                } else {
-                    workMetrics.measureKommune(personBase.kommunenummerFraAdresse)
-                }
+                workMetrics.measurePersonStats(personBase, true)
             }
             is PersonTombestone -> {
                 workMetrics.tombstones.inc()
@@ -248,7 +184,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     }
 
     log.info { "Init: Number of living persons: ${workMetrics.livingPersons.get().toInt()}, dead persons: ${workMetrics.deadPersons.get().toInt()} (of which unknown death date: ${workMetrics.deadPersonsWithoutDate.get().toInt()}), tombstones: ${workMetrics.tombstones.get().toInt()}" }
-    log.info { "Init: Earliest death date: ${earliestDeath.toIsoString()}" }
+    log.info { "Init: Earliest death date: ${workMetrics.earliestDeath.toIsoString()}" }
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
     var producerCount = 0
     log.info { "Init: Undertake producing to size ${latestRecords.size}" }

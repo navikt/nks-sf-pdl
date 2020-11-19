@@ -12,6 +12,8 @@ import no.nav.sf.library.enableNAISAPI
 private const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
 private val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
 
+private const val number_of_eventless_worksessions_before_termination = 10
+
 /**
  * Bootstrap is a very simple µService manager
  * - start, enables mandatory NAIS API before entering 'work' loop
@@ -42,12 +44,11 @@ object Bootstrap {
     }
 
     private tailrec fun loop(ws: WorkSettings) {
-        log.info { "Ready to loop" }
-        val stop = ShutdownHook.isActive() || PrestopHook.isActive()
+        if (numberOfWorkSessionsWithoutEvents >= number_of_eventless_worksessions_before_termination) log.info { "Will terminate (and reboot) since number of successive work sessions without consumed events is at least $number_of_eventless_worksessions_before_termination" }
+        val stop = ShutdownHook.isActive() || PrestopHook.isActive() || (numberOfWorkSessionsWithoutEvents >= number_of_eventless_worksessions_before_termination)
         when {
             stop -> Unit
             !stop -> {
-                log.info { "Continue to loop" }
                 loop(work(ws).first
                         .also { conditionalWait() })
             }

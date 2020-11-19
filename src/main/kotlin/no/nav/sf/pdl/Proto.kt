@@ -182,6 +182,27 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                 it.talesspraaktolk.forEach {
                     addTalesspraaktolk(it ?: "")
                 }
+
+                it.fullmakt.forEach {
+                    addFullmakt(PersonProto.Fullmakt.newBuilder().apply {
+                        motpartsRolle = it.motpartsRolle
+                        motpartsPersonident = it.motpartsPersonident
+                        it.omraader.forEach { addOmraader(it) }
+                        gyldigFraOgMed = it.gyldigFraOgMed.toIsoString()
+                        gyldigTilOgMed = it.gyldigTilOgMed.toIsoString()
+                    })
+                }
+
+                it.vergemaalEllerFremtidsfullmakt.forEach {
+                    addVergemaalEllerFremtidsfullmakt(PersonProto.VergemaalEllerFremtidsfullmakt.newBuilder().apply {
+                        type = it.type
+                        embete = it.embete
+                        navn = it.navn ?: ""
+                        motpartsPersonident = it.motpartsPersonident ?: ""
+                        omfang = it.omfang
+                        omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade
+                    })
+                }
             }.build()
         }
 
@@ -325,7 +346,26 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                     tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet.stringOrNull()
                             )
                         },
-                        talesspraaktolk = v.talesspraaktolkList
+                        talesspraaktolk = v.talesspraaktolkList,
+                        fullmakt = v.fullmaktList.map {
+                            Fullmakt(
+                                    motpartsRolle = it.motpartsRolle,
+                                    motpartsPersonident = it.motpartsPersonident,
+                                    omraader = it.omraaderList,
+                                    gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
+                                    gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate()
+                            )
+                        },
+                        vergemaalEllerFremtidsfullmakt = v.vergemaalEllerFremtidsfullmaktList.map {
+                            VergemaalEllerFremtidsfullmakt(
+                                    type = it.type,
+                                    embete = it.embete,
+                                    navn = it.navn.stringOrNull(),
+                                    motpartsPersonident = it.motpartsPersonident.stringOrNull(),
+                                    omfang = it.omfang.stringOrNull(),
+                                    omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade
+                            )
+                        }
                 )
             } }.getOrDefault(PersonProtobufIssue)
         }

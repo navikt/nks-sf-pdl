@@ -150,6 +150,27 @@ data class Doedsfall(
 )
 
 @Serializable
+data class Fullmakt( // TODO Do not turn any enum repr. as strings to anything but strings
+    val motpartsRolle: String, // RolleDto
+    val motpartsPersonident: String,
+    val omraader: List<String> = listOf(),
+    @Serializable(with = IsoLocalDateSerializer::class)
+    val gyldigFraOgMed: LocalDate? = null,
+    @Serializable(with = IsoLocalDateSerializer::class)
+    val gyldigTilOgMed: LocalDate? = null
+)
+
+@Serializable
+data class VergemaalEllerFremtidsfullmakt(
+    val type: String,
+    val embete: String,
+    val navn: String?,
+    val motpartsPersonident: String?,
+    val omfang: String?,
+    val omfangetErInnenPersonligOmraade: Boolean
+)
+
+@Serializable
 data class PersonSf(
     val aktoerId: String,
     val folkeregisterId: List<String>,
@@ -171,7 +192,9 @@ data class PersonSf(
     val doedsfall: List<Doedsfall>,
     val telefonnummer: List<Telefonnummer>,
     val utflyttingFraNorge: List<UtflyttingFraNorge>,
-    val talesspraaktolk: List<String>
+    val talesspraaktolk: List<String>,
+    val fullmakt: List<Fullmakt>,
+    val vergemaalEllerFremtidsfullmakt: List<VergemaalEllerFremtidsfullmakt>
 ) : PersonBase() {
 
     fun toJson(): String = no.nav.sf.library.json.stringify(serializer(), this)

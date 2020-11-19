@@ -96,6 +96,23 @@ message Doedsfall {
     string master = 2;
 }
 
+message Fullmakt {
+  string motpartsRolle = 1;
+  string motpartsPersonident = 2;
+  repeated string omraader = 3;
+  string gyldigFraOgMed = 4;
+  string gyldigTilOgMed = 5;
+}
+
+message VergemaalEllerFremtidsfullmakt {
+  string type = 1;
+  string embete = 2;
+  string navn = 3;
+  string motpartsPersonident = 4;
+  string omfang = 5;
+  bool omfangetErInnenPersonligOmraade = 6;
+}
+
 // this message will be the value part of kafka payload
 message PersonValue {
   // aktoerid will be placed as key
@@ -119,4 +136,6 @@ message PersonValue {
   repeated Telefonnummer telefonnummer = 18;
   repeated UtflyttingFraNorge utflyttingFraNorge = 19;
   repeated string talesspraaktolk = 20;
+  repeated Fullmakt fullmakt = 21;
+  repeated VergemaalEllerFremtidsfullmakt vergemaalEllerFremtidsfullmakt = 22;
 }

@@ -1,6 +1,8 @@
 package no.nav.sf.pdl
 
 import io.prometheus.client.Gauge
+import java.io.File
+import java.time.LocalDate
 
 fun registerGauge(name: String): Gauge {
     return Gauge.build().name(name).help(name).register()
@@ -14,10 +16,8 @@ data class WMetrics(
     val testRunRecordsParsed: Gauge = registerGauge("test_run_records_parsed"), // Undistinct at test run
 
     val initialRecordsParsed: Gauge = registerGauge("initial_records_parsed"), // Undistinct at init
-
     val initialPersons: Gauge = registerGauge("initial_persons"), // Undistinct at init
     val initialTombstones: Gauge = registerGauge("initial_tombstones"), // Undistinct at init
-
     val initialPublishedPersons: Gauge = registerGauge("initial_published_persons"),
     val initialPublishedTombstones: Gauge = registerGauge("initial_published_tombstones"),
 
@@ -61,8 +61,11 @@ data class WMetrics(
         initialPublishedTombstones.clear()
 
         deadPersons.clear()
+        deadPersonsWithoutDate.clear()
         livingPersons.clear()
         tombstones.clear()
+
+        recordsParsed.clear()
 
         publishedPersons.clear()
         publishedTombstones.clear()
@@ -73,12 +76,14 @@ data class WMetrics(
         kommunenummerMissing.clear()
         kommunenummerOnlyFromAdresse.clear()
         kommunenummerOnlyFromGt.clear()
+        kommunenummerFromBothAdresseAndGt.clear()
         kommunenummerFromAdresseAndGtIsTheSame.clear()
         kommunenummerFromAdresseAndGtDiffer.clear()
 
         bydelsnummerMissing.clear()
         bydelsnummerOnlyFromAdresse.clear()
         bydelsnummerOnlyFromGt.clear()
+        bydelsnummerFromBothAdresseAndGt.clear()
         bydelsnummerFromAdresseAndGtIsTheSame.clear()
         bydelsnummerFromAdresseAndGtDiffer.clear()
 
@@ -95,5 +100,84 @@ data class WMetrics(
             } ?: workMetrics.kommune_number_not_found.labels(kommunenummer).inc().let { NOT_FOUND_IN_REGISTER }
         }
         workMetrics.kommune.labels(kommuneLabel).inc()
+    }
+
+    val investigateList: MutableList<PersonSf> = mutableListOf()
+    fun measureNummerSources(person: PersonSf, investigate: Boolean = false) {
+        when {
+            person.kommunenummerFraGt == UKJENT_FRA_PDL && person.kommunenummerFraAdresse == UKJENT_FRA_PDL -> {
+                workMetrics.kommunenummerMissing.inc()
+            }
+            person.kommunenummerFraGt != UKJENT_FRA_PDL && person.kommunenummerFraAdresse == UKJENT_FRA_PDL -> {
+                workMetrics.kommunenummerOnlyFromGt.inc()
+            }
+            person.kommunenummerFraGt == UKJENT_FRA_PDL && person.kommunenummerFraAdresse != UKJENT_FRA_PDL -> {
+                workMetrics.kommunenummerOnlyFromAdresse.inc()
+            }
+            person.kommunenummerFraGt != UKJENT_FRA_PDL && person.kommunenummerFraAdresse != UKJENT_FRA_PDL -> {
+                workMetrics.kommunenummerFromBothAdresseAndGt.inc()
+                if (person.kommunenummerFraGt == person.kommunenummerFraAdresse) {
+                    workMetrics.kommunenummerFromAdresseAndGtIsTheSame.inc()
+                } else {
+                    workMetrics.kommunenummerFromAdresseAndGtDiffer.inc()
+                }
+            }
+        }
+        when {
+            person.bydelsnummerFraGt == UKJENT_FRA_PDL && person.bydelsnummerFraAdresse == UKJENT_FRA_PDL -> {
+                workMetrics.bydelsnummerMissing.inc()
+            }
+            person.bydelsnummerFraGt != UKJENT_FRA_PDL && person.bydelsnummerFraAdresse == UKJENT_FRA_PDL -> {
+                workMetrics.bydelsnummerOnlyFromGt.inc()
+            }
+            person.bydelsnummerFraGt == UKJENT_FRA_PDL && person.bydelsnummerFraAdresse != UKJENT_FRA_PDL -> {
+                workMetrics.bydelsnummerOnlyFromAdresse.inc()
+            }
+            person.bydelsnummerFraGt != UKJENT_FRA_PDL && person.bydelsnummerFraAdresse != UKJENT_FRA_PDL -> {
+                workMetrics.bydelsnummerFromBothAdresseAndGt.inc()
+                if (person.bydelsnummerFraGt == person.bydelsnummerFraAdresse) {
+                    workMetrics.bydelsnummerFromAdresseAndGtIsTheSame.inc()
+                } else {
+                    if (investigate) investigateList.add(person)
+                    workMetrics.bydelsnummerFromAdresseAndGtDiffer.inc()
+                }
+            }
+        }
+    }
+
+    var earliestDeath: LocalDate? = null
+    fun measureLivingOrDead(person: PersonSf) {
+        if (person.isDead()) {
+            workMetrics.deadPersons.inc()
+            if (person.doedsfall.any { it.doedsdato != null }) {
+                person.doedsfall.filter { it.doedsdato != null }.forEach { doedsfall ->
+                    doedsfall.doedsdato?.let {
+                        earliestDeath = if (earliestDeath == null) {
+                            it
+                        } else {
+                            if (it.isBefore(earliestDeath)) it else earliestDeath
+                        }
+                    }
+                }
+            } else {
+                workMetrics.deadPersonsWithoutDate.inc()
+            }
+        } else {
+            workMetrics.livingPersons.inc()
+        }
+    }
+
+    fun measurePersonStats(person: PersonSf, investigate: Boolean = false) {
+        workMetrics.measureLivingOrDead(person)
+        workMetrics.measureNummerSources(person, investigate)
+        if (investigate) {
+            File("/tmp/investigate").writeText("Findings:\n+${investigateList.map{it.toJson()}.joinToString("\n\n")}")
+            investigateList.clear()
+        }
+        if (person.kommunenummerFraGt != UKJENT_FRA_PDL) {
+            workMetrics.measureKommune(person.kommunenummerFraGt)
+        } else {
+            workMetrics.measureKommune(person.kommunenummerFraAdresse)
+        }
     }
 }

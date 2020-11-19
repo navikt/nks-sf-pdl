@@ -54,7 +54,13 @@ fun Query.toPersonSf(): PersonBase {
                 talesspraaktolk = this.hentPerson.tilrettelagtKommunikasjon.filter { it.talespraaktolk != null && !it.metadata.historisk && it.talespraaktolk.spraak != null }.map {
                     it.talespraaktolk?.spraak ?: ""
                 },
-                doedsfall = this.hentPerson.doedsfall.filter { !it.metadata.historisk }.map { Doedsfall(doedsdato = it.doedsdato, master = it.metadata.master) } // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
+                doedsfall = this.hentPerson.doedsfall.filter { !it.metadata.historisk }.map { Doedsfall(doedsdato = it.doedsdato, master = it.metadata.master) }, // "doedsdato": null  betyr at han faktsik er død, man vet bare ikke når. Listen kan ha to innslagt, kilde FREG og PDL
+                fullmakt = this.hentPerson.fullmakt.filter { !it.metadata.historisk }.map {
+                    Fullmakt(motpartsRolle = it.motpartsRolle, motpartsPersonident = it.motpartsPersonident, omraader = it.omraader, gyldigFraOgMed = it.gyldigFraOgMed, gyldigTilOgMed = it.gyldigTilOgMed)
+                },
+                vergemaalEllerFremtidsfullmakt = this.hentPerson.vergemaalEllerFremtidsfullmakt.filter { !it.metadata.historisk }.map {
+                    VergemaalEllerFremtidsfullmakt(type = it.type, embete = it.embete, navn = it.vergeEllerFullmektig.navn, motpartsPersonident = it.vergeEllerFullmektig.motpartsPersonident, omfang = it.vergeEllerFullmektig.omfang, omfangetErInnenPersonligOmraade = it.vergeEllerFullmektig.omfangetErInnenPersonligOmraade)
+                }
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }

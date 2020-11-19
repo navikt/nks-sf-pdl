@@ -73,10 +73,14 @@ sealed class ExitReason {
     fun isOK(): Boolean = this is Work || this is NoEvents
 }
 
+var numberOfWorkSessionsWithoutEvents = 0
+
 internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     log.info { "bootstrap work session starting" }
 
     workMetrics.clearAll()
+
+    var consumed = 0
 
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
     AKafkaProducer<ByteArray, ByteArray>(
@@ -95,6 +99,8 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
             exitReason = ExitReason.NoEvents
             if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
 
+            numberOfWorkSessionsWithoutEvents = 0
+
             exitReason = ExitReason.Work
             val results = cRecords.map { cr ->
 
@@ -112,19 +118,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
                                 is PersonSf -> {
-                                    if (personSf.isDead()) {
-                                        workMetrics.deadPersons.inc()
-                                        if (!personSf.doedsfall.any { it.doedsdato != null }) {
-                                            workMetrics.deadPersonsWithoutDate.inc()
-                                        }
-                                    } else {
-                                        workMetrics.livingPersons.inc()
-                                        if (personSf.kommunenummerFraGt != UKJENT_FRA_PDL) {
-                                            workMetrics.measureKommune(personSf.kommunenummerFraGt)
-                                        } else {
-                                            workMetrics.measureKommune(personSf.kommunenummerFraAdresse)
-                                        }
-                                    }
+                                    workMetrics.measurePersonStats(personSf)
                                     Pair(KafkaConsumerStates.IsOk, personSf)
                                 }
                                 is PersonInvalid -> {
@@ -162,7 +156,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                     }
                 }.let { sent ->
                     when (sent) {
-                        true -> KafkaConsumerStates.IsOk
+                        true -> KafkaConsumerStates.IsOk.also { consumed += results.size }
                         false -> KafkaConsumerStates.HasIssues.also {
                             workMetrics.producerIssues.inc()
                             log.error { "Producer has issues sending to topic" }
@@ -174,6 +168,8 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
             }
         } // Consumer pdl topic
     } // Producer person topic
+
+    if (consumed == 0) numberOfWorkSessionsWithoutEvents++
 
     log.info { "bootstrap work session finished" }
 
