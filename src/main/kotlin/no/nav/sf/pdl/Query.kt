@@ -359,7 +359,7 @@ data class HentePerson(
 
     @Serializable
     data class VergeEllerFullmektig(
-        val navn: Navn,
+        val navn: Navn?,
         val motpartsPersonident: String?,
         val omfang: String?,
         val omfangetErInnenPersonligOmraade: Boolean

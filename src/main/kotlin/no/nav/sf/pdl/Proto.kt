@@ -198,9 +198,9 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                         type = it.type
                         embete = it.embete ?: ""
                         navn = PersonProto.Navn.newBuilder().apply {
-                            fornavn = it.navn.fornavn ?: ""
-                            mellomnavn = it.navn.mellomnavn ?: ""
-                            etternavn = it.navn.etternavn ?: ""
+                            fornavn = it.navn?.fornavn ?: ""
+                            mellomnavn = it.navn?.mellomnavn ?: ""
+                            etternavn = it.navn?.etternavn ?: ""
                         }.build()
                         motpartsPersonident = it.motpartsPersonident ?: ""
                         omfang = it.omfang ?: ""
@@ -364,7 +364,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                             VergemaalEllerFremtidsfullmakt(
                                     type = it.type,
                                     embete = it.embete.stringOrNull(),
-                                    navn = Navn(fornavn = it.navn.fornavn.stringOrNull(), mellomnavn = it.navn.mellomnavn.stringOrNull(), etternavn = it.navn.etternavn.stringOrNull()),
+                                    navn = if (it.navn.fornavn == "" && it.navn.mellomnavn == "" && it.navn.etternavn == "") null else Navn(fornavn = it.navn.fornavn.stringOrNull(), mellomnavn = it.navn.mellomnavn.stringOrNull(), etternavn = it.navn.etternavn.stringOrNull()),
                                     motpartsPersonident = it.motpartsPersonident.stringOrNull(),
                                     omfang = it.omfang.stringOrNull(),
                                     omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade

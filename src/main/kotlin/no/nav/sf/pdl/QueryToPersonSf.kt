@@ -60,7 +60,7 @@ fun Query.toPersonSf(): PersonBase {
                 },
                 vergemaalEllerFremtidsfullmakt = this.hentPerson.vergemaalEllerFremtidsfullmakt.filter { !it.metadata.historisk }.map {
                     VergemaalEllerFremtidsfullmakt(type = it.type, embete = it.embete,
-                            navn = it.vergeEllerFullmektig.navn.let { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
+                            navn = it.vergeEllerFullmektig.navn?.let { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                             motpartsPersonident = it.vergeEllerFullmektig.motpartsPersonident, omfang = it.vergeEllerFullmektig.omfang, omfangetErInnenPersonligOmraade = it.vergeEllerFullmektig.omfangetErInnenPersonligOmraade)
                 }
         )
