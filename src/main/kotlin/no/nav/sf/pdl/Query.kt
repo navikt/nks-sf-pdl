@@ -339,8 +339,8 @@ data class HentePerson(
 
     @Serializable
     data class Fullmakt( // TODO Do not turn any enum repr. as strings to anything but strings
-        val motpartsRolle: String, // RolleDto
-        val motpartsPersonident: String,
+        val motpartsRolle: String?, // RolleDto
+        val motpartsPersonident: String?,
         val omraader: List<String> = listOf(),
         @Serializable(with = IsoLocalDateSerializer::class)
         val gyldigFraOgMed: LocalDate? = null,
@@ -351,7 +351,7 @@ data class HentePerson(
 
     @Serializable
     data class VergemaalEllerFremtidsfullmakt(
-        val type: String,
+        val type: String?,
         val embete: String?,
         val vergeEllerFullmektig: VergeEllerFullmektig,
         val metadata: Metadata

@@ -151,8 +151,8 @@ data class Doedsfall(
 
 @Serializable
 data class Fullmakt( // TODO Do not turn any enum repr. as strings to anything but strings
-    val motpartsRolle: String, // RolleDto
-    val motpartsPersonident: String,
+    val motpartsRolle: String?, // RolleDto
+    val motpartsPersonident: String?,
     val omraader: List<String> = listOf(),
     @Serializable(with = IsoLocalDateSerializer::class)
     val gyldigFraOgMed: LocalDate? = null,
@@ -162,7 +162,7 @@ data class Fullmakt( // TODO Do not turn any enum repr. as strings to anything b
 
 @Serializable
 data class VergemaalEllerFremtidsfullmakt(
-    val type: String,
+    val type: String?,
     val embete: String?,
     val navn: Navn?,
     val motpartsPersonident: String?,

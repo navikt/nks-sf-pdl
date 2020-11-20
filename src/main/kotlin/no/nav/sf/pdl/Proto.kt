@@ -185,8 +185,8 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
 
                 it.fullmakt.forEach {
                     addFullmakt(PersonProto.Fullmakt.newBuilder().apply {
-                        motpartsRolle = it.motpartsRolle
-                        motpartsPersonident = it.motpartsPersonident
+                        motpartsRolle = it.motpartsRolle ?: ""
+                        motpartsPersonident = it.motpartsPersonident ?: ""
                         it.omraader.forEach { addOmraader(it) }
                         gyldigFraOgMed = it.gyldigFraOgMed.toIsoString()
                         gyldigTilOgMed = it.gyldigTilOgMed.toIsoString()
@@ -195,7 +195,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
 
                 it.vergemaalEllerFremtidsfullmakt.forEach {
                     addVergemaalEllerFremtidsfullmakt(PersonProto.VergemaalEllerFremtidsfullmakt.newBuilder().apply {
-                        type = it.type
+                        type = it.type ?: ""
                         embete = it.embete ?: ""
                         navn = PersonProto.Navn.newBuilder().apply {
                             fornavn = it.navn?.fornavn ?: ""
@@ -353,8 +353,8 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                         talesspraaktolk = v.talesspraaktolkList,
                         fullmakt = v.fullmaktList.map {
                             Fullmakt(
-                                    motpartsRolle = it.motpartsRolle,
-                                    motpartsPersonident = it.motpartsPersonident,
+                                    motpartsRolle = it.motpartsRolle.stringOrNull(),
+                                    motpartsPersonident = it.motpartsPersonident.stringOrNull(),
                                     omraader = it.omraaderList,
                                     gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
                                     gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate()
@@ -362,7 +362,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                         },
                         vergemaalEllerFremtidsfullmakt = v.vergemaalEllerFremtidsfullmaktList.map {
                             VergemaalEllerFremtidsfullmakt(
-                                    type = it.type,
+                                    type = it.type.stringOrNull(),
                                     embete = it.embete.stringOrNull(),
                                     navn = if (it.navn.fornavn == "" && it.navn.mellomnavn == "" && it.navn.etternavn == "") null else Navn(fornavn = it.navn.fornavn.stringOrNull(), mellomnavn = it.navn.mellomnavn.stringOrNull(), etternavn = it.navn.etternavn.stringOrNull()),
                                     motpartsPersonident = it.motpartsPersonident.stringOrNull(),
