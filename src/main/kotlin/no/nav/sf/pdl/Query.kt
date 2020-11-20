@@ -265,7 +265,7 @@ data class HentePerson(
         val fornavn: String,
         val mellomnavn: String?,
         val etternavn: String,
-        val metadata: Metadata
+        val metadata: Metadata? = null // Only present on first level
     )
 
     @Serializable
@@ -359,7 +359,7 @@ data class HentePerson(
 
     @Serializable
     data class VergeEllerFullmektig(
-        val navn: String?,
+        val navn: Navn,
         val motpartsPersonident: String?,
         val omfang: String?,
         val omfangetErInnenPersonligOmraade: Boolean

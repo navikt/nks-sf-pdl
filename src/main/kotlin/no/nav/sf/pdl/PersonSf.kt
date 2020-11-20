@@ -164,7 +164,7 @@ data class Fullmakt( // TODO Do not turn any enum repr. as strings to anything b
 data class VergemaalEllerFremtidsfullmakt(
     val type: String,
     val embete: String?,
-    val navn: String?,
+    val navn: Navn,
     val motpartsPersonident: String?,
     val omfang: String?,
     val omfangetErInnenPersonligOmraade: Boolean

@@ -107,7 +107,7 @@ message Fullmakt {
 message VergemaalEllerFremtidsfullmakt {
   string type = 1;
   string embete = 2;
-  string navn = 3;
+  Navn navn = 3;
   string motpartsPersonident = 4;
   string omfang = 5;
   bool omfangetErInnenPersonligOmraade = 6;

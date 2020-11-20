@@ -14,7 +14,7 @@ fun Query.toPersonSf(): PersonBase {
         PersonSf(
                 aktoerId = this.findAktoerId(), // ok first !historisk from idents
                 folkeregisterId = this.findFolkeregisterIdent(), // !historisk from idents
-                navn = this.hentPerson.navn.filter { !it.metadata.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
+                navn = this.hentPerson.navn.filter { !it.metadata!!.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                 familierelasjoner = this.findFamilieRelasjoner(),
                 folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.filter { !it.metadata.historisk }.map { it.status },
                 adressebeskyttelse = this.hentPerson.adressebeskyttelse.filter { !it.metadata.historisk }.map { it.gradering.toString() }, // first !historisk
@@ -59,7 +59,9 @@ fun Query.toPersonSf(): PersonBase {
                     Fullmakt(motpartsRolle = it.motpartsRolle, motpartsPersonident = it.motpartsPersonident, omraader = it.omraader, gyldigFraOgMed = it.gyldigFraOgMed, gyldigTilOgMed = it.gyldigTilOgMed)
                 },
                 vergemaalEllerFremtidsfullmakt = this.hentPerson.vergemaalEllerFremtidsfullmakt.filter { !it.metadata.historisk }.map {
-                    VergemaalEllerFremtidsfullmakt(type = it.type, embete = it.embete, navn = it.vergeEllerFullmektig.navn, motpartsPersonident = it.vergeEllerFullmektig.motpartsPersonident, omfang = it.vergeEllerFullmektig.omfang, omfangetErInnenPersonligOmraade = it.vergeEllerFullmektig.omfangetErInnenPersonligOmraade)
+                    VergemaalEllerFremtidsfullmakt(type = it.type, embete = it.embete,
+                            navn = it.vergeEllerFullmektig.navn.let { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
+                            motpartsPersonident = it.vergeEllerFullmektig.motpartsPersonident, omfang = it.vergeEllerFullmektig.omfang, omfangetErInnenPersonligOmraade = it.vergeEllerFullmektig.omfangetErInnenPersonligOmraade)
                 }
         )
     }
