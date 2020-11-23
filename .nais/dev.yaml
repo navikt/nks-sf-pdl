@@ -43,7 +43,7 @@ spec:
   kafka:
     pool: nav-dev # enum of nav-dev, nav-prod
   env:
-    - name: KAFKA_BROKERS_ON_PREM # Conflict with automatic env variable set by gcp kafka pool makes need for separate config to kafka_brokers
+    - name: KAFKA_BROKERS_ON_PREM # Conflict with automatic env variable set by gcp kafka pool makes need for separate config to on-prem kafka_brokers
       value: SASL_SSL://b27apvl00045.preprod.local:8443,SASL_SSL://b27apvl00046.preprod.local:8443,SASL_SSL://b27apvl00047.preprod.local:8443
     - name: KAFKA_SCREG
       value: https://kafka-schema-registry.nais-q.adeo.no

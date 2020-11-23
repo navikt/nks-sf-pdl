@@ -12,7 +12,7 @@ import no.nav.sf.library.enableNAISAPI
 private const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
 private val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
 
-private const val number_of_eventless_worksessions_before_termination = 10
+private const val number_of_eventless_worksessions_before_termination = Int.MAX_VALUE // Do not stop due
 
 /**
  * Bootstrap is a very simple µService manager
@@ -26,12 +26,9 @@ object Bootstrap {
     private val log = KotlinLogging.logger { }
 
     fun start(ws: WorkSettings = WorkSettings()) {
-        log.info { "Starting - grace period 30 s for sidecar" }
-        conditionalWait(30000)
-        log.info { "Starting - post grace period" }
         enableNAISAPI {
-            log.info { "Starting - additional grace period 2 m after enableNAISAPI" }
-            conditionalWait(120000)
+            log.info { "Starting - grace period 3 m after enableNAISAPI" }
+            conditionalWait(180000)
             log.info { "Starting - post grace period enableNAISAPI" }
             // initLoadTest(ws)
             initLoad(ws)

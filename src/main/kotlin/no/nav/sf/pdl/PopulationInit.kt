@@ -24,7 +24,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
     } else {
         when (val query = cr.value()?.getQueryFromJson() ?: InvalidQuery) {
             InvalidQuery -> {
-                log.error { "Init: Unable to parse topic value PDL Message:\n${cr.value()}" }
+                log.error { "Init: Unable to parse topic value as query object" }
                 return PersonInvalid
             }
             is Query -> {

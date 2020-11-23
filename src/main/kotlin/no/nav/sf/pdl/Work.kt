@@ -75,6 +75,8 @@ sealed class ExitReason {
 
 var numberOfWorkSessionsWithoutEvents = 0
 
+var initial_retries_left = 10
+
 internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     log.info { "bootstrap work session starting" }
 
@@ -83,6 +85,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     var consumed = 0
 
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
+
     AKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerPersonAiven
     ).produce {
@@ -94,10 +97,23 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
         exitReason = ExitReason.NoKafkaConsumer
 
         kafkaConsumerPdl.consume { cRecords ->
+
             workMetrics.recordsParsed.inc(cRecords.count().toDouble())
             // leaving if nothing to do
             exitReason = ExitReason.NoEvents
-            if (cRecords.isEmpty) return@consume KafkaConsumerStates.IsFinished
+            if (cRecords.isEmpty) {
+                if (initial_retries_left > 0) {
+                    log.info { "Work: No records found $initial_retries_left initial retries left, wait 60 w" }
+                    initial_retries_left--
+                    Bootstrap.conditionalWait(60000)
+                    return@consume KafkaConsumerStates.IsOk
+                } else {
+                    log.info { "Work: No records found - end consume session" }
+                    return@consume KafkaConsumerStates.IsFinished
+                }
+            }
+            initial_retries_left = 0 // Got data - connection established - no more retries
+            log.info { "Work: Consumed a batch of ${cRecords.count()} records" }
 
             numberOfWorkSessionsWithoutEvents = 0
 
