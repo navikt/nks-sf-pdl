@@ -12,7 +12,7 @@ import no.nav.sf.library.enableNAISAPI
 private const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
 private val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
 
-private const val number_of_eventless_worksessions_before_termination = 10 // Restart now and then if not consuming records to load rotating kafka certificates
+private const val number_of_eventless_worksessions_before_termination = 1000000000 // Restart now and then if not consuming records to load rotating kafka certificates
 
 /**
  * Bootstrap is a very simple µService manager
@@ -31,7 +31,7 @@ object Bootstrap {
             conditionalWait(180000)
             log.info { "Starting - post grace period enableNAISAPI" }
             // initLoadTest(ws)
-            // initLoad(ws)
+            initLoad(ws)
             loop(ws)
         }
         log.info { "Finished!" }

@@ -4,10 +4,7 @@ import kotlin.streams.toList
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
-import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
-import no.nav.sf.library.send
-import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 private val log = KotlinLogging.logger {}
@@ -106,7 +103,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     log.info { "Defining Consumer for pdl read" }
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdl,
+            config = ws.kafkaConsumerPdlAlternative,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )
@@ -174,7 +171,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
         when (val personBase = PersonBaseFromProto(keyAsByteArray(it.key), it.value)) {
             // TODO Here we can measure for statistics and make checks for unexpected values:
             is PersonSf -> {
-                workMetrics.measurePersonStats(personBase, false)
+                workMetrics.measurePersonStats(personBase, true)
             }
             is PersonTombestone -> {
                 workMetrics.tombstones.inc()
@@ -187,8 +184,9 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     log.info { "Init: Number of living persons: ${workMetrics.livingPersons.get().toInt()}, dead persons: ${workMetrics.deadPersons.get().toInt()} (of which unknown death date: ${workMetrics.deadPersonsWithoutDate.get().toInt()}), tombstones: ${workMetrics.tombstones.get().toInt()}" }
     log.info { "Init: Earliest death date: ${workMetrics.earliestDeath.toIsoString()}" }
-    var exitReason: ExitReason = ExitReason.NoKafkaProducer
+    var exitReason: ExitReason = ExitReason.Work // ExitReason.NoKafkaProducer
     var producerCount = 0
+    /*
     log.info { "Init: Undertake producing to size ${latestRecords.size}" }
 
     latestRecords.toList().asSequence().chunked(500000).forEach {
@@ -212,6 +210,8 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             }
         }
     }
+
+     */
 
     log.info { "Init load - Done with publishing to topic exitReason is Ok? ${exitReason.isOK()} " }
 
