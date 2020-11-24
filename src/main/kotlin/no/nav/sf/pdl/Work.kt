@@ -187,7 +187,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
 
     if (consumed == 0) numberOfWorkSessionsWithoutEvents++
 
-    log.info { "bootstrap work session finished" }
+    log.info { "bootstrap work session finished, records consumed $consumed" }
 
     if (!exitReason.isOK()) {
         log.error { "Work session has exited with not OK" }

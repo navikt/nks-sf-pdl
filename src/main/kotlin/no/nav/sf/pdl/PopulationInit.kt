@@ -174,7 +174,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
         when (val personBase = PersonBaseFromProto(keyAsByteArray(it.key), it.value)) {
             // TODO Here we can measure for statistics and make checks for unexpected values:
             is PersonSf -> {
-                workMetrics.measurePersonStats(personBase, true)
+                workMetrics.measurePersonStats(personBase, false)
             }
             is PersonTombestone -> {
                 workMetrics.tombstones.inc()
