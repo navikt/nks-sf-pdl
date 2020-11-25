@@ -3,6 +3,9 @@ package no.nav.sf.pdl
 import io.prometheus.client.Gauge
 import java.io.File
 import java.time.LocalDate
+import mu.KotlinLogging
+
+private val log = KotlinLogging.logger {}
 
 fun registerGauge(name: String): Gauge {
     return Gauge.build().name(name).help(name).register()
@@ -119,7 +122,8 @@ data class WMetrics(
                 if (person.kommunenummerFraGt == person.kommunenummerFraAdresse) {
                     workMetrics.kommunenummerFromAdresseAndGtIsTheSame.inc()
                 } else {
-                    if (investigate) investigateList.add(person)
+                    if (investigate) log.info { "Found case with kommune fra adresse and gt differ, total: ${workMetrics.kommunenummerFromAdresseAndGtIsTheSame}" }
+                    if (investigate && investigateList.size < 10) investigateList.add(person)
                     workMetrics.kommunenummerFromAdresseAndGtDiffer.inc()
                 }
             }
