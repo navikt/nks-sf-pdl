@@ -119,6 +119,7 @@ data class WMetrics(
                 if (person.kommunenummerFraGt == person.kommunenummerFraAdresse) {
                     workMetrics.kommunenummerFromAdresseAndGtIsTheSame.inc()
                 } else {
+                    if (investigate) investigateList.add(person)
                     workMetrics.kommunenummerFromAdresseAndGtDiffer.inc()
                 }
             }
