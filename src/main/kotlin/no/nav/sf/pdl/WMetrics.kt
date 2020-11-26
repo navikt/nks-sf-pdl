@@ -1,7 +1,6 @@
 package no.nav.sf.pdl
 
 import io.prometheus.client.Gauge
-import java.io.File
 import java.time.LocalDate
 import mu.KotlinLogging
 
@@ -175,10 +174,6 @@ data class WMetrics(
     fun measurePersonStats(person: PersonSf, investigate: Boolean = false) {
         workMetrics.measureLivingOrDead(person)
         workMetrics.measureNummerSources(person, investigate)
-        if (investigate) {
-            File("/tmp/investigate").writeText("Findings:\n+${investigateList.map{it.toJson()}.joinToString("\n\n")}")
-            investigateList.clear()
-        }
         if (person.kommunenummerFraGt != UKJENT_FRA_PDL) {
             workMetrics.measureKommune(person.kommunenummerFraGt)
         } else {

@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.io.File
 import kotlin.streams.toList
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
@@ -181,6 +182,9 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             }
         }
     }
+
+    File("/tmp/investigate").writeText("Findings:\n+${workMetrics.investigateList.map{it.toJson()}.joinToString("\n\n")}")
+    workMetrics.investigateList.clear()
 
     log.info { "Init: Number of living persons: ${workMetrics.livingPersons.get().toInt()}, dead persons: ${workMetrics.deadPersons.get().toInt()} (of which unknown death date: ${workMetrics.deadPersonsWithoutDate.get().toInt()}), tombstones: ${workMetrics.tombstones.get().toInt()}" }
     log.info { "Init: Earliest death date: ${workMetrics.earliestDeath.toIsoString()}" }
