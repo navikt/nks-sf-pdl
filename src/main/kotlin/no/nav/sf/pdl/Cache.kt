@@ -14,6 +14,8 @@ val gtCache: MutableMap<String, ByteArray> = mutableMapOf()
 var gtTombestones = 0
 var gtSuccess = 0
 var gtFail = 0
+
+var gtRetries = 10
 fun gtTest(ws: WorkSettings) {
     workMetrics.clearAll()
     log.info { "GT - test" }
@@ -25,8 +27,9 @@ fun gtTest(ws: WorkSettings) {
     val investigate: MutableList<String> = mutableListOf()
     kafkaConsumer.consume { consumerRecords ->
         if (consumerRecords.isEmpty) {
-            if (workMetrics.cacheRecordsParsed.get().toInt() == 0) {
-                log.info { "Cache - retry connection after waiting 60 s" }
+            if (workMetrics.cacheRecordsParsed.get().toInt() == 0 && gtRetries > 0) {
+                gtRetries--
+                log.info { "Gt - retry connection after waiting 60 s Retries left: $gtRetries" }
                 Bootstrap.conditionalWait(60000)
                 return@consume KafkaConsumerStates.IsOk
             }
@@ -52,6 +55,8 @@ fun gtTest(ws: WorkSettings) {
     File("/tmp/investigategt").writeText("Findings:\n${investigate.joinToString("\n\n")}")
 }
 
+var cacheRetries = 10
+
 fun loadPersonCache(ws: WorkSettings): ExitReason {
     log.info { "Cache - load" }
     val resultList: MutableList<Pair<String, ByteArray>> = mutableListOf()
@@ -64,8 +69,9 @@ fun loadPersonCache(ws: WorkSettings): ExitReason {
     kafkaConsumer.consume { consumerRecords ->
         exitReason = ExitReason.NoEvents
         if (consumerRecords.isEmpty) {
-            if (workMetrics.cacheRecordsParsed.get().toInt() == 0) {
-                log.info { "Cache - retry connection after waiting 60 s" }
+            if (workMetrics.cacheRecordsParsed.get().toInt() == 0 && cacheRetries > 0) {
+                cacheRetries--
+                log.info { "Cache - retry connection after waiting 60 s Retries left: $cacheRetries" }
                 Bootstrap.conditionalWait(60000)
                 return@consume KafkaConsumerStates.IsOk
             }
