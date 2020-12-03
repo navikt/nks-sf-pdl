@@ -307,7 +307,7 @@ data class HentePerson(
         val gtKommune: String?,
         val gtBydel: String?,
         val gtLand: String?,
-        val metadata: Metadata
+        val metadata: Metadata? = null
     )
 
     @Serializable

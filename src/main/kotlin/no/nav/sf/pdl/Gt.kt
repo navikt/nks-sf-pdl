@@ -13,7 +13,7 @@ fun String.getGtFromJson(): GtBase = runCatching {
     jsonNonStrict.parse(Gt.serializer(), this)
 }
         .onFailure {
-            log.error { "Cannot convert kafka value to query - ${it.localizedMessage}" }
+            log.error { "Cannot convert kafka value to gt - ${it.localizedMessage}" }
         }
         .getOrDefault(InvalidGt)
 
