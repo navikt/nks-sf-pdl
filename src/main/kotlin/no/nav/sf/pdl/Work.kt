@@ -13,6 +13,7 @@ import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.ByteArraySerializer
 
 private val log = KotlinLogging.logger {}
@@ -20,6 +21,7 @@ private val log = KotlinLogging.logger {}
 // Work environment dependencies
 const val EV_kafkaProducerTopic = "KAFKA_PRODUCER_TOPIC"
 const val EV_kafkaConsumerTopic = "KAFKA_TOPIC"
+const val EV_kafkaConsumerTopicGt = "KAFKA_TOPIC_GT"
 const val EV_kafkaSchemaReg = "KAFKA_SCREG"
 const val EV_kafkaBrokersOnPrem = "KAFKA_BROKERS_ON_PREM"
 
@@ -31,6 +33,7 @@ const val EV_kafkaTruststorePath = "KAFKA_TRUSTSTORE_PATH"
 val kafkaSchemaReg = AnEnvironment.getEnvOrDefault(EV_kafkaSchemaReg, "http://localhost:8081")
 val kafkaPersonTopic = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopic, "$PROGNAME-producer")
 val kafkaPDLTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopic, "$PROGNAME-consumer")
+val kafkaGTTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopicGt, "$PROGNAME-consumer-gt")
 
 fun fetchEnv(env: String): String {
     return AnEnvironment.getEnvOrDefault(env, "$env missing")
@@ -45,6 +48,15 @@ data class WorkSettings(
             SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
             SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
             SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword)
+    ),
+    val kafkaConsumerPersonAiven: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
+            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
+            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
+            "security.protocol" to "SSL",
+            "ssl.keystore.location" to AnEnvironment.getEnvOrDefault("KAFKA_KEYSTORE_PATH", "KAFKA_KEYSTORE_PATH MISSING"),
+            "ssl.keystore.password" to AnEnvironment.getEnvOrDefault("KAFKA_CREDSTORE_PASSWORD", "KAFKA_CREDSTORE_PASSWORD MISSING"),
+            "ssl.truststore.location" to AnEnvironment.getEnvOrDefault("KAFKA_TRUSTSTORE_PATH", "KAFKA_TRUSTSTORE_PATH MISSING"),
+            "ssl.truststore.password" to AnEnvironment.getEnvOrDefault("KAFKA_CREDSTORE_PASSWORD", "KAFKA_CREDSTORE_PASSWORD MISSING")
     ),
     val kafkaConsumerPdl: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,

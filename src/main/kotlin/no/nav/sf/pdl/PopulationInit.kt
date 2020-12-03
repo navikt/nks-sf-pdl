@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import java.io.File
 import kotlin.streams.toList
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
@@ -9,6 +8,8 @@ import no.nav.sf.library.KafkaConsumerStates
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 private val log = KotlinLogging.logger {}
+
+var initReference = 0
 
 fun keyAsByteArray(key: String): ByteArray {
     return PersonProto.PersonKey.newBuilder().apply {
@@ -91,7 +92,8 @@ internal fun initLoadTest(ws: WorkSettings) {
 
     log.info { "Init test run : Total records from topic: ${resultListTest.size}" }
     workMetrics.testRunRecordsParsed.set(resultListTest.size.toDouble())
-    log.info { "Init test run : Total unique records from topic: ${resultListTest.stream().distinct().toList().size}" }
+    initReference = resultListTest.stream().distinct().toList().size
+    log.info { "Init test run : Total unique records from topic: $initReference" }
 }
 
 internal fun initLoad(ws: WorkSettings): ExitReason {
@@ -164,15 +166,21 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
         return ExitReason.InvalidCache
     }
     log.info { "Init: Number of records from topic $kafkaPDLTopic is ${resultList.size}" }
-    val latestRecords = resultList.toMap() // Remove duplicates. Done after topic consuming is finished (due to updating a map of ~10M entries crashed consuming phase)
+    val latestRecords = resultList.toMap() // Remove duplicates. Done after topic consuming is finished due to updating a map of ~10M entries crashed/stalled consuming phase
     log.info { "Init: Number of unique aktoersIds (and corresponding messages to handle) on topic $kafkaPDLTopic is ${latestRecords.size}" }
-
+    if (initReference > 0) {
+        if (latestRecords.size >= initReference) {
+            log.info { "Init: reference has been run: map deemed healthy since it contains more or equals ids then reference" }
+        } else {
+            log.error { "Init: reference has been run: map deemed unhealthy since it contains less then reference" }
+        }
+    }
     // Measuring round
     latestRecords.forEach {
         when (val personBase = PersonBaseFromProto(keyAsByteArray(it.key), it.value)) {
             // TODO Here we can measure for statistics and make checks for unexpected values:
             is PersonSf -> {
-                workMetrics.measurePersonStats(personBase, true)
+                workMetrics.measurePersonStats(personBase, false)
             }
             is PersonTombestone -> {
                 workMetrics.tombstones.inc()
@@ -183,14 +191,14 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
         }
     }
 
-    File("/tmp/investigate").writeText("Findings:\n+${workMetrics.investigateList.map{it.toJson()}.joinToString("\n\n")}")
-    workMetrics.investigateList.clear()
+    // File("/tmp/investigate").writeText("Findings:\n${workMetrics.investigateList.map{it.toJson()}.joinToString("\n\n")}")
+    // workMetrics.investigateList.clear()
 
     log.info { "Init: Number of living persons: ${workMetrics.livingPersons.get().toInt()}, dead persons: ${workMetrics.deadPersons.get().toInt()} (of which unknown death date: ${workMetrics.deadPersonsWithoutDate.get().toInt()}), tombstones: ${workMetrics.tombstones.get().toInt()}" }
     log.info { "Init: Earliest death date: ${workMetrics.earliestDeath.toIsoString()}" }
     var exitReason: ExitReason = ExitReason.Work // ExitReason.NoKafkaProducer
     var producerCount = 0
-    /*
+    /* //TODO Uncomment for init load publishing
     log.info { "Init: Undertake producing to size ${latestRecords.size}" }
 
     latestRecords.toList().asSequence().chunked(500000).forEach {
@@ -214,10 +222,9 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
             }
         }
     }
+    */
 
-     */
-
-    log.info { "Init load - Done with publishing to topic exitReason is Ok? ${exitReason.isOK()} " }
+    log.info { "Init load - Ok? ${exitReason.isOK()} " }
 
     return exitReason
 }
