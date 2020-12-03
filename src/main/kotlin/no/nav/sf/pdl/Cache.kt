@@ -18,7 +18,7 @@ fun gtTest(ws: WorkSettings) {
     workMetrics.clearAll()
     log.info { "GT - test" }
     val kafkaConsumer = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPersonAiven,
+            config = ws.kafkaConsumerPdl,
             fromBeginning = true,
             topics = listOf(kafkaGTTopic)
     )
