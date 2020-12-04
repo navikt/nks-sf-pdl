@@ -15,11 +15,33 @@ fun registerLabelGauge(name: String, label: String): Gauge {
 }
 
 data class WMetrics(
+    val published_by_gt_update: Gauge = registerGauge("published_by_gt_update"),
+    val enriching_from_gt_cache: Gauge = registerGauge("enriching_from_gt_cache"),
+
+    val gt_cache_blocked: Gauge = registerGauge("cache_blocked"),
+    val gt_cache_blocked_tombstone: Gauge = registerGauge("cache_blocked_tombstone"),
+    val gt_cache_new: Gauge = registerGauge("cache_new"),
+    val gt_cache_new_tombstone: Gauge = registerGauge("cache_new_tombstone"),
+    val gt_cache_update: Gauge = registerGauge("cache_update"),
+    val gt_cache_update_tombstone: Gauge = registerGauge("cache_update_tombstone"),
+    val gt_cache_size_total: Gauge = registerGauge("cache_size_total"),
+    val gt_cache_size_tombstones: Gauge = registerGauge("cache_size_tombstone"),
+
+    val cache_blocked: Gauge = registerGauge("cache_blocked"),
+    val cache_blocked_tombstone: Gauge = registerGauge("cache_blocked_tombstone"),
+    val cache_new: Gauge = registerGauge("cache_new"),
+    val cache_new_tombstone: Gauge = registerGauge("cache_new_tombstone"),
+    val cache_update: Gauge = registerGauge("cache_update"),
+    val cache_update_tombstone: Gauge = registerGauge("cache_update_tombstone"),
+    val cache_size_total: Gauge = registerGauge("cache_size_total"),
+    val cache_size_tombstones: Gauge = registerGauge("cache_size_tombstone"),
+
     val gtPublished: Gauge = registerGauge("gt_published"),
     val gtPublishedTombstone: Gauge = registerGauge("gt_published_tombstone"),
 
     val gtRecordsParsed: Gauge = registerGauge("gt_records_parsed"),
     val cacheRecordsParsed: Gauge = registerGauge("cache_records_parsed"),
+    val gtCacheRecordsParsed: Gauge = registerGauge("gt_cache_records_parsed"),
 
     val testRunRecordsParsed: Gauge = registerGauge("test_run_records_parsed"), // Undistinct at test run
 
@@ -60,6 +82,27 @@ data class WMetrics(
     val kommune_number_not_found: Gauge = registerLabelGauge("kommune_number_not_found", "kommune_number")
 ) {
     fun clearAll() {
+        published_by_gt_update.clear()
+        enriching_from_gt_cache.clear()
+
+        cache_blocked.clear()
+        cache_blocked_tombstone.clear()
+        cache_new.clear()
+        cache_new_tombstone.clear()
+        cache_update.clear()
+        cache_update_tombstone.clear()
+        cache_size_total.clear()
+        cache_size_tombstones.clear()
+
+        gt_cache_blocked.clear()
+        gt_cache_blocked_tombstone.clear()
+        gt_cache_new.clear()
+        gt_cache_new_tombstone.clear()
+        gt_cache_update.clear()
+        gt_cache_update_tombstone.clear()
+        gt_cache_size_total.clear()
+        gt_cache_size_tombstones.clear()
+        gtCacheRecordsParsed.clear()
         gtPublished.clear()
         gtPublishedTombstone.clear()
         gtRecordsParsed.clear()

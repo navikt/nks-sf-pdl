@@ -182,7 +182,7 @@ data class PersonSf(
     val oppholdsadresse: Adresser,
     val statsborgerskap: List<String>,
     val sivilstand: List<Sivilstand>,
-    val kommunenummerFraGt: String,
+    var kommunenummerFraGt: String,
     val kommunenummerFraAdresse: String,
     val bydelsnummerFraGt: String,
     val bydelsnummerFraAdresse: String,
@@ -203,8 +203,8 @@ data class PersonSf(
 @Serializable
 data class GtValue(
     val aktoerId: String,
-    val kommunenummerFraGt: String?,
-    val bydelsnummerFraGt: String?
+    val kommunenummerFraGt: String,
+    val bydelsnummerFraGt: String
 ) : GtValueBase()
 
 sealed class PersonBase {

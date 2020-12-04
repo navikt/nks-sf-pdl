@@ -13,13 +13,13 @@ val personCache: MutableMap<String, ByteArray?> = mutableMapOf()
 
 val gtCache: MutableMap<String, ByteArray?> = mutableMapOf()
 
-var gtTombestones = 0
-var gtSuccess = 0
-var gtFail = 0
-
-var gtRetries = 10
-fun gtTest(ws: WorkSettings) {
+fun gtInitLoad(ws: WorkSettings) {
     workMetrics.clearAll()
+    var gtTombestones = 0
+    var gtSuccess = 0
+    var gtFail = 0
+    var gtRetries = 10
+
     log.info { "GT - test" }
     val kafkaConsumer = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerPdl,
@@ -97,7 +97,55 @@ fun gtTest(ws: WorkSettings) {
     // File("/tmp/investigategt").writeText("Findings:\n${investigate.joinToString("\n\n")}")
 }
 
-var cacheRetries = 10
+fun loadGtCache(ws: WorkSettings): ExitReason {
+    log.info { "GT Cache - load" }
+    val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
+    var exitReason: ExitReason = ExitReason.NoKafkaConsumer
+    val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray?>(
+            config = ws.kafkaConsumerPersonAiven,
+            fromBeginning = true,
+            topics = listOf(kafkaProducerTopicGt)
+    )
+    kafkaConsumer.consume { consumerRecords ->
+        exitReason = ExitReason.NoEvents
+        if (consumerRecords.isEmpty) {
+            if (workMetrics.gtCacheRecordsParsed.get().toInt() == 0) {
+                log.info { "GT Cache - retry connection after waiting 60 s" }
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            }
+            return@consume KafkaConsumerStates.IsFinished
+        }
+        exitReason = ExitReason.Work
+        workMetrics.gtCacheRecordsParsed.inc(consumerRecords.count().toDouble())
+        consumerRecords.forEach {
+            GtBaseFromProto(it.key(), it.value()).also { gt ->
+                when (gt) {
+                    is GtProtobufIssue -> {
+                        log.error { "GT Cache - Protobuf parsing issue for offset ${it.offset()} in partition ${it.partition()}" }
+                        workMetrics.consumerIssues.inc()
+                        return@consume KafkaConsumerStates.HasIssues
+                    }
+                    is GtInvalid -> {
+                        log.error { "GT Cache - Protobuf parsing invalid person for offset ${it.offset()} in partition ${it.partition()}" }
+                        workMetrics.consumerIssues.inc()
+                        return@consume KafkaConsumerStates.HasIssues
+                    }
+                    is GtValue -> resultList.add(Pair(gt.aktoerId, it.value()))
+                    is GtTombstone -> resultList.add(Pair(gt.aktoerId, null))
+                }
+            }
+        }
+        KafkaConsumerStates.IsOk
+    }
+    log.info { "GT Cache - Number of records from topic $kafkaProducerTopicGt is ${resultList.size}" }
+
+    gtCache.putAll(resultList.toMap())
+
+    log.info { "GT Cache - resulting cache size ${gtCache.size} of which are tombstones ${gtCache.values.filter{it == null}.count()}" }
+
+    return exitReason
+}
 
 fun loadPersonCache(ws: WorkSettings): ExitReason {
     log.info { "Cache - load" }
@@ -111,9 +159,8 @@ fun loadPersonCache(ws: WorkSettings): ExitReason {
     kafkaConsumer.consume { consumerRecords ->
         exitReason = ExitReason.NoEvents
         if (consumerRecords.isEmpty) {
-            if (workMetrics.cacheRecordsParsed.get().toInt() == 0 && cacheRetries > 0) {
-                cacheRetries--
-                log.info { "Cache - retry connection after waiting 60 s Retries left: $cacheRetries" }
+            if (workMetrics.cacheRecordsParsed.get().toInt() == 0) {
+                log.info { "Cache - retry connection after waiting 60 s " }
                 Bootstrap.conditionalWait(60000)
                 return@consume KafkaConsumerStates.IsOk
             }

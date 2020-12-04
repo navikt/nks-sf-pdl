@@ -30,10 +30,11 @@ object Bootstrap {
             log.info { "Starting - grace period 3 m after enableNAISAPI" }
             conditionalWait(180000)
             log.info { "Starting - post grace period enableNAISAPI" }
-            gtTest(ws)
+            // gtInitLoad(ws)
             // initLoadTest(ws)
             // initLoad(ws)
             loadPersonCache(ws) // Will carry cache in memory after this point
+            loadGtCache(ws)
             loop(ws)
         }
         log.info { "Finished!" }

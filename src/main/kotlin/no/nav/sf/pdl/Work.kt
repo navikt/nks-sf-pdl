@@ -84,6 +84,7 @@ sealed class ExitReason {
     object NoCache : ExitReason()
     object InvalidCache : ExitReason()
     object Work : ExitReason()
+
     fun isOK(): Boolean = this is Work || this is NoEvents
 }
 
@@ -95,8 +96,142 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     log.info { "bootstrap work session starting" }
 
     workMetrics.clearAll()
+    var gtTombestones = 0
+    var gtSuccess = 0
+    var gtFail = 0
+    var gtRetries = 5
 
+    if (personCache.isEmpty() || gtCache.isEmpty()) {
+        log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
+        return Pair(ws, ExitReason.NoCache)
+    }
     var consumed = 0
+
+    val kafkaConsumer = AKafkaConsumer<String, String?>(
+            config = ws.kafkaConsumerPdl,
+            fromBeginning = false,
+            topics = listOf(kafkaGTTopic)
+    )
+
+    val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
+    kafkaConsumer.consume { consumerRecords ->
+        if (consumerRecords.isEmpty) {
+            if (workMetrics.gtRecordsParsed.get().toInt() == 0 && gtRetries > 0) {
+                gtRetries--
+                log.info { "Gt - retry connection after waiting 60 s Retries left: $gtRetries" }
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            }
+            return@consume KafkaConsumerStates.IsFinished
+        }
+        workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
+        consumerRecords.forEach {
+            if (it.value() == null) {
+                gtTombestones++
+                if (gtCache.containsKey(it.key()) && gtCache[it.key()] == null) {
+                    workMetrics.gt_cache_blocked_tombstone.inc()
+                } else {
+                    if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update_tombstone.inc() else workMetrics.gt_cache_new_tombstone.inc()
+                    gtCache[it.key()] = null
+                    resultList.add(Pair(it.key(), null))
+                }
+            } else {
+                // if (investigate.size < 10) investigate.add(it.value() ?: "")
+                it.value()?.let { v ->
+                    when (val gt = v.getGtFromJson()) {
+                        is Gt -> {
+                            when (val gtValue = gt.toGtValue(it.key())) {
+                                is GtValue -> {
+                                    val gtAsBytes = gtValue.toGtProto().second.toByteArray()
+                                    gtSuccess++
+                                    if (gtCache.containsKey(it.key()) && gtCache[it.key()]?.contentEquals(gtAsBytes) == true) {
+                                        workMetrics.gt_cache_blocked.inc()
+                                    } else {
+                                        if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update.inc() else workMetrics.gt_cache_new.inc()
+                                        gtCache[it.key()] = gtAsBytes
+                                        resultList.add(Pair(gtValue.aktoerId, gtAsBytes))
+                                    }
+                                }
+                                else -> {
+                                    log.error { "Work Gt parse error" }
+                                    gtFail++
+                                }
+                            }
+                        }
+                        else -> gtFail++
+                    }
+                }
+            }
+        }
+        KafkaConsumerStates.IsOk
+    }
+
+    log.info {
+        "Work GT - new messages tombstones $gtTombestones success $gtSuccess fails $gtFail. Will publish ${resultList.size}" +
+                ". Cache Gt new ${workMetrics.gt_cache_new.get().toInt()} update ${workMetrics.gt_cache_update.get().toInt()} blocked ${workMetrics.gt_cache_blocked.get().toInt()}" +
+                ", Tombstones new ${workMetrics.gt_cache_new_tombstone.get().toInt()} update ${workMetrics.gt_cache_update_tombstone.get().toInt()} blocked ${workMetrics.gt_cache_blocked_tombstone.get().toInt()}"
+    }
+
+    workMetrics.gt_cache_size_total.set(gtCache.size.toDouble())
+    workMetrics.gt_cache_size_tombstones.set(gtCache.values.filter { it == null }.count().toDouble())
+    var producerCount = 0
+    resultList.asSequence().chunked(500000).forEach { c ->
+        log.info { "Work GT: Creating aiven producer for batch ${producerCount++}" }
+        AKafkaProducer<ByteArray, ByteArray>(
+                config = ws.kafkaProducerPersonAiven
+        ).produce {
+            c.fold(true) { acc, pair ->
+                acc && pair.second?.let {
+                    this.send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.gtPublished.inc() }
+                } ?: this.sendNullValue(kafkaProducerTopicGt, keyAsByteArray(pair.first)).also { workMetrics.gtPublishedTombstone.inc() }
+                // acc && pair.second?.let {
+                //    send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
+                // } ?: sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
+            }.let { sent ->
+                if (!sent) {
+                    workMetrics.producerIssues.inc()
+                    log.error { "Gt load - Producer $producerCount has issues sending to topic" }
+                }
+            }
+        }
+        log.info { "Work GT: Creating aiven person producer for batch ${producerCount++}" }
+        val personsInCache: MutableList<PersonSf> = mutableListOf()
+
+        AKafkaProducer<ByteArray, ByteArray>(
+                config = ws.kafkaProducerPersonAiven
+        ).produce {
+            c.map { Pair(it.first, personCache[it.first]) }.filter { it.second != null }.map {
+                if (gtCache[it.first] == null) {
+                    (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
+                } else {
+                    val gtBase = GtBaseFromProto(keyAsByteArray(it.first), gtCache[it.first])
+                    if (gtBase is GtValue) {
+                        (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = gtBase.kommunenummerFraGt, bydelsnummerFraGt = gtBase.bydelsnummerFraGt)
+                    } else {
+                        workMetrics.consumerIssues.inc()
+                        log.error { "Fail to parse gt from gt cache at update" }
+                        (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
+                    }
+                }
+            }
+                    .map { it.toPersonProto() }
+                    .fold(true) { acc, pair ->
+                        acc && pair.second?.let {
+                            send(kafkaPersonTopic, pair.first.toByteArray(), it.toByteArray()).also { workMetrics.publishedPersons.inc(); workMetrics.published_by_gt_update.inc() }
+                        }
+                    }.let { sent ->
+                        when (sent) {
+                            true -> KafkaConsumerStates.IsOk
+                            false -> KafkaConsumerStates.HasIssues.also {
+                                workMetrics.producerIssues.inc()
+                                log.error { "Producer has issues sending to topic" }
+                            }
+                        }
+                    }
+        }
+    }
+
+    log.info { "Work GT - After gt (and updating ${workMetrics.published_by_gt_update.get().toInt()} person by gt change) publish. Current gt cache size ${workMetrics.gt_cache_size_total.get().toInt()} of which are tombstones ${workMetrics.gt_cache_size_tombstones.get().toInt()}" }
 
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
 
@@ -148,8 +283,27 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
                                 is PersonSf -> {
-                                    workMetrics.measurePersonStats(personSf)
-                                    Pair(KafkaConsumerStates.IsOk, personSf)
+                                    // Enrich with data from gt Cache
+                                    if (gtCache.containsKey(personSf.aktoerId)) {
+                                        workMetrics.enriching_from_gt_cache.inc()
+                                        val enriched = if (gtCache[personSf.aktoerId] == null) {
+                                            personSf.copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
+                                        } else {
+                                            val gtBase = GtBaseFromProto(keyAsByteArray(personSf.aktoerId), gtCache[personSf.aktoerId])
+                                            if (gtBase is GtValue) {
+                                                personSf.copy(kommunenummerFraGt = gtBase.kommunenummerFraGt, bydelsnummerFraGt = gtBase.bydelsnummerFraGt)
+                                            } else {
+                                                workMetrics.consumerIssues.inc()
+                                                log.error { "Fail to parse gt from gt cache" }
+                                                personSf
+                                            }
+                                        }
+                                        workMetrics.measurePersonStats(enriched)
+                                        Pair(KafkaConsumerStates.IsOk, enriched)
+                                    } else {
+                                        workMetrics.measurePersonStats(personSf)
+                                        Pair(KafkaConsumerStates.IsOk, personSf)
+                                    }
                                 }
                                 is PersonInvalid -> {
                                     workMetrics.consumerIssues.inc()
@@ -168,7 +322,37 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
             val areOk = results.map { it.first }.filterIsInstance<KafkaConsumerStates.HasIssues>().isEmpty()
 
             if (areOk) {
-                results.map {
+                results.filter {
+                    when (val personBase = it.second) {
+                        is PersonTombestone -> {
+                            if (!personCache.containsKey(personBase.aktoerId)) {
+                                workMetrics.cache_new_tombstone.inc()
+                                personCache[personBase.aktoerId] = null
+                                true
+                            } else if (personCache[personBase.aktoerId] != null) {
+                                workMetrics.cache_update_tombstone.inc()
+                                personCache[personBase.aktoerId] = null
+                                true
+                            }
+                            workMetrics.cache_blocked_tombstone.inc()
+                            false
+                        }
+                        is PersonSf -> {
+                            if (!personCache.containsKey(personBase.aktoerId)) {
+                                workMetrics.cache_new.inc()
+                                personCache[personBase.aktoerId] = personBase.toPersonProto().second.toByteArray()
+                                true
+                            } else if (personCache[personBase.aktoerId] == null || personCache[personBase.aktoerId]?.contentEquals(personBase.toPersonProto().second.toByteArray()) != true) {
+                                workMetrics.cache_update.inc()
+                                personCache[personBase.aktoerId] = personBase.toPersonProto().second.toByteArray()
+                                true
+                            }
+                            workMetrics.cache_blocked.inc()
+                            false
+                        }
+                        else -> return@consume KafkaConsumerStates.HasIssues
+                    }
+                }.map {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
                             Pair<PersonProto.PersonKey, PersonProto.PersonValue?>(personBase.toPersonTombstoneProtoKey(), null)
@@ -201,7 +385,18 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
 
     if (consumed == 0) numberOfWorkSessionsWithoutEvents++
 
-    log.info { "bootstrap work session finished, records consumed $consumed" }
+    log.info {
+        "Work persons - records consumed $consumed. Published new persons ${workMetrics.publishedPersons.get().toInt()}, new tombstones ${workMetrics.publishedTombstones.get().toInt()}" +
+                ". Cache person new ${workMetrics.cache_new.get().toInt()} update ${workMetrics.cache_update.get().toInt()} blocked ${workMetrics.cache_blocked.get().toInt()}" +
+                ", Tombstones new ${workMetrics.cache_new_tombstone.get().toInt()} update ${workMetrics.cache_update_tombstone.get().toInt()} blocked ${workMetrics.cache_blocked_tombstone.get().toInt()}"
+    }
+
+    workMetrics.cache_size_total.set(personCache.size.toDouble())
+    workMetrics.cache_size_tombstones.set(personCache.values.filter { it == null }.count().toDouble())
+
+    log.info { "Work - Current person cache size ${workMetrics.cache_size_total.get().toInt()} of which are tombstones ${workMetrics.cache_size_tombstones.get().toInt()}" }
+
+    log.info { "bootstrap work session finished" }
 
     if (!exitReason.isOK()) {
         log.error { "Work session has exited with not OK" }
