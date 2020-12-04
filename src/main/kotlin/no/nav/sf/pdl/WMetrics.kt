@@ -15,6 +15,7 @@ fun registerLabelGauge(name: String, label: String): Gauge {
 }
 
 data class WMetrics(
+    val gtRecordsParsed: Gauge = registerGauge("gt_records_parsed"),
     val cacheRecordsParsed: Gauge = registerGauge("cache_records_parsed"),
 
     val testRunRecordsParsed: Gauge = registerGauge("test_run_records_parsed"), // Undistinct at test run
@@ -56,6 +57,7 @@ data class WMetrics(
     val kommune_number_not_found: Gauge = registerLabelGauge("kommune_number_not_found", "kommune_number")
 ) {
     fun clearAll() {
+        gtRecordsParsed.clear()
         cacheRecordsParsed.clear()
 
         testRunRecordsParsed.clear()

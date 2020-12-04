@@ -27,7 +27,7 @@ fun gtTest(ws: WorkSettings) {
     val investigate: MutableList<String> = mutableListOf()
     kafkaConsumer.consume { consumerRecords ->
         if (consumerRecords.isEmpty) {
-            if (workMetrics.cacheRecordsParsed.get().toInt() == 0 && gtRetries > 0) {
+            if (workMetrics.gtRecordsParsed.get().toInt() == 0 && gtRetries > 0) {
                 gtRetries--
                 log.info { "Gt - retry connection after waiting 60 s Retries left: $gtRetries" }
                 Bootstrap.conditionalWait(60000)
@@ -35,6 +35,7 @@ fun gtTest(ws: WorkSettings) {
             }
             return@consume KafkaConsumerStates.IsFinished
         }
+        workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
         consumerRecords.forEach {
             if (it.value() == null) {
                 gtTombestones++
