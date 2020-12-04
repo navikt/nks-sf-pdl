@@ -15,6 +15,9 @@ fun registerLabelGauge(name: String, label: String): Gauge {
 }
 
 data class WMetrics(
+    val gtPublished: Gauge = registerGauge("gt_published"),
+    val gtPublishedTombstone: Gauge = registerGauge("gt_published_tombstone"),
+
     val gtRecordsParsed: Gauge = registerGauge("gt_records_parsed"),
     val cacheRecordsParsed: Gauge = registerGauge("cache_records_parsed"),
 
@@ -57,6 +60,8 @@ data class WMetrics(
     val kommune_number_not_found: Gauge = registerLabelGauge("kommune_number_not_found", "kommune_number")
 ) {
     fun clearAll() {
+        gtPublished.clear()
+        gtPublishedTombstone.clear()
         gtRecordsParsed.clear()
         cacheRecordsParsed.clear()
 

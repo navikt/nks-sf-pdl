@@ -139,3 +139,8 @@ message PersonValue {
   repeated Fullmakt fullmakt = 21;
   repeated VergemaalEllerFremtidsfullmakt vergemaalEllerFremtidsfullmakt = 22;
 }
+
+message Gt {
+  string kommunenummerFraGt = 1;
+  string bydelsnummerFraGt = 2;
+}

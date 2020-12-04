@@ -373,3 +373,26 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                 )
             } }.getOrDefault(PersonProtobufIssue)
         }
+
+fun GtValue.toGtProto(): Pair<PersonProto.PersonKey, PersonProto.Gt> =
+        this.let {
+            PersonProto.PersonKey.newBuilder().apply {
+                aktoerId = it.aktoerId
+            }.build() to PersonProto.Gt.newBuilder().apply {
+                kommunenummerFraGt = it.kommunenummerFraGt
+                bydelsnummerFraGt = it.bydelsnummerFraGt
+            }.build()
+        }
+
+fun GtBaseFromProto(key: ByteArray, value: ByteArray?): GtValueBase =
+        if (value == null) { GtValueBase.createGtTombstone(key) } else {
+            runCatching {
+                PersonProto.Gt.parseFrom(value).let { gt ->
+                    GtValue(
+                            aktoerId = PersonProto.PersonKey.parseFrom(key).aktoerId,
+                            kommunenummerFraGt = gt.kommunenummerFraGt,
+                            bydelsnummerFraGt = gt.bydelsnummerFraGt
+                    )
+                }
+            }.getOrDefault(GtProtobufIssue)
+        }

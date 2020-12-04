@@ -19,5 +19,13 @@ fun String.getGtFromJson(): GtBase = runCatching {
 
 @Serializable
 data class Gt(
-    val geografiskTilknytning: HentePerson.GeografiskTilknytning
+    val geografiskTilknytning: HentePerson.GeografiskTilknytning?
 ) : GtBase()
+
+fun Gt.toGtValue(aktoerId: String): GtValueBase {
+    return runCatching {
+        GtValue(aktoerId = aktoerId, kommunenummerFraGt = this.geografiskTilknytning.findGtKommunenummer(), bydelsnummerFraGt = this.geografiskTilknytning.findGtBydelsnummer())
+    }
+            .onFailure { log.error { "Error creating GtValue from Gt ${it.localizedMessage}" } }
+            .getOrDefault(GtInvalid)
+}

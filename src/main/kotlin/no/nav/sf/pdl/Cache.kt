@@ -1,15 +1,17 @@
 package no.nav.sf.pdl
 
-import java.io.File
 import mu.KotlinLogging
 import no.nav.sf.library.AKafkaConsumer
+import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
+import no.nav.sf.library.send
+import no.nav.sf.library.sendNullValue
 
 private val log = KotlinLogging.logger {}
 
-val personCache: MutableMap<String, ByteArray> = mutableMapOf()
+val personCache: MutableMap<String, ByteArray?> = mutableMapOf()
 
-val gtCache: MutableMap<String, ByteArray> = mutableMapOf()
+val gtCache: MutableMap<String, ByteArray?> = mutableMapOf()
 
 var gtTombestones = 0
 var gtSuccess = 0
@@ -24,7 +26,8 @@ fun gtTest(ws: WorkSettings) {
             fromBeginning = true,
             topics = listOf(kafkaGTTopic)
     )
-    val investigate: MutableList<String> = mutableListOf()
+    // val investigate: MutableList<String> = mutableListOf()
+    val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     kafkaConsumer.consume { consumerRecords ->
         if (consumerRecords.isEmpty) {
             if (workMetrics.gtRecordsParsed.get().toInt() == 0 && gtRetries > 0) {
@@ -39,11 +42,23 @@ fun gtTest(ws: WorkSettings) {
         consumerRecords.forEach {
             if (it.value() == null) {
                 gtTombestones++
+                resultList.add(Pair(it.key(), null))
             } else {
-                if (investigate.size < 10) investigate.add(it.value() ?: "")
-                it.value()?.let {
-                    when (val gt = it.getGtFromJson()) {
-                        is Gt -> gtSuccess++
+                // if (investigate.size < 10) investigate.add(it.value() ?: "")
+                it.value()?.let { v ->
+                    when (val gt = v.getGtFromJson()) {
+                        is Gt -> {
+                            when (val gtValue = gt.toGtValue(it.key())) {
+                                is GtValue -> {
+                                    resultList.add(Pair(gtValue.aktoerId, gtValue.toGtProto().second.toByteArray()))
+                                    gtSuccess++
+                                }
+                                else -> {
+                                    log.error { "Gt parse error" }
+                                    gtFail++
+                                }
+                            }
+                        }
                         else -> gtFail++
                     }
                 }
@@ -51,18 +66,44 @@ fun gtTest(ws: WorkSettings) {
         }
         KafkaConsumerStates.IsOk
     }
+
+    gtCache.putAll(resultList.toMap())
     log.info { "GT - test done tombestones $gtTombestones success $gtSuccess fails $gtFail" }
 
-    File("/tmp/investigategt").writeText("Findings:\n${investigate.joinToString("\n\n")}")
+    log.info { "GT - resulting cache size ${gtCache.size} of which are tombstones ${gtCache.values.filter{it == null}.count()}" }
+    var producerCount = 0
+    gtCache.toList().asSequence().chunked(500000).forEach {
+        log.info { "GT: Creating aiven producer for batch ${producerCount++}" }
+        AKafkaProducer<ByteArray, ByteArray>(
+                config = ws.kafkaProducerPersonAiven
+        ).produce {
+            it.fold(true) { acc, pair ->
+                acc && pair.second?.let {
+                    this.send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.gtPublished.inc() }
+                } ?: this.sendNullValue(kafkaProducerTopicGt, keyAsByteArray(pair.first)).also { workMetrics.gtPublishedTombstone.inc() }
+                // acc && pair.second?.let {
+                //    send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
+                // } ?: sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
+            }.let { sent ->
+                if (!sent) {
+                    workMetrics.producerIssues.inc()
+                    log.error { "Gt load - Producer $producerCount has issues sending to topic" }
+                }
+            }
+        }
+    }
+
+    log.info { "Done with gt load. Published gt: ${workMetrics.gtPublished.get().toInt()}, tombstones: ${workMetrics.gtPublishedTombstone.get().toInt()} p Issues: ${workMetrics.producerIssues.get().toInt()}" }
+    // File("/tmp/investigategt").writeText("Findings:\n${investigate.joinToString("\n\n")}")
 }
 
 var cacheRetries = 10
 
 fun loadPersonCache(ws: WorkSettings): ExitReason {
     log.info { "Cache - load" }
-    val resultList: MutableList<Pair<String, ByteArray>> = mutableListOf()
+    val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
-    val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray>(
+    val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray?>(
             config = ws.kafkaConsumerPersonAiven,
             fromBeginning = true,
             topics = listOf(kafkaPersonTopic)
@@ -94,7 +135,7 @@ fun loadPersonCache(ws: WorkSettings): ExitReason {
                         return@consume KafkaConsumerStates.HasIssues
                     }
                     is PersonSf -> resultList.add(Pair(pb.aktoerId, it.value()))
-                    is PersonTombestone -> resultList.add(Pair(pb.aktoerId, it.value()))
+                    is PersonTombestone -> resultList.add(Pair(pb.aktoerId, null))
                 }
             }
         }
@@ -104,11 +145,7 @@ fun loadPersonCache(ws: WorkSettings): ExitReason {
 
     personCache.putAll(resultList.toMap())
 
-    log.info { "Cache - resulting cache size ${personCache.size} " }
-
-    if (resultList.size != personCache.size) {
-        log.warn { "Cache - cache topic has duplicate keys!" }
-    }
+    log.info { "Cache - resulting cache size ${personCache.size} of which are tombstones ${personCache.values.filter{it == null}.count()}" }
 
     return exitReason
 }

@@ -22,6 +22,7 @@ private val log = KotlinLogging.logger {}
 const val EV_kafkaProducerTopic = "KAFKA_PRODUCER_TOPIC"
 const val EV_kafkaConsumerTopic = "KAFKA_TOPIC"
 const val EV_kafkaConsumerTopicGt = "KAFKA_TOPIC_GT"
+const val EV_kafkaProducerTopicGt = "KAFKA_PRODUCER_TOPIC_GT"
 const val EV_kafkaSchemaReg = "KAFKA_SCREG"
 const val EV_kafkaBrokersOnPrem = "KAFKA_BROKERS_ON_PREM"
 
@@ -34,6 +35,7 @@ val kafkaSchemaReg = AnEnvironment.getEnvOrDefault(EV_kafkaSchemaReg, "http://lo
 val kafkaPersonTopic = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopic, "$PROGNAME-producer")
 val kafkaPDLTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopic, "$PROGNAME-consumer")
 val kafkaGTTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopicGt, "$PROGNAME-consumer-gt")
+val kafkaProducerTopicGt = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopicGt, "$PROGNAME-producer-gt")
 
 fun fetchEnv(env: String): String {
     return AnEnvironment.getEnvOrDefault(env, "$env missing")

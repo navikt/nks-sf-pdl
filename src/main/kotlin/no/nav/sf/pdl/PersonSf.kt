@@ -1,13 +1,11 @@
 package no.nav.sf.pdl
 
-import com.google.protobuf.InvalidProtocolBufferException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.pdlsf.proto.PersonProto.PersonKey
-import no.nav.pdlsf.proto.PersonProto.PersonValue
 
 private val log = KotlinLogging.logger { }
 
@@ -202,21 +200,12 @@ data class PersonSf(
     fun isDead(): Boolean = doedsfall.isNotEmpty()
 }
 
-internal fun ByteArray.protobufSafeParseKey(): PersonKey = this.let { ba ->
-    try {
-        PersonKey.parseFrom(ba)
-    } catch (e: InvalidProtocolBufferException) {
-        PersonKey.getDefaultInstance()
-    }
-}
-
-internal fun ByteArray.protobufSafeParseValue(): PersonValue = this.let { ba ->
-    try {
-        PersonValue.parseFrom(ba)
-    } catch (e: InvalidProtocolBufferException) {
-        PersonValue.getDefaultInstance()
-    }
-}
+@Serializable
+data class GtValue(
+    val aktoerId: String,
+    val kommunenummerFraGt: String?,
+    val bydelsnummerFraGt: String?
+) : GtValueBase()
 
 sealed class PersonBase {
     companion object {
@@ -238,5 +227,25 @@ data class PersonTombestone(
     fun toPersonTombstoneProtoKey(): PersonKey =
             PersonKey.newBuilder().apply {
                 aktoerId = this@PersonTombestone.aktoerId
+            }.build()
+}
+
+sealed class GtValueBase {
+    companion object {
+        fun createGtTombstone(key: ByteArray): GtValueBase =
+                runCatching { GtTombstone(PersonProto.PersonKey.parseFrom(key).aktoerId) }
+                        .getOrDefault(GtProtobufIssue)
+    }
+}
+
+object GtProtobufIssue : GtValueBase()
+object GtInvalid : GtValueBase()
+
+data class GtTombstone(
+    val aktoerId: String
+) : GtValueBase() {
+    fun toPersonTombstoneProtoKey(): PersonKey =
+            PersonKey.newBuilder().apply {
+                aktoerId = this@GtTombstone.aktoerId
             }.build()
 }

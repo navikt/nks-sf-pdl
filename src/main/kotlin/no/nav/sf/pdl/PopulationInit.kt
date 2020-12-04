@@ -198,7 +198,8 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     log.info { "Init: Earliest death date: ${workMetrics.earliestDeath.toIsoString()}" }
     var exitReason: ExitReason = ExitReason.Work // ExitReason.NoKafkaProducer
     var producerCount = 0
-    /* //TODO Uncomment for init load publishing
+    /*// TODO Uncomment for init load publishing
+
     log.info { "Init: Undertake producing to size ${latestRecords.size}" }
 
     latestRecords.toList().asSequence().chunked(500000).forEach {
@@ -208,7 +209,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
         ).produce {
             it.fold(true) { acc, pair ->
                 acc && pair.second?.let {
-                    send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
+                    this.send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
                 } ?: sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
             }.let { sent ->
                 when (sent) {
@@ -221,8 +222,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                 }
             }
         }
-    }
-    */
+    }*/
 
     log.info { "Init load - Ok? ${exitReason.isOK()} " }
 

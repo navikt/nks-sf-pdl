@@ -79,8 +79,8 @@ private fun Query.findFolkeregisterPersonStatus(): String {
     }
 }
 
-private fun Query.findGtKommunenummer(): String {
-    val kommunenr: Kommunenummer = this.hentPerson.geografiskTilknytning?.let { gt ->
+fun HentePerson.GeografiskTilknytning?.findGtKommunenummer(): String {
+    val kommunenr: Kommunenummer = this?.let { gt ->
         when (gt.gtType) {
             GtType.KOMMUNE -> {
                 if (gt.gtKommune.isNullOrEmpty()) {
@@ -116,13 +116,20 @@ private fun Query.findGtKommunenummer(): String {
     }
 }
 
+fun HentePerson.GeografiskTilknytning?.findGtBydelsnummer(): String =
+    this?.let { gt ->
+        if (!gt.gtBydel.isNullOrEmpty()) {
+            gt.gtBydel
+        } else {
+            UKJENT_FRA_PDL
+        } } ?: UKJENT_FRA_PDL
+
+private fun Query.findGtKommunenummer(): String {
+    return this.hentPerson.geografiskTilknytning.findGtKommunenummer()
+}
+
 private fun Query.findGtBydelsnummer(): String =
-    this.hentPerson.geografiskTilknytning?.let { gt -> // Not really a Kommunenummer
-                if (!gt.gtBydel.isNullOrEmpty()) {
-                    gt.gtBydel
-                } else {
-                    UKJENT_FRA_PDL
-                } } ?: UKJENT_FRA_PDL
+    this.hentPerson.geografiskTilknytning.findGtBydelsnummer()
 
 fun Query.findAdresseKommunenummer(): String {
     return this.hentPerson.bostedsadresse.let { bostedsadresse ->
