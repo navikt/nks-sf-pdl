@@ -30,11 +30,11 @@ object Bootstrap {
             log.info { "Starting - grace period 3 m after enableNAISAPI" }
             conditionalWait(180000)
             log.info { "Starting - post grace period enableNAISAPI" }
-            gtInitLoad(ws)
-            // initLoadTest(ws)
-            // initLoad(ws)
+            gtInitLoad(ws) // Publish to cache topic also load cache in app
+            // initLoadTest(ws) //Investigate run of number of records on topic if suspecting drop of records in init run
+            // loadGtCache(ws) // Use this if not init load is used
+            initLoad(ws) // Only publish to person/cache topic
             loadPersonCache(ws) // Will carry cache in memory after this point
-            loadGtCache(ws)
             loop(ws)
         }
         log.info { "Finished!" }

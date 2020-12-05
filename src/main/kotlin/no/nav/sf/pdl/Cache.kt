@@ -131,7 +131,9 @@ fun loadGtCache(ws: WorkSettings): ExitReason {
                         workMetrics.consumerIssues.inc()
                         return@consume KafkaConsumerStates.HasIssues
                     }
-                    is GtValue -> resultList.add(Pair(gt.aktoerId, it.value()))
+                    is GtValue -> {
+                        resultList.add(Pair(gt.aktoerId, it.value()))
+                    }
                     is GtTombstone -> resultList.add(Pair(gt.aktoerId, null))
                 }
             }
@@ -148,7 +150,7 @@ fun loadGtCache(ws: WorkSettings): ExitReason {
 }
 
 fun loadPersonCache(ws: WorkSettings): ExitReason {
-    log.info { "Cache - load" }
+    log.info { "Cache Person - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray?>(
@@ -181,8 +183,14 @@ fun loadPersonCache(ws: WorkSettings): ExitReason {
                         workMetrics.consumerIssues.inc()
                         return@consume KafkaConsumerStates.HasIssues
                     }
-                    is PersonSf -> resultList.add(Pair(pb.aktoerId, it.value()))
-                    is PersonTombestone -> resultList.add(Pair(pb.aktoerId, null))
+                    is PersonSf -> {
+                        workMetrics.measurePersonStats(pb)
+                        resultList.add(Pair(pb.aktoerId, it.value()))
+                    }
+                    is PersonTombestone -> {
+                        workMetrics.tombstones.inc()
+                        resultList.add(Pair(pb.aktoerId, null))
+                    }
                 }
             }
         }
@@ -193,6 +201,8 @@ fun loadPersonCache(ws: WorkSettings): ExitReason {
     personCache.putAll(resultList.toMap())
 
     log.info { "Cache - resulting cache size ${personCache.size} of which are tombstones ${personCache.values.filter{it == null}.count()}" }
+
+    workMetrics.logPersonCacheStats()
 
     return exitReason
 }

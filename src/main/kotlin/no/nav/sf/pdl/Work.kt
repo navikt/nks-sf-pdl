@@ -81,8 +81,7 @@ sealed class ExitReason {
     object NoKafkaProducer : ExitReason()
     object NoKafkaConsumer : ExitReason()
     object NoEvents : ExitReason()
-    object NoCache : ExitReason()
-    object InvalidCache : ExitReason()
+    object NoCache : ExitReason()object InvalidCache : ExitReason()
     object Work : ExitReason()
 
     fun isOK(): Boolean = this is Work || this is NoEvents
@@ -195,7 +194,6 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
             }
         }
         log.info { "Work GT: Creating aiven person producer for batch ${producerCount++}" }
-        val personsInCache: MutableList<PersonSf> = mutableListOf()
 
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerPersonAiven
@@ -214,9 +212,12 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                     }
                 }
             }
-                    .map { it.toPersonProto() }
+                    .map {
+                        personCache[it.aktoerId] = it.toPersonProto().second.toByteArray()
+                        it.toPersonProto()
+                    }
                     .fold(true) { acc, pair ->
-                        acc && pair.second?.let {
+                        acc && pair.second.let {
                             send(kafkaPersonTopic, pair.first.toByteArray(), it.toByteArray()).also { workMetrics.publishedPersons.inc(); workMetrics.published_by_gt_update.inc() }
                         }
                     }.let { sent ->
@@ -263,7 +264,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                 }
             }
             initial_retries_left = 0 // Got data - connection established - no more retries
-            log.info { "Work: Consumed a batch of ${cRecords.count()} records" }
+            // log.info { "Work: Consumed a batch of ${cRecords.count()} records" }
 
             numberOfWorkSessionsWithoutEvents = 0
 
@@ -400,6 +401,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
 
     log.info { "Work - Current final person cache size ${workMetrics.cache_size_total.get().toInt()} of which are tombstones ${workMetrics.cache_size_tombstones.get().toInt()}" }
 
+    workMetrics.logWorkSessionStats()
     log.info { "bootstrap work session finished" }
 
     if (!exitReason.isOK()) {

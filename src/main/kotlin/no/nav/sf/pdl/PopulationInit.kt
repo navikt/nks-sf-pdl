@@ -4,7 +4,10 @@ import kotlin.streams.toList
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
+import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
+import no.nav.sf.library.send
+import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 private val log = KotlinLogging.logger {}
@@ -145,7 +148,25 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                             resultList.add(Pair(it.first, null))
                         }
                         is PersonSf -> {
-                            val personProto = personBase.toPersonProto()
+                            val personEnriched =
+                                    if (gtCache.containsKey(personBase.aktoerId)) {
+                                        workMetrics.enriching_from_gt_cache.inc()
+                                        if (gtCache[personBase.aktoerId] == null) {
+                                            personBase.copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
+                                        } else {
+                                            val gtBase = GtBaseFromProto(keyAsByteArray(personBase.aktoerId), gtCache[personBase.aktoerId])
+                                            if (gtBase is GtValue) {
+                                                personBase.copy(kommunenummerFraGt = gtBase.kommunenummerFraGt, bydelsnummerFraGt = gtBase.bydelsnummerFraGt)
+                                            } else {
+                                                workMetrics.consumerIssues.inc()
+                                                log.error { "Fail to parse gt from gt cache" }
+                                                personBase
+                                            }
+                                        }
+                                    } else {
+                                        personBase
+                                    }
+                            val personProto = personEnriched.toPersonProto()
                             resultList.add(Pair(it.first, personProto.second.toByteArray()))
                         }
                         else -> {
@@ -198,7 +219,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     log.info { "Init: Earliest death date: ${workMetrics.earliestDeath.toIsoString()}" }
     var exitReason: ExitReason = ExitReason.Work // ExitReason.NoKafkaProducer
     var producerCount = 0
-    /*// TODO Uncomment for init load publishing
+    // TODO Uncomment for init load publishing
 
     log.info { "Init: Undertake producing to size ${latestRecords.size}" }
 
@@ -208,9 +229,8 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                 config = ws.kafkaProducerPersonAiven
         ).produce {
             it.fold(true) { acc, pair ->
-                acc && pair.second?.let {
-                    this.send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
-                } ?: sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
+                acc && pair.second?.let { this.send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
+                } ?: this.sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
             }.let { sent ->
                 when (sent) {
                     true -> exitReason = ExitReason.Work
@@ -222,7 +242,9 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
                 }
             }
         }
-    }*/
+    }
+
+    workMetrics.logInitialLoadStats()
 
     log.info { "Init load - Ok? ${exitReason.isOK()} " }
 
