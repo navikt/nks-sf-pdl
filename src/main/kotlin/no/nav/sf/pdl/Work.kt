@@ -233,6 +233,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
 
     log.info { "Work GT - After gt (and updating ${workMetrics.published_by_gt_update.get().toInt()} person by gt change) publish. Current gt cache size ${workMetrics.gt_cache_size_total.get().toInt()} of which are tombstones ${workMetrics.gt_cache_size_tombstones.get().toInt()}" }
 
+    initial_retries_left = 5 // Always give retries when consuming from topic outside of gcp
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
 
     AKafkaProducer<ByteArray, ByteArray>(
@@ -257,7 +258,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                     Bootstrap.conditionalWait(60000)
                     return@consume KafkaConsumerStates.IsOk
                 } else {
-                    log.info { "Work: No records found - end consume session" }
+                    log.info { "Work: No more records found (or given up)- end consume session" }
                     return@consume KafkaConsumerStates.IsFinished
                 }
             }
@@ -333,9 +334,10 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                                 workMetrics.cache_update_tombstone.inc()
                                 personCache[personBase.aktoerId] = null
                                 true
+                            } else {
+                                workMetrics.cache_blocked_tombstone.inc()
+                                false
                             }
-                            workMetrics.cache_blocked_tombstone.inc()
-                            false
                         }
                         is PersonSf -> {
                             if (!personCache.containsKey(personBase.aktoerId)) {
@@ -346,9 +348,10 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                                 workMetrics.cache_update.inc()
                                 personCache[personBase.aktoerId] = personBase.toPersonProto().second.toByteArray()
                                 true
+                            } else {
+                                workMetrics.cache_blocked.inc()
+                                false
                             }
-                            workMetrics.cache_blocked.inc()
-                            false
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
                     }
@@ -378,6 +381,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                     }
                 }
             } else {
+                log.error { "Issued found" }
                 KafkaConsumerStates.HasIssues
             }
         } // Consumer pdl topic
@@ -386,15 +390,15 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     if (consumed == 0) numberOfWorkSessionsWithoutEvents++
 
     log.info {
-        "Work persons - records consumed $consumed. Published new persons ${workMetrics.publishedPersons.get().toInt()}, new tombstones ${workMetrics.publishedTombstones.get().toInt()}" +
-                ". Cache person new ${workMetrics.cache_new.get().toInt()} update ${workMetrics.cache_update.get().toInt()} blocked ${workMetrics.cache_blocked.get().toInt()}" +
-                ", Tombstones new ${workMetrics.cache_new_tombstone.get().toInt()} update ${workMetrics.cache_update_tombstone.get().toInt()} blocked ${workMetrics.cache_blocked_tombstone.get().toInt()}"
+        "Work persons - records consumed $consumed. Published new persons: ${workMetrics.publishedPersons.get().toInt()}, new tombstones: ${workMetrics.publishedTombstones.get().toInt()}" +
+                ". Cache enrich actions: ${workMetrics.enriching_from_gt_cache} person new: ${workMetrics.cache_new.get().toInt()} update: ${workMetrics.cache_update.get().toInt()} blocked: ${workMetrics.cache_blocked.get().toInt()}" +
+                ", Tombstones new: ${workMetrics.cache_new_tombstone.get().toInt()} update: ${workMetrics.cache_update_tombstone.get().toInt()} blocked: ${workMetrics.cache_blocked_tombstone.get().toInt()}"
     }
 
     workMetrics.cache_size_total.set(personCache.size.toDouble())
     workMetrics.cache_size_tombstones.set(personCache.values.filter { it == null }.count().toDouble())
 
-    log.info { "Work - Current person cache size ${workMetrics.cache_size_total.get().toInt()} of which are tombstones ${workMetrics.cache_size_tombstones.get().toInt()}" }
+    log.info { "Work - Current final person cache size ${workMetrics.cache_size_total.get().toInt()} of which are tombstones ${workMetrics.cache_size_tombstones.get().toInt()}" }
 
     log.info { "bootstrap work session finished" }
 
