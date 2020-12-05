@@ -57,8 +57,12 @@ spec:
       value: PLAIN
     - name: KAFKA_TOPIC
       value: aapen-person-pdl-dokument-v1
+    - name: KAFKA_TOPIC_GT
+      value: aapen-pdl-geografisktilknytning-v1
     - name: KAFKA_PRODUCER_TOPIC
       value: teamnks.nks-sf-pdl-v2
+    - name: KAFKA_PRODUCER_TOPIC_GT
+      value: teamnks.nks-sf-gt-v1
     - name: KAFKA_USER
       value: srvsfpdl
     - name: MS_BETWEEN_WORK
