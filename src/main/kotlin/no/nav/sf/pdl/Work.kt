@@ -42,7 +42,7 @@ fun fetchEnv(env: String): String {
 }
 
 data class WorkSettings(
-    val kafkaProducerPersonAiven: Map<String, Any> = AKafkaProducer.configBase + mapOf<String, Any>(
+    val kafkaProducerGcp: Map<String, Any> = AKafkaProducer.configBase + mapOf<String, Any>(
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to ByteArraySerializer::class.java,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to ByteArraySerializer::class.java,
             "security.protocol" to "SSL",
@@ -51,7 +51,7 @@ data class WorkSettings(
             SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
             SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword)
     ),
-    val kafkaConsumerPersonAiven: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
+    val kafkaConsumerGcp: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
             "security.protocol" to "SSL",
@@ -60,13 +60,13 @@ data class WorkSettings(
             "ssl.truststore.location" to AnEnvironment.getEnvOrDefault("KAFKA_TRUSTSTORE_PATH", "KAFKA_TRUSTSTORE_PATH MISSING"),
             "ssl.truststore.password" to AnEnvironment.getEnvOrDefault("KAFKA_CREDSTORE_PASSWORD", "KAFKA_CREDSTORE_PASSWORD MISSING")
     ),
-    val kafkaConsumerPdl: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
+    val kafkaConsumerOnPrem: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
             "schema.registry.url" to kafkaSchemaReg,
             ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to fetchEnv(EV_kafkaBrokersOnPrem)
     ),
-    val kafkaConsumerPdlAlternative: Map<String, Any> = AKafkaConsumer.configAlternativeBase + mapOf<String, Any>(
+    val kafkaConsumerOnPremSeparateClientId: Map<String, Any> = AKafkaConsumer.configAlternativeBase + mapOf<String, Any>(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
             "schema.registry.url" to kafkaSchemaReg,
@@ -107,7 +107,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     var consumed = 0
 
     val kafkaConsumer = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdl,
+            config = ws.kafkaConsumerOnPrem,
             fromBeginning = false,
             topics = listOf(kafkaGTTopic)
     )
@@ -177,7 +177,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     resultList.asSequence().chunked(500000).forEach { c ->
         log.info { "Work GT: Creating aiven producer for batch ${producerCount++}" }
         AKafkaProducer<ByteArray, ByteArray>(
-                config = ws.kafkaProducerPersonAiven
+                config = ws.kafkaProducerGcp
         ).produce {
             c.fold(true) { acc, pair ->
                 acc && pair.second?.let {
@@ -196,7 +196,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
         log.info { "Work GT: Creating aiven person producer for batch ${producerCount++}" }
 
         AKafkaProducer<ByteArray, ByteArray>(
-                config = ws.kafkaProducerPersonAiven
+                config = ws.kafkaProducerGcp
         ).produce {
             c.map { Pair(it.first, personCache[it.first]) }.filter { it.second != null }.map {
                 if (gtCache[it.first] == null) {
@@ -238,11 +238,11 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     var exitReason: ExitReason = ExitReason.NoKafkaProducer
 
     AKafkaProducer<ByteArray, ByteArray>(
-            config = ws.kafkaProducerPersonAiven
+            config = ws.kafkaProducerGcp
     ).produce {
 
         val kafkaConsumerPdl = AKafkaConsumer<String, String>(
-                config = ws.kafkaConsumerPdl,
+                config = ws.kafkaConsumerOnPrem,
                 fromBeginning = false
         )
         exitReason = ExitReason.NoKafkaConsumer

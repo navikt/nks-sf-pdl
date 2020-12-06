@@ -22,7 +22,7 @@ fun gtInitLoad(ws: WorkSettings) {
 
     log.info { "GT - test" }
     val kafkaConsumer = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdl,
+            config = ws.kafkaConsumerOnPrem,
             fromBeginning = true,
             topics = listOf(kafkaGTTopic)
     )
@@ -75,15 +75,12 @@ fun gtInitLoad(ws: WorkSettings) {
     gtCache.toList().asSequence().chunked(500000).forEach {
         log.info { "GT: Creating aiven producer for batch ${producerCount++}" }
         AKafkaProducer<ByteArray, ByteArray>(
-                config = ws.kafkaProducerPersonAiven
+                config = ws.kafkaProducerGcp
         ).produce {
             it.fold(true) { acc, pair ->
                 acc && pair.second?.let {
                     this.send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.gtPublished.inc() }
                 } ?: this.sendNullValue(kafkaProducerTopicGt, keyAsByteArray(pair.first)).also { workMetrics.gtPublishedTombstone.inc() }
-                // acc && pair.second?.let {
-                //    send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
-                // } ?: sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
             }.let { sent ->
                 if (!sent) {
                     workMetrics.producerIssues.inc()
@@ -94,7 +91,6 @@ fun gtInitLoad(ws: WorkSettings) {
     }
 
     log.info { "Done with gt load. Published gt: ${workMetrics.gtPublished.get().toInt()}, tombstones: ${workMetrics.gtPublishedTombstone.get().toInt()} p Issues: ${workMetrics.producerIssues.get().toInt()}" }
-    // File("/tmp/investigategt").writeText("Findings:\n${investigate.joinToString("\n\n")}")
 }
 
 fun loadGtCache(ws: WorkSettings): ExitReason {
@@ -102,7 +98,7 @@ fun loadGtCache(ws: WorkSettings): ExitReason {
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerPersonAiven,
+            config = ws.kafkaConsumerGcp,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
     )
@@ -154,7 +150,7 @@ fun loadPersonCache(ws: WorkSettings): ExitReason {
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerPersonAiven,
+            config = ws.kafkaConsumerGcp,
             fromBeginning = true,
             topics = listOf(kafkaPersonTopic)
     )

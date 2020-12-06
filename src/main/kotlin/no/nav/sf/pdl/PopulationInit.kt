@@ -61,7 +61,7 @@ internal fun initLoadTest(ws: WorkSettings) {
     log.info { "Start init test" }
     workMetrics.testRunRecordsParsed.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdlAlternative,
+            config = ws.kafkaConsumerOnPremSeparateClientId,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )
@@ -109,7 +109,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
 
     log.info { "Defining Consumer for pdl read" }
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerPdlAlternative,
+            config = ws.kafkaConsumerOnPrem,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )
@@ -226,7 +226,7 @@ internal fun initLoad(ws: WorkSettings): ExitReason {
     latestRecords.toList().asSequence().chunked(500000).forEach {
         log.info { "Init: Creating aiven producer for batch ${producerCount++}" }
         AKafkaProducer<ByteArray, ByteArray>(
-                config = ws.kafkaProducerPersonAiven
+                config = ws.kafkaProducerGcp
         ).produce {
             it.fold(true) { acc, pair ->
                 acc && pair.second?.let { this.send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }

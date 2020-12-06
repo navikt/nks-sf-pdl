@@ -248,12 +248,12 @@ data class WMetrics(
     fun logInitialLoadStats() {
         log.info { """
             Result stats from initial person load...
-            Persondocument records enriched by gt cache during consume: ${workMetrics.enriching_from_gt_cache.inc()}
+            Persondocument records enriched by gt cache during consume: ${workMetrics.enriching_from_gt_cache.get().toInt()}
             Total unique records: ${workMetrics.livingPersons.get().toInt() + workMetrics.deadPersons.get().toInt() + workMetrics.tombstones.get().toInt()}
             Living persons: ${workMetrics.livingPersons.get().toInt()}, Dead persons: ${workMetrics.deadPersons.get().toInt()} (unknown date: ${workMetrics.deadPersonsWithoutDate.get().toInt()}), Tombstones: ${workMetrics.tombstones.get().toInt()}
             Persondocuments (living people) from topic with Kommunenummer:
-            Both Adresse&Gt: ${workMetrics.kommunenummerFromBothAdresseAndGt}, Only Adresse: ${workMetrics.kommunenummerOnlyFromAdresse}, Only Gt: ${workMetrics.kommunenummerOnlyFromGt}, Missing altogether: ${workMetrics.kommunenummerMissing}
-            Published persons: ${workMetrics.initialPublishedPersons} Published tombstones:  ${workMetrics.initialPublishedTombstones}
+            Both Adresse&Gt: ${workMetrics.kommunenummerFromBothAdresseAndGt.get().toInt()}, Only Adresse: ${workMetrics.kommunenummerOnlyFromAdresse.get().toInt()}, Only Gt: ${workMetrics.kommunenummerOnlyFromGt}, Missing altogether: ${workMetrics.kommunenummerMissing.get().toInt()}
+            Published persons: ${workMetrics.initialPublishedPersons.get().toInt()} Published tombstones:  ${workMetrics.initialPublishedTombstones.get().toInt()}
             """.trimIndent() }
     }
 
@@ -263,7 +263,7 @@ data class WMetrics(
             Total unique records: ${workMetrics.livingPersons.get().toInt() + workMetrics.deadPersons.get().toInt() + workMetrics.tombstones.get().toInt()}
             Living persons: ${workMetrics.livingPersons.get().toInt()}, Dead persons: ${workMetrics.deadPersons.get().toInt()} (unknown date: ${workMetrics.deadPersonsWithoutDate.get().toInt()}), Tombstones: ${workMetrics.tombstones.get().toInt()}
             Persondocuments (living people) from topic with Kommunenummer:
-            Both Adresse&Gt: ${workMetrics.kommunenummerFromBothAdresseAndGt}, Only Adresse: ${workMetrics.kommunenummerOnlyFromAdresse}, Only Gt: ${workMetrics.kommunenummerOnlyFromGt}, Missing altogether: ${workMetrics.kommunenummerMissing}
+            Both Adresse&Gt: ${workMetrics.kommunenummerFromBothAdresseAndGt.get().toInt()}, Only Adresse: ${workMetrics.kommunenummerOnlyFromAdresse.get().toInt()}, Only Gt: ${workMetrics.kommunenummerOnlyFromGt.get().toInt()}, Missing altogether: ${workMetrics.kommunenummerMissing.get().toInt()}
             """.trimIndent() }
     }
 
@@ -273,8 +273,8 @@ data class WMetrics(
             Consumed gt records encounters cache - NEW (${workMetrics.gt_cache_new.get().toInt()}/${workMetrics.gt_cache_new_tombstone.get().toInt()}), UPDATE /${workMetrics.gt_cache_update.get().toInt()}/${workMetrics.gt_cache_update_tombstone.get().toInt()}, BLOCKED (${workMetrics.gt_cache_blocked.get().toInt()}/${workMetrics.gt_cache_blocked_tombstone.get().toInt()})
             Published to gt topic: (${workMetrics.gtPublished.get().toInt()}/${workMetrics.gtPublishedTombstone.get().toInt()})
             Size of Gt cache: ${workMetrics.gt_cache_size_total.get().toInt()} records of which tombstones: ${workMetrics.gt_cache_size_tombstones.get().toInt()}
-            Published persons due to gt update: ${workMetrics.published_by_gt_update.inc()}
-            Consumed person records enriched from gt cache: ${workMetrics.enriching_from_gt_cache.inc()}
+            Published persons due to gt update: ${workMetrics.published_by_gt_update.get().toInt()}
+            Consumed person records enriched from gt cache: ${workMetrics.enriching_from_gt_cache.get().toInt()}
             Consumed person records encounters cache - NEW (${workMetrics.cache_new.get().toInt()}/${workMetrics.cache_new_tombstone.get().toInt()}), UPDATE /${workMetrics.cache_update.get().toInt()}/${workMetrics.cache_update_tombstone.get().toInt()}, BLOCKED (${workMetrics.cache_blocked.get().toInt()}/${workMetrics.cache_blocked_tombstone.get().toInt()})
             Published to person topic: (${workMetrics.publishedPersons.get().toInt()}/${workMetrics.publishedTombstones.get().toInt()})
             Size of Person cache: ${workMetrics.cache_size_total.get().toInt()} records of which tombstones ${workMetrics.cache_size_tombstones.get().toInt()}
