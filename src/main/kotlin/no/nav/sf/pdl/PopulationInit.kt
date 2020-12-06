@@ -100,8 +100,8 @@ internal fun initLoadTest(ws: WorkSettings) {
 }
 
 internal fun initLoad(ws: WorkSettings): ExitReason {
-    retry = 0
     workMetrics.clearAll()
+    retry = 0
 
     log.info { "Init: Commencing reading all records on topic $kafkaPDLTopic" }
 

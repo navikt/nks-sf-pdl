@@ -270,12 +270,12 @@ data class WMetrics(
     fun logWorkSessionStats() {
         log.info { """
             Result stats from work session (<persons>/<tombstones>)
-            Consumed gt records encounters cache - NEW (${workMetrics.gt_cache_new.get().toInt()}/${workMetrics.gt_cache_new_tombstone.get().toInt()}), UPDATE /${workMetrics.gt_cache_update.get().toInt()}/${workMetrics.gt_cache_update_tombstone.get().toInt()}, BLOCKED (${workMetrics.gt_cache_blocked.get().toInt()}/${workMetrics.gt_cache_blocked_tombstone.get().toInt()})
+            Consumed gt records encounters cache - NEW (${workMetrics.gt_cache_new.get().toInt()}/${workMetrics.gt_cache_new_tombstone.get().toInt()}), UPDATE (${workMetrics.gt_cache_update.get().toInt()}/${workMetrics.gt_cache_update_tombstone.get().toInt()}), BLOCKED (${workMetrics.gt_cache_blocked.get().toInt()}/${workMetrics.gt_cache_blocked_tombstone.get().toInt()})
             Published to gt topic: (${workMetrics.gtPublished.get().toInt()}/${workMetrics.gtPublishedTombstone.get().toInt()})
             Size of Gt cache: ${workMetrics.gt_cache_size_total.get().toInt()} records of which tombstones: ${workMetrics.gt_cache_size_tombstones.get().toInt()}
             Published persons due to gt update: ${workMetrics.published_by_gt_update.get().toInt()}
             Consumed person records enriched from gt cache: ${workMetrics.enriching_from_gt_cache.get().toInt()}
-            Consumed person records encounters cache - NEW (${workMetrics.cache_new.get().toInt()}/${workMetrics.cache_new_tombstone.get().toInt()}), UPDATE /${workMetrics.cache_update.get().toInt()}/${workMetrics.cache_update_tombstone.get().toInt()}, BLOCKED (${workMetrics.cache_blocked.get().toInt()}/${workMetrics.cache_blocked_tombstone.get().toInt()})
+            Consumed person records encounters cache - NEW (${workMetrics.cache_new.get().toInt()}/${workMetrics.cache_new_tombstone.get().toInt()}), UPDATE (${workMetrics.cache_update.get().toInt()}/${workMetrics.cache_update_tombstone.get().toInt()}), BLOCKED (${workMetrics.cache_blocked.get().toInt()}/${workMetrics.cache_blocked_tombstone.get().toInt()})
             Published to person topic: (${workMetrics.publishedPersons.get().toInt()}/${workMetrics.publishedTombstones.get().toInt()})
             Size of Person cache: ${workMetrics.cache_size_total.get().toInt()} records of which tombstones ${workMetrics.cache_size_tombstones.get().toInt()}
             """.trimIndent() }

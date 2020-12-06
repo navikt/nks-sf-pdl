@@ -73,7 +73,7 @@ fun gtInitLoad(ws: WorkSettings) {
     log.info { "GT - resulting cache size ${gtCache.size} of which are tombstones ${gtCache.values.filter{it == null}.count()}" }
     var producerCount = 0
     gtCache.toList().asSequence().chunked(500000).forEach {
-        log.info { "GT: Creating aiven producer for batch ${producerCount++}" }
+        log.info { "GT: Creating aiven producer for batch ${producerCount++} - chunk size ${it.size}" }
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
@@ -94,6 +94,7 @@ fun gtInitLoad(ws: WorkSettings) {
 }
 
 fun loadGtCache(ws: WorkSettings): ExitReason {
+    workMetrics.clearAll()
     log.info { "GT Cache - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
@@ -146,6 +147,7 @@ fun loadGtCache(ws: WorkSettings): ExitReason {
 }
 
 fun loadPersonCache(ws: WorkSettings): ExitReason {
+    workMetrics.clearAll()
     log.info { "Cache Person - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer

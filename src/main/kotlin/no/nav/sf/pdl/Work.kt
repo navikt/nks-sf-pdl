@@ -55,10 +55,10 @@ data class WorkSettings(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
             "security.protocol" to "SSL",
-            "ssl.keystore.location" to AnEnvironment.getEnvOrDefault("KAFKA_KEYSTORE_PATH", "KAFKA_KEYSTORE_PATH MISSING"),
-            "ssl.keystore.password" to AnEnvironment.getEnvOrDefault("KAFKA_CREDSTORE_PASSWORD", "KAFKA_CREDSTORE_PASSWORD MISSING"),
-            "ssl.truststore.location" to AnEnvironment.getEnvOrDefault("KAFKA_TRUSTSTORE_PATH", "KAFKA_TRUSTSTORE_PATH MISSING"),
-            "ssl.truststore.password" to AnEnvironment.getEnvOrDefault("KAFKA_CREDSTORE_PASSWORD", "KAFKA_CREDSTORE_PASSWORD MISSING")
+            SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaKeystorePath),
+            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
+            SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
+            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword)
     ),
     val kafkaConsumerOnPrem: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
