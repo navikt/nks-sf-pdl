@@ -125,7 +125,7 @@ data class HentePerson(
 ) {
     @Serializable
     data class Foedsel(
-        val foedselsdato: String,
+        val foedselsdato: String?,
         val metadata: Metadata
     )
 

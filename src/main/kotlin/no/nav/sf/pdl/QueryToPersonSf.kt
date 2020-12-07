@@ -63,7 +63,7 @@ fun Query.toPersonSf(): PersonBase {
                             navn = it.vergeEllerFullmektig.navn?.let { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                             motpartsPersonident = it.vergeEllerFullmektig.motpartsPersonident, omfang = it.vergeEllerFullmektig.omfang, omfangetErInnenPersonligOmraade = it.vergeEllerFullmektig.omfangetErInnenPersonligOmraade)
                 },
-                foedselsdato = this.hentPerson.foedsel.filter { !it.metadata.historisk }.map { it.foedselsdato }
+                foedselsdato = this.hentPerson.foedsel.filter { !it.metadata.historisk }.map { it.foedselsdato ?: "" }
         )
     }
             .onFailure { log.error { "Error creating PersonSf from Query ${it.localizedMessage}" } }

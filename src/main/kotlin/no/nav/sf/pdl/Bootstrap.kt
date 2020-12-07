@@ -31,7 +31,7 @@ object Bootstrap {
             conditionalWait(180000)
             log.info { "Starting - post grace period enableNAISAPI" }
             workMetrics.busyTest.set(1.0)
-            gtInitLoad(ws) // Publish to cache topic also load cache in app (no need to to do loadGtCache)
+            // gtInitLoad(ws) // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             // loadGtCache(ws) // Use this if not gt init load is used
             // initLoadTest(ws) //Investigate run of number of records on topic if suspecting drop of records in init run
             initLoad(ws) // Only publish to person/cache topic
