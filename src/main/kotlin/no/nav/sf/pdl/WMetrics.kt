@@ -15,6 +15,11 @@ fun registerLabelGauge(name: String, label: String): Gauge {
 }
 
 data class WMetrics(
+    val busyTest: Gauge = Gauge
+            .build()
+            .name("busy")
+            .help("Something")
+            .register(),
     val oldSyntaxTest: Gauge = Gauge
             .build()
             .name("old_syntax_test")

@@ -138,6 +138,7 @@ message PersonValue {
   repeated string talesspraaktolk = 20;
   repeated Fullmakt fullmakt = 21;
   repeated VergemaalEllerFremtidsfullmakt vergemaalEllerFremtidsfullmakt = 22;
+  repeated string foedselsdato = 23;
 }
 
 message Gt {

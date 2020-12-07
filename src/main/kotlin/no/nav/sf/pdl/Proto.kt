@@ -207,6 +207,10 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                         omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade
                     })
                 }
+
+                it.foedselsdato.forEach {
+                    addFoedselsdato(it)
+                }
             }.build()
         }
 
@@ -369,7 +373,8 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                     omfang = it.omfang.stringOrNull(),
                                     omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade
                             )
-                        }
+                        },
+                        foedselsdato = v.foedselsdatoList
                 )
             } }.getOrDefault(PersonProtobufIssue)
         }

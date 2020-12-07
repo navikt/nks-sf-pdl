@@ -192,7 +192,8 @@ data class PersonSf(
     val utflyttingFraNorge: List<UtflyttingFraNorge>,
     val talesspraaktolk: List<String>,
     val fullmakt: List<Fullmakt>,
-    val vergemaalEllerFremtidsfullmakt: List<VergemaalEllerFremtidsfullmakt>
+    val vergemaalEllerFremtidsfullmakt: List<VergemaalEllerFremtidsfullmakt>,
+    val foedselsdato: List<String>
 ) : PersonBase() {
 
     fun toJson(): String = no.nav.sf.library.json.stringify(serializer(), this)

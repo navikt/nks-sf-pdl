@@ -93,8 +93,8 @@ var initial_retries_left = 10
 
 internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     log.info { "bootstrap work session starting" }
-
     workMetrics.clearAll()
+    workMetrics.busyTest.set(1.0)
     var gtTombestones = 0
     var gtSuccess = 0
     var gtFail = 0
@@ -407,6 +407,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     if (!exitReason.isOK()) {
         log.error { "Work session has exited with not OK" }
     }
+    workMetrics.busyTest.set(0.0)
 
     return Pair(ws, exitReason)
 }

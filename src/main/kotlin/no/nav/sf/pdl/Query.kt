@@ -120,8 +120,14 @@ data class HentePerson(
     val utflyttingFraNorge: List<UtflyttingFraNorge> = listOf(),
     val tilrettelagtKommunikasjon: List<TilrettelagtKommunikasjon> = listOf(),
     val fullmakt: List<Fullmakt> = listOf(),
-    val vergemaalEllerFremtidsfullmakt: List<VergemaalEllerFremtidsfullmakt> = listOf()
+    val vergemaalEllerFremtidsfullmakt: List<VergemaalEllerFremtidsfullmakt> = listOf(),
+    val foedsel: List<Foedsel> = listOf()
 ) {
+    @Serializable
+    data class Foedsel(
+        val foedselsdato: String,
+        val metadata: Metadata
+    )
 
     @Serializable
     data class Bostedsadresse(
