@@ -117,7 +117,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
         if (consumerRecords.isEmpty) {
             if (workMetrics.gtRecordsParsed.get().toInt() == 0 && gtRetries > 0) {
                 gtRetries--
-                log.info { "Gt - retry connection after waiting 60 s Retries left: $gtRetries" }
+                log.info { "Work Gt - retry connection after waiting 60 s Retries left: $gtRetries" }
                 Bootstrap.conditionalWait(60000)
                 return@consume KafkaConsumerStates.IsOk
             }
@@ -175,7 +175,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     workMetrics.gt_cache_size_tombstones.set(gtCache.values.filter { it == null }.count().toDouble())
     var producerCount = 0
     resultList.asSequence().chunked(500000).forEach { c ->
-        log.info { "Work GT: Creating aiven producer for batch ${producerCount++}" }
+        log.info { "Work GT: Creating aiven producer for batch $producerCount" }
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
@@ -392,7 +392,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
 
     log.info {
         "Work persons - records consumed $consumed. Published new persons: ${workMetrics.publishedPersons.get().toInt()}, new tombstones: ${workMetrics.publishedTombstones.get().toInt()}" +
-                ". Cache enrich actions: ${workMetrics.enriching_from_gt_cache} person new: ${workMetrics.cache_new.get().toInt()} update: ${workMetrics.cache_update.get().toInt()} blocked: ${workMetrics.cache_blocked.get().toInt()}" +
+                ". Cache enrich actions: ${workMetrics.enriching_from_gt_cache.get().toInt()} person new: ${workMetrics.cache_new.get().toInt()} update: ${workMetrics.cache_update.get().toInt()} blocked: ${workMetrics.cache_blocked.get().toInt()}" +
                 ", Tombstones new: ${workMetrics.cache_new_tombstone.get().toInt()} update: ${workMetrics.cache_update_tombstone.get().toInt()} blocked: ${workMetrics.cache_blocked_tombstone.get().toInt()}"
     }
 

@@ -252,7 +252,7 @@ data class WMetrics(
             Total unique records: ${workMetrics.livingPersons.get().toInt() + workMetrics.deadPersons.get().toInt() + workMetrics.tombstones.get().toInt()}
             Living persons: ${workMetrics.livingPersons.get().toInt()}, Dead persons: ${workMetrics.deadPersons.get().toInt()} (unknown date: ${workMetrics.deadPersonsWithoutDate.get().toInt()}), Tombstones: ${workMetrics.tombstones.get().toInt()}
             Persondocuments (living people) from topic with Kommunenummer:
-            Both Adresse&Gt: ${workMetrics.kommunenummerFromBothAdresseAndGt.get().toInt()}, Only Adresse: ${workMetrics.kommunenummerOnlyFromAdresse.get().toInt()}, Only Gt: ${workMetrics.kommunenummerOnlyFromGt}, Missing altogether: ${workMetrics.kommunenummerMissing.get().toInt()}
+            Both Adresse&Gt: ${workMetrics.kommunenummerFromBothAdresseAndGt.get().toInt()}, Only Adresse: ${workMetrics.kommunenummerOnlyFromAdresse.get().toInt()}, Only Gt: ${workMetrics.kommunenummerOnlyFromGt.get().toInt()}, Missing altogether: ${workMetrics.kommunenummerMissing.get().toInt()}
             Published persons: ${workMetrics.initialPublishedPersons.get().toInt()} Published tombstones:  ${workMetrics.initialPublishedTombstones.get().toInt()}
             """.trimIndent() }
     }
