@@ -15,16 +15,7 @@ fun registerLabelGauge(name: String, label: String): Gauge {
 }
 
 data class WMetrics(
-    val busyTest: Gauge = Gauge
-            .build()
-            .name("busy")
-            .help("Something")
-            .register(),
-    val oldSyntaxTest: Gauge = Gauge
-            .build()
-            .name("old_syntax_test")
-            .help("Something")
-            .register(),
+    val busy: Gauge = registerGauge("busy"),
     val published_by_gt_update: Gauge = registerGauge("published_by_gt_update"),
     val enriching_from_gt_cache: Gauge = registerGauge("enriching_from_gt_cache"),
 
@@ -93,8 +84,6 @@ data class WMetrics(
     val kommune_number_not_found: Gauge = registerLabelGauge("kommune_number_not_found", "kommune_number")
 ) {
     fun clearAll() {
-        oldSyntaxTest.clear()
-        oldSyntaxTest.set(10.0)
         published_by_gt_update.clear()
         enriching_from_gt_cache.clear()
 

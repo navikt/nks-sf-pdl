@@ -57,7 +57,7 @@ var heartBeatConsumer: Int = 0
 
 var retry: Int = 0
 
-internal fun initLoadTest(ws: WorkSettings) {
+internal fun initLoadTest() {
     log.info { "Start init test" }
     workMetrics.testRunRecordsParsed.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
@@ -99,7 +99,7 @@ internal fun initLoadTest(ws: WorkSettings) {
     log.info { "Init test run : Total unique records from topic: $initReference" }
 }
 
-internal fun initLoad(ws: WorkSettings): ExitReason {
+internal fun initLoad(): ExitReason {
     workMetrics.clearAll()
     retry = 0
 

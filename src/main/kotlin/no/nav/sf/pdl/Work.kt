@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import io.confluent.kafka.serializers.KafkaAvroDeserializer
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -10,11 +9,6 @@ import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.library.PROGNAME
 import no.nav.sf.library.send
 import no.nav.sf.library.sendNullValue
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.common.config.SslConfigs
-import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import org.apache.kafka.common.serialization.ByteArraySerializer
 
 private val log = KotlinLogging.logger {}
 
@@ -41,45 +35,13 @@ fun fetchEnv(env: String): String {
     return AnEnvironment.getEnvOrDefault(env, "$env missing")
 }
 
-data class WorkSettings(
-    val kafkaProducerGcp: Map<String, Any> = AKafkaProducer.configBase + mapOf<String, Any>(
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to ByteArraySerializer::class.java,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to ByteArraySerializer::class.java,
-            "security.protocol" to "SSL",
-            SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaKeystorePath),
-            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
-            SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
-            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword)
-    ),
-    val kafkaConsumerGcp: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
-            "security.protocol" to "SSL",
-            SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaKeystorePath),
-            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
-            SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
-            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword)
-    ),
-    val kafkaConsumerOnPrem: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
-            "schema.registry.url" to kafkaSchemaReg,
-            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to fetchEnv(EV_kafkaBrokersOnPrem)
-    ),
-    val kafkaConsumerOnPremSeparateClientId: Map<String, Any> = AKafkaConsumer.configAlternativeBase + mapOf<String, Any>(
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
-            "schema.registry.url" to kafkaSchemaReg,
-            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to fetchEnv(EV_kafkaBrokersOnPrem)
-    )
-)
-
 val workMetrics = WMetrics()
+val ws = WorkSettings()
 
 sealed class ExitReason {
-    object NoFilter : ExitReason()
     object NoKafkaProducer : ExitReason()
     object NoKafkaConsumer : ExitReason()
+    object KafkaIssues : ExitReason()
     object NoEvents : ExitReason()
     object NoCache : ExitReason()object InvalidCache : ExitReason()
     object Work : ExitReason()
@@ -87,46 +49,31 @@ sealed class ExitReason {
     fun isOK(): Boolean = this is Work || this is NoEvents
 }
 
-var numberOfWorkSessionsWithoutEvents = 0
-
-var initial_retries_left = 10
-
-internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
-    log.info { "bootstrap work session starting" }
-    workMetrics.clearAll()
-    workMetrics.busyTest.set(1.0)
-    var gtTombestones = 0
-    var gtSuccess = 0
-    var gtFail = 0
+internal fun updateGtCacheAndAffectedPersons(): ExitReason {
     var gtRetries = 5
 
-    if (personCache.isEmpty() || gtCache.isEmpty()) {
-        log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
-        return Pair(ws, ExitReason.NoCache)
-    }
-    var consumed = 0
+    var exitReason: ExitReason = ExitReason.NoKafkaConsumer
 
-    val kafkaConsumer = AKafkaConsumer<String, String?>(
+    AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPrem,
             fromBeginning = false,
             topics = listOf(kafkaGTTopic)
-    )
-
-    val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
-    kafkaConsumer.consume { consumerRecords ->
+    ).consume { consumerRecords ->
         if (consumerRecords.isEmpty) {
             if (workMetrics.gtRecordsParsed.get().toInt() == 0 && gtRetries > 0) {
+                exitReason = ExitReason.NoEvents
                 gtRetries--
-                log.info { "Work Gt - retry connection after waiting 60 s Retries left: $gtRetries" }
+                log.info { "Work Gt - retry connection after waiting 60 s. Retries left: $gtRetries" }
                 Bootstrap.conditionalWait(60000)
                 return@consume KafkaConsumerStates.IsOk
             }
             return@consume KafkaConsumerStates.IsFinished
         }
+        exitReason = ExitReason.Work
+        val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
         workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
         consumerRecords.forEach {
             if (it.value() == null) {
-                gtTombestones++
                 if (gtCache.containsKey(it.key()) && gtCache[it.key()] == null) {
                     workMetrics.gt_cache_blocked_tombstone.inc()
                 } else {
@@ -135,14 +82,12 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                     resultList.add(Pair(it.key(), null))
                 }
             } else {
-                // if (investigate.size < 10) investigate.add(it.value() ?: "")
                 it.value()?.let { v ->
                     when (val gt = v.getGtFromJson()) {
                         is Gt -> {
                             when (val gtValue = gt.toGtValue(it.key())) {
                                 is GtValue -> {
                                     val gtAsBytes = gtValue.toGtProto().second.toByteArray()
-                                    gtSuccess++
                                     if (gtCache.containsKey(it.key()) && gtCache[it.key()]?.contentEquals(gtAsBytes) == true) {
                                         workMetrics.gt_cache_blocked.inc()
                                     } else {
@@ -153,52 +98,42 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                                 }
                                 else -> {
                                     log.error { "Work Gt parse error" }
-                                    gtFail++
+                                    exitReason = ExitReason.KafkaIssues
+                                    return@consume KafkaConsumerStates.HasIssues
                                 }
                             }
                         }
-                        else -> gtFail++
+                        else -> {
+                            exitReason = ExitReason.KafkaIssues
+                            return@consume KafkaConsumerStates.HasIssues
+                        }
                     }
                 }
             }
         }
-        KafkaConsumerStates.IsOk
-    }
 
-    log.info {
-        "Work GT - new messages tombstones $gtTombestones success $gtSuccess fails $gtFail. Will publish ${resultList.size}" +
-                ". Cache Gt new ${workMetrics.gt_cache_new.get().toInt()} update ${workMetrics.gt_cache_update.get().toInt()} blocked ${workMetrics.gt_cache_blocked.get().toInt()}" +
-                ", Tombstones new ${workMetrics.gt_cache_new_tombstone.get().toInt()} update ${workMetrics.gt_cache_update_tombstone.get().toInt()} blocked ${workMetrics.gt_cache_blocked_tombstone.get().toInt()}"
-    }
-
-    workMetrics.gt_cache_size_total.set(gtCache.size.toDouble())
-    workMetrics.gt_cache_size_tombstones.set(gtCache.values.filter { it == null }.count().toDouble())
-    var producerCount = 0
-    resultList.asSequence().chunked(500000).forEach { c ->
-        log.info { "Work GT: Creating aiven producer for batch $producerCount" }
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
-            c.fold(true) { acc, pair ->
+            resultList.fold(true) { acc, pair ->
                 acc && pair.second?.let {
                     this.send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.gtPublished.inc() }
                 } ?: this.sendNullValue(kafkaProducerTopicGt, keyAsByteArray(pair.first)).also { workMetrics.gtPublishedTombstone.inc() }
-                // acc && pair.second?.let {
-                //    send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
-                // } ?: sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
             }.let { sent ->
                 if (!sent) {
                     workMetrics.producerIssues.inc()
-                    log.error { "Gt load - Producer $producerCount has issues sending to topic" }
+                    log.error { "Gt load - Gt Cache Producer had issues sending to topic" }
+                    exitReason = ExitReason.KafkaIssues
                 }
             }
         }
-        log.info { "Work GT: Creating aiven person producer for batch ${producerCount++}" }
+
+        if (!exitReason.isOK()) return@consume KafkaConsumerStates.HasIssues
 
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
-            c.map { Pair(it.first, personCache[it.first]) }.filter { it.second != null }.map {
+            resultList.map { Pair(it.first, personCache[it.first]) }.filter { it.second != null }.map {
                 if (gtCache[it.first] == null) {
                     (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
                 } else {
@@ -206,8 +141,9 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                     if (gtBase is GtValue) {
                         (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = gtBase.kommunenummerFraGt, bydelsnummerFraGt = gtBase.bydelsnummerFraGt)
                     } else {
+                        exitReason = ExitReason.KafkaIssues
                         workMetrics.consumerIssues.inc()
-                        log.error { "Fail to parse gt from gt cache at update" }
+                        log.error { "Fail to parse gt from gt cache at update person" }
                         (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
                     }
                 }
@@ -224,18 +160,51 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                         when (sent) {
                             true -> KafkaConsumerStates.IsOk
                             false -> KafkaConsumerStates.HasIssues.also {
+                                exitReason = ExitReason.KafkaIssues
                                 workMetrics.producerIssues.inc()
-                                log.error { "Producer has issues sending to topic" }
+                                log.error { "Producer person for gt update has issues sending to topic" }
                             }
                         }
                     }
         }
+
+        if (!exitReason.isOK()) return@consume KafkaConsumerStates.HasIssues
+
+        KafkaConsumerStates.IsOk // Continue consume cycle
     }
 
-    log.info { "Work GT - After gt (and updating ${workMetrics.published_by_gt_update.get().toInt()} person by gt change) publish. Current gt cache size ${workMetrics.gt_cache_size_total.get().toInt()} of which are tombstones ${workMetrics.gt_cache_size_tombstones.get().toInt()}" }
+    workMetrics.gt_cache_size_total.set(gtCache.size.toDouble())
+    workMetrics.gt_cache_size_tombstones.set(gtCache.values.filter { it == null }.count().toDouble())
 
-    initial_retries_left = 5 // Always give retries when consuming from topic outside of gcp
-    var exitReason: ExitReason = ExitReason.NoKafkaProducer
+    log.info {
+        "Work GT, exit reason is ok? ${exitReason.isOK()} - new messages <persons/tombstones> :  (${workMetrics.gt_cache_new.get().toInt() + workMetrics.gt_cache_update.get().toInt() + workMetrics.gt_cache_blocked.get().toInt()}/${workMetrics.gt_cache_blocked_tombstone.get().toInt() + workMetrics.gt_cache_update_tombstone.get().toInt() + workMetrics.gt_cache_new_tombstone.get().toInt()})" +
+                ". Cache Gt new ${workMetrics.gt_cache_new.get().toInt()} update ${workMetrics.gt_cache_update.get().toInt()} blocked ${workMetrics.gt_cache_blocked.get().toInt()}" +
+                ", Tombstones new ${workMetrics.gt_cache_new_tombstone.get().toInt()} update ${workMetrics.gt_cache_update_tombstone.get().toInt()} blocked ${workMetrics.gt_cache_blocked_tombstone.get().toInt()}\n" +
+                "After gt (and updating ${workMetrics.published_by_gt_update.get().toInt()} person by gt change) publish. Current gt cache size ${workMetrics.gt_cache_size_total.get().toInt()} of which are tombstones ${workMetrics.gt_cache_size_tombstones.get().toInt()}"
+    }
+    return exitReason
+}
+
+internal fun work(): ExitReason {
+    log.info { "bootstrap work session starting" }
+    workMetrics.clearAll()
+
+    if (personCache.isEmpty() || gtCache.isEmpty()) {
+        log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
+        return ExitReason.NoCache
+    }
+
+    var exitReason = updateGtCacheAndAffectedPersons()
+
+    if (!exitReason.isOK()) {
+        log.warn { "Aborting work session since update of gt cache and affected persons returned NOK" }
+        return exitReason
+    }
+
+    log.info { "Work session - gt update done successfully, person update starting" }
+    var retries = 5
+
+    exitReason = ExitReason.NoKafkaProducer
 
     AKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerGcp
@@ -248,29 +217,23 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
         exitReason = ExitReason.NoKafkaConsumer
 
         kafkaConsumerPdl.consume { cRecords ->
-
-            workMetrics.recordsParsed.inc(cRecords.count().toDouble())
-            // leaving if nothing to do
             exitReason = ExitReason.NoEvents
             if (cRecords.isEmpty) {
-                if (initial_retries_left > 0) {
-                    log.info { "Work: No records found $initial_retries_left initial retries left, wait 60 w" }
-                    initial_retries_left--
+                if (workMetrics.recordsParsed.get().toInt() == 0 && retries > 0) {
+                    exitReason = ExitReason.NoEvents
+                    log.info { "Work: No records found $retries retries left, wait 60 w" }
+                    retries--
                     Bootstrap.conditionalWait(60000)
                     return@consume KafkaConsumerStates.IsOk
                 } else {
-                    log.info { "Work: No more records found (or given up)- end consume session" }
+                    log.info { "Work: No more records found (or given up) - end consume session" }
                     return@consume KafkaConsumerStates.IsFinished
                 }
             }
-            initial_retries_left = 0 // Got data - connection established - no more retries
-            // log.info { "Work: Consumed a batch of ${cRecords.count()} records" }
-
-            numberOfWorkSessionsWithoutEvents = 0
-
             exitReason = ExitReason.Work
-            val results = cRecords.map { cr ->
+            workMetrics.recordsParsed.inc(cRecords.count().toDouble())
 
+            val results = cRecords.map { cr ->
                 if (cr.value() == null) {
                     val personTombestone = PersonTombestone(aktoerId = cr.key())
                     workMetrics.tombstones.inc()
@@ -280,6 +243,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                         InvalidQuery -> {
                             workMetrics.consumerIssues.inc()
                             log.error { "Unable to parse topic value PDL" }
+                            exitReason = ExitReason.KafkaIssues
                             Pair(KafkaConsumerStates.HasIssues, PersonInvalid)
                         }
                         is Query -> {
@@ -296,6 +260,7 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                                                 personSf.copy(kommunenummerFraGt = gtBase.kommunenummerFraGt, bydelsnummerFraGt = gtBase.bydelsnummerFraGt)
                                             } else {
                                                 workMetrics.consumerIssues.inc()
+                                                exitReason = ExitReason.KafkaIssues
                                                 log.error { "Fail to parse gt from gt cache" }
                                                 personSf
                                             }
@@ -309,10 +274,12 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                                 }
                                 is PersonInvalid -> {
                                     workMetrics.consumerIssues.inc()
+                                    exitReason = ExitReason.KafkaIssues
                                     Pair(KafkaConsumerStates.HasIssues, PersonInvalid)
                                 }
                                 else -> {
                                     workMetrics.consumerIssues.inc()
+                                    exitReason = ExitReason.KafkaIssues
                                     log.error { "Returned unhandled PersonBase from Query.toPersonSf" }
                                     Pair(KafkaConsumerStates.HasIssues, PersonInvalid)
                                 }
@@ -374,24 +341,24 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
                     }
                 }.let { sent ->
                     when (sent) {
-                        true -> KafkaConsumerStates.IsOk.also { consumed += results.size }
+                        true -> KafkaConsumerStates.IsOk
                         false -> KafkaConsumerStates.HasIssues.also {
                             workMetrics.producerIssues.inc()
-                            log.error { "Producer has issues sending to topic" }
+                            exitReason = ExitReason.KafkaIssues
+                            log.error { "Producer new/updated person has issues sending to topic" }
                         }
                     }
                 }
             } else {
-                log.error { "Issued found" }
+                log.error { "Issue found" }
+                exitReason = ExitReason.KafkaIssues
                 KafkaConsumerStates.HasIssues
             }
         } // Consumer pdl topic
     } // Producer person topic
 
-    if (consumed == 0) numberOfWorkSessionsWithoutEvents++
-
     log.info {
-        "Work persons - records consumed $consumed. Published new persons: ${workMetrics.publishedPersons.get().toInt()}, new tombstones: ${workMetrics.publishedTombstones.get().toInt()}" +
+        "Work persons - Published new persons: ${workMetrics.publishedPersons.get().toInt()}, new tombstones: ${workMetrics.publishedTombstones.get().toInt()}" +
                 ". Cache enrich actions: ${workMetrics.enriching_from_gt_cache.get().toInt()} person new: ${workMetrics.cache_new.get().toInt()} update: ${workMetrics.cache_update.get().toInt()} blocked: ${workMetrics.cache_blocked.get().toInt()}" +
                 ", Tombstones new: ${workMetrics.cache_new_tombstone.get().toInt()} update: ${workMetrics.cache_update_tombstone.get().toInt()} blocked: ${workMetrics.cache_blocked_tombstone.get().toInt()}"
     }
@@ -405,9 +372,9 @@ internal fun work(ws: WorkSettings): Pair<WorkSettings, ExitReason> {
     log.info { "bootstrap work session finished" }
 
     if (!exitReason.isOK()) {
-        log.error { "Work session has exited with not OK" }
+        log.error { "Work session has exited with NOK" }
     }
-    workMetrics.busyTest.set(0.0)
+    workMetrics.busy.set(0.0)
 
-    return Pair(ws, exitReason)
+    return exitReason
 }

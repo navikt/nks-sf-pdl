@@ -93,7 +93,7 @@ fun gtInitLoad(ws: WorkSettings) {
     log.info { "Done with gt load. Published gt: ${workMetrics.gtPublished.get().toInt()}, tombstones: ${workMetrics.gtPublishedTombstone.get().toInt()} p Issues: ${workMetrics.producerIssues.get().toInt()}" }
 }
 
-fun loadGtCache(ws: WorkSettings): ExitReason {
+fun loadGtCache(): ExitReason {
     workMetrics.clearAll()
     log.info { "GT Cache - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
@@ -146,7 +146,7 @@ fun loadGtCache(ws: WorkSettings): ExitReason {
     return exitReason
 }
 
-fun loadPersonCache(ws: WorkSettings): ExitReason {
+fun loadPersonCache(): ExitReason {
     workMetrics.clearAll()
     log.info { "Cache Person - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
