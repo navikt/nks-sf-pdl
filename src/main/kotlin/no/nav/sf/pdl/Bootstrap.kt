@@ -27,6 +27,7 @@ object Bootstrap {
             log.info { "Starting - grace period 3 m after enableNAISAPI" }
             conditionalWait(180000)
             log.info { "Starting - post grace period enableNAISAPI" }
+            workMetrics.busy.set(1.0)
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // Use this if not gt init load is used
             // initLoadTest() //Investigate run of number of records on topic if suspecting drop of records in init run
@@ -46,7 +47,7 @@ object Bootstrap {
                 val isOK = work().isOK()
                 workMetrics.busy.set(0.0)
                 conditionalWait()
-                if (isOK) loop() else log.info { "Terminate signal (Work exit reason NOK)" }
+                if (isOK) loop() else log.info { "Terminate signal (Work exit reason NOK)" }.also { conditionalWait() }
             }
         }
     }

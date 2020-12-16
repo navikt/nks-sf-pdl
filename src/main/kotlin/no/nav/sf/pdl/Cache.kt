@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
+import no.nav.sf.library.currentConsumerMessageHost
 import no.nav.sf.library.send
 import no.nav.sf.library.sendNullValue
 
@@ -98,12 +99,12 @@ fun loadGtCache(): ExitReason {
     log.info { "GT Cache - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
-    val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray?>(
+    currentConsumerMessageHost = "GT_CACHE"
+    AKafkaConsumer<ByteArray, ByteArray?>(
             config = ws.kafkaConsumerGcp,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
-    )
-    kafkaConsumer.consume { consumerRecords ->
+    ).consume { consumerRecords ->
         exitReason = ExitReason.NoEvents
         if (consumerRecords.isEmpty) {
             if (workMetrics.gtCacheRecordsParsed.get().toInt() == 0) {
@@ -151,12 +152,12 @@ fun loadPersonCache(): ExitReason {
     log.info { "Cache Person - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
-    val kafkaConsumer = AKafkaConsumer<ByteArray, ByteArray?>(
+    currentConsumerMessageHost = "PERSON_CACHE"
+    AKafkaConsumer<ByteArray, ByteArray?>(
             config = ws.kafkaConsumerGcp,
             fromBeginning = true,
             topics = listOf(kafkaPersonTopic)
-    )
-    kafkaConsumer.consume { consumerRecords ->
+    ).consume { consumerRecords ->
         exitReason = ExitReason.NoEvents
         if (consumerRecords.isEmpty) {
             if (workMetrics.cacheRecordsParsed.get().toInt() == 0) {

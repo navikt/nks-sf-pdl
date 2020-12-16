@@ -7,6 +7,7 @@ import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.AnEnvironment
 import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.library.PROGNAME
+import no.nav.sf.library.currentConsumerMessageHost
 import no.nav.sf.library.send
 import no.nav.sf.library.sendNullValue
 
@@ -54,6 +55,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
 
+    currentConsumerMessageHost = "GT_ONPREM"
     AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPrem,
             fromBeginning = false,
@@ -209,14 +211,12 @@ internal fun work(): ExitReason {
     AKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerGcp
     ).produce {
-
-        val kafkaConsumerPdl = AKafkaConsumer<String, String>(
+        exitReason = ExitReason.NoKafkaConsumer
+        currentConsumerMessageHost = "PERSON_ONPREM"
+        AKafkaConsumer<String, String>(
                 config = ws.kafkaConsumerOnPrem,
                 fromBeginning = false
-        )
-        exitReason = ExitReason.NoKafkaConsumer
-
-        kafkaConsumerPdl.consume { cRecords ->
+        ).consume { cRecords ->
             exitReason = ExitReason.NoEvents
             if (cRecords.isEmpty) {
                 if (workMetrics.recordsParsed.get().toInt() == 0 && retries > 0) {
