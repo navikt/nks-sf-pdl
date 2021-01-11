@@ -94,6 +94,6 @@ object Bootstrap {
             }
 
     fun LocalTime.inSleepRange(): Boolean {
-        return this.isAfter(sleepRangeStart) || this.isBefore(sleepRangeStop)
+        return this.isAfter(sleepRangeStart) && this.isBefore(sleepRangeStop)
     }
 }
