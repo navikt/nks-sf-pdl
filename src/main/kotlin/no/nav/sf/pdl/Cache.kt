@@ -199,6 +199,8 @@ fun loadPersonCache(): ExitReason {
 
     personCache.putAll(resultList.toMap())
 
+    log.info { "Cache - Person cache map creation done" }
+
     log.info { "Cache - resulting cache size ${personCache.size} of which are tombstones ${personCache.values.filter{it == null}.count()}" }
 
     workMetrics.logPersonCacheStats()

@@ -28,10 +28,10 @@ spec:
   resources:
     limits:
       cpu: 1000m
-      memory: 9Gi
+      memory: 12Gi
     requests:
       cpu: 100m
-      memory: 8Gi
+      memory: 10Gi
   accessPolicy:
     outbound:
       external:
