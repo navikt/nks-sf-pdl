@@ -378,3 +378,46 @@ internal fun work(): ExitReason {
 
     return exitReason
 }
+
+internal fun sleepInvestigate() {
+    workMetrics.clearAll()
+    log.info { "SLEEP GT Cache - load" }
+    currentConsumerMessageHost = "SLEEP_GT_CACHE"
+    AKafkaConsumer<ByteArray, ByteArray?>(
+            config = ws.kafkaConsumerGcp,
+            fromBeginning = true,
+            topics = listOf(kafkaProducerTopicGt)
+    ).consume { consumerRecords ->
+        if (consumerRecords.isEmpty) {
+            if (workMetrics.gtCacheRecordsParsed.get().toInt() == 0) {
+                log.info { "SLEEP GT Cache - retry connection after waiting 60 s" }
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            }
+            return@consume KafkaConsumerStates.IsFinished
+        }
+        workMetrics.gtCacheRecordsParsed.inc(consumerRecords.count().toDouble())
+        return@consume KafkaConsumerStates.IsFinished
+    }
+
+    log.info { "SLEEP Person Cache - load" }
+    currentConsumerMessageHost = "SLEEP_PERSON_CACHE"
+    AKafkaConsumer<ByteArray, ByteArray?>(
+            config = ws.kafkaConsumerGcp,
+            fromBeginning = true,
+            topics = listOf(kafkaProducerTopicGt)
+    ).consume { consumerRecords ->
+        if (consumerRecords.isEmpty) {
+            if (workMetrics.cacheRecordsParsed.get().toInt() == 0) {
+                log.info { "SLEEP Person Cache - retry connection after waiting 60 s" }
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            }
+            return@consume KafkaConsumerStates.IsFinished
+        }
+        workMetrics.cacheRecordsParsed.inc(consumerRecords.count().toDouble())
+        return@consume KafkaConsumerStates.IsFinished
+    }
+
+    log.info { "SLEEP Cache load test. Connects with Gt: ${(workMetrics.gtCacheRecordsParsed.get().toInt() != 0)} Person: ${(workMetrics.cacheRecordsParsed.get().toInt() != 0)}" }
+}

@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -11,6 +12,9 @@ import no.nav.sf.library.enableNAISAPI
 
 private const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
 private val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
+
+private val sleepRangeStart = LocalTime.parse("04:00:00")
+private val sleepRangeStop = LocalTime.parse("07:00:00")
 
 /**
  * Bootstrap is a very simple µService manager
@@ -24,16 +28,20 @@ object Bootstrap {
 
     fun start() {
         enableNAISAPI {
-            log.info { "Starting - grace period 3 m after enableNAISAPI" }
-            conditionalWait(180000)
-            log.info { "Starting - post grace period enableNAISAPI" }
-            workMetrics.busy.set(1.0)
-            // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
-            loadGtCache() // Use this if not gt init load is used
-            // initLoadTest() //Investigate run of number of records on topic if suspecting drop of records in init run
-            // initLoad() // Only publish to person/cache topic
-            loadPersonCache() // Will carry cache in memory after this point
-            loop()
+                log.info { "Starting - grace period 3 m after enableNAISAPI" }
+                conditionalWait(180000)
+                log.info { "Starting - post grace period enableNAISAPI" }
+            if (LocalTime.now().inSleepRange()) {
+                loop()
+            } else {
+                workMetrics.busy.set(1.0)
+                // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
+                loadGtCache() // Use this if not gt init load is used
+                // initLoadTest() //Investigate run of number of records on topic if suspecting drop of records in init run
+                // initLoad() // Only publish to person/cache topic
+                loadPersonCache() // Will carry cache in memory after this point
+                loop()
+            }
         }
         log.info { "Finished!" }
     }
@@ -44,9 +52,19 @@ object Bootstrap {
             stop -> Unit
             !stop -> {
                 workMetrics.busy.set(1.0)
-                val isOK = work().isOK()
-                workMetrics.busy.set(0.0)
-                conditionalWait()
+                val isOK: Boolean
+                if (LocalTime.now().inSleepRange()) {
+                    log.info { "SLEEP RANGE - In sleep period" }
+                    sleepInvestigate()
+                    workMetrics.busy.set(0.0)
+                    conditionalWait(1800000) // Sleep an half hour then restart
+                    isOK = false
+                } else {
+                    isOK = work().isOK()
+                    workMetrics.busy.set(0.0)
+                    conditionalWait()
+                }
+
                 if (isOK) loop() else log.info { "Terminate signal (Work exit reason NOK)" }.also { conditionalWait() }
             }
         }
@@ -74,4 +92,8 @@ object Bootstrap {
                 loop()
                 cr.join()
             }
+
+    fun LocalTime.inSleepRange(): Boolean {
+        return this.isAfter(sleepRangeStart) || this.isBefore(sleepRangeStop)
+    }
 }
