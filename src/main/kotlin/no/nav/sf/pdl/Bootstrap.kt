@@ -54,7 +54,7 @@ object Bootstrap {
                 workMetrics.busy.set(1.0)
                 val isOK: Boolean
                 if (LocalTime.now().inSleepRange()) {
-                    log.info { "SLEEP RANGE - In sleep period" }
+                    log.info { "SLEEP RANGE - In sleep period. LocalTime ${LocalTime.now()}" }
                     sleepInvestigate()
                     workMetrics.busy.set(0.0)
                     conditionalWait(1800000) // Sleep an half hour then restart
