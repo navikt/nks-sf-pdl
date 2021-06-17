@@ -249,6 +249,14 @@ data class HentePerson(
     )
 
     @Serializable
+    data class ForelderBarnRelasjon( // Forelder-barn-relasjon TODO apply and confirm this mapping befor 1 sept 2021
+        val relatertPersonsIdent: String = "",
+        val relatertPersonsRolle: FamilieRelasjonsRolle,
+        val minRolleForPerson: FamilieRelasjonsRolle?,
+        val metadata: Metadata
+    )
+
+    @Serializable
     data class Kontaktperson(
         val personident: String?,
         val enhet: String?

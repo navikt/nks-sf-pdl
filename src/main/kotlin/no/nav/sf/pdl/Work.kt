@@ -189,7 +189,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
 internal fun work(): ExitReason {
     var sampleTakenThisWorkSession = false
-    log.info { "bootstrap work session starting" }
+    log.info { "bootstrap work session starting (sample not taken)" }
     workMetrics.clearAll()
 
     if (personCache.isEmpty() || gtCache.isEmpty()) {
@@ -251,8 +251,9 @@ internal fun work(): ExitReason {
                             when (val personSf = query.toPersonSf()) {
                                 is PersonSf -> {
                                     if (!sampleTakenThisWorkSession) {
+                                        log.info("Taking sample for this work session")
                                         sampleTakenThisWorkSession = true
-                                        Investigate.writeText("Sample:\n${cr.value()}")
+                                        Investigate.writeText("Sample:\n${personSf.toJson()}")
                                     }
                                     // Enrich with data from gt Cache
                                     if (gtCache.containsKey(personSf.aktoerId)) {
