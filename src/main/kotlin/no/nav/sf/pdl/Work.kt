@@ -189,7 +189,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
 internal fun work(): ExitReason {
     var sampleTakenThisWorkSession = false
-    log.info { "bootstrap work session starting (sample not taken)" }
+    log.info { "bootstrap work session starting  (sample not taken)" }
     workMetrics.clearAll()
 
     if (personCache.isEmpty() || gtCache.isEmpty()) {
