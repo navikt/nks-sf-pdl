@@ -60,6 +60,12 @@ message Familierelasjon {
   string minRolleForPerson = 3;
 }
 
+message ForelderBarnRelasjon {
+  string relatertPersonsIdent = 1;
+  string relatertPersonsRolle = 2;
+  string minRolleForPerson = 3;
+}
+
 message UtflyttingFraNorge {
   string tilflyttingsland = 1;
   string tilflyttingsstedIUtlandet = 2;
@@ -110,7 +116,7 @@ message VergemaalEllerFremtidsfullmakt {
   Navn navn = 3;
   string motpartsPersonident = 4;
   string omfang = 5;
-  bool omfangetErInnenPersonligOmraade = 6;
+  string omfangetErInnenPersonligOmraade = 6;
 }
 
 // this message will be the value part of kafka payload
@@ -118,7 +124,8 @@ message PersonValue {
   // aktoerid will be placed as key
   repeated string folkeregisterId = 1;
   repeated Navn navn = 2;
-  repeated Familierelasjon familierelasjoner = 3;
+  repeated Familierelasjon familierelasjoner = 24; //Deprecated
+  repeated ForelderBarnRelasjon forelderBarnRelasjoner = 3;
   repeated string folkeregisterpersonstatus = 4;
   repeated InnflyttingTilNorge innflyttingTilNorge = 5;
   repeated string adressebeskyttelse = 6;

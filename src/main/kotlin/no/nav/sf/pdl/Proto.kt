@@ -33,6 +33,14 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                     }.build())
                 }
 
+                it.forelderBarnRelasjoner.forEach { fbr ->
+                    addForelderBarnRelasjoner(PersonProto.ForelderBarnRelasjon.newBuilder().apply {
+                        relatertPersonsIdent = fbr.relatertPersonsIdent ?: ""
+                        relatertPersonsRolle = fbr.relatertPersonsRolle ?: ""
+                        minRolleForPerson = fbr.minRolleForPerson ?: ""
+                    }.build())
+                }
+
                 it.folkeregisterpersonstatus.forEach {
                     addFolkeregisterpersonstatus(it ?: "")
                 }
@@ -204,7 +212,7 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                         }.build()
                         motpartsPersonident = it.motpartsPersonident ?: ""
                         omfang = it.omfang ?: ""
-                        omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade
+                        omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade.asProtoString()
                     })
                 }
 
@@ -213,6 +221,28 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                 }
             }.build()
         }
+
+fun Boolean?.asProtoString(): String =
+    if (this == null) {
+        ""
+    } else {
+        if (this) {
+            "true"
+        } else {
+            "false"
+        }
+    }
+
+fun String.booleanOrNull(): Boolean? =
+    if (this == "true") {
+        true
+    } else {
+        if (this == "false") {
+            false
+        } else {
+            null
+        }
+    }
 
 fun String.stringOrNull(): String? = if (this.isBlank()) null else this
 
@@ -230,6 +260,12 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                         ) },
                         familierelasjoner = v.familierelasjonerList.map {
                             FamilieRelasjon(
+                                    relatertPersonsIdent = it.relatertPersonsIdent.stringOrNull(),
+                                    relatertPersonsRolle = it.relatertPersonsRolle.stringOrNull(),
+                                    minRolleForPerson = it.minRolleForPerson.stringOrNull())
+                        },
+                        forelderBarnRelasjoner = v.forelderBarnRelasjonerList.map {
+                            ForelderBarnRelasjon(
                                     relatertPersonsIdent = it.relatertPersonsIdent.stringOrNull(),
                                     relatertPersonsRolle = it.relatertPersonsRolle.stringOrNull(),
                                     minRolleForPerson = it.minRolleForPerson.stringOrNull())
@@ -371,7 +407,7 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                     navn = if (it.navn.fornavn == "" && it.navn.mellomnavn == "" && it.navn.etternavn == "") null else Navn(fornavn = it.navn.fornavn.stringOrNull(), mellomnavn = it.navn.mellomnavn.stringOrNull(), etternavn = it.navn.etternavn.stringOrNull()),
                                     motpartsPersonident = it.motpartsPersonident.stringOrNull(),
                                     omfang = it.omfang.stringOrNull(),
-                                    omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade
+                                    omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade.booleanOrNull()
                             )
                         },
                         foedselsdato = v.foedselsdatoList

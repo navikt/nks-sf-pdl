@@ -73,6 +73,13 @@ data class FamilieRelasjon(
 )
 
 @Serializable
+data class ForelderBarnRelasjon(
+    val relatertPersonsIdent: String?,
+    val relatertPersonsRolle: String?,
+    val minRolleForPerson: String?
+)
+
+@Serializable
 data class UtflyttingFraNorge(
     val tilflyttingsland: String?,
     val tilflyttingsstedIUtlandet: String?
@@ -165,7 +172,7 @@ data class VergemaalEllerFremtidsfullmakt(
     val navn: Navn?,
     val motpartsPersonident: String?,
     val omfang: String?,
-    val omfangetErInnenPersonligOmraade: Boolean
+    val omfangetErInnenPersonligOmraade: Boolean?
 )
 
 @Serializable
@@ -173,7 +180,8 @@ data class PersonSf(
     val aktoerId: String,
     val folkeregisterId: List<String>,
     val navn: List<Navn>,
-    val familierelasjoner: List<FamilieRelasjon>,
+    val familierelasjoner: List<FamilieRelasjon>, // TODO deprecated
+    var forelderBarnRelasjoner: List<ForelderBarnRelasjon>,
     val folkeregisterpersonstatus: List<String>,
     val innflyttingTilNorge: List<InnflyttingTilNorge>,
     val adressebeskyttelse: List<String>,

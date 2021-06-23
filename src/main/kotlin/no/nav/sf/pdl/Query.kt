@@ -107,7 +107,8 @@ data class HentePerson(
     val bostedsadresse: List<Bostedsadresse> = listOf(),
     val oppholdsadresse: List<Oppholdsadresse> = listOf(), // oppholdsadresse
     val doedsfall: List<Doedsfall> = listOf(),
-    var familierelasjoner: List<FamilieRelasjon> = listOf(),
+    var familierelasjoner: List<FamilieRelasjon> = listOf(), // TODO Deprecated
+    var forelderBarnRelasjon: List<ForelderBarnRelasjon> = listOf(),
     var innflyttingTilNorge: List<InnflyttingTilNorge> = listOf(),
     val folkeregisterpersonstatus: List<Folkeregisterpersonstatus> = listOf(),
     val sikkerhetstiltak: List<Sikkerhetstiltak> = listOf(),
@@ -376,6 +377,6 @@ data class HentePerson(
         val navn: Navn?,
         val motpartsPersonident: String?,
         val omfang: String?,
-        val omfangetErInnenPersonligOmraade: Boolean
+        val omfangetErInnenPersonligOmraade: Boolean? = null
     )
 }

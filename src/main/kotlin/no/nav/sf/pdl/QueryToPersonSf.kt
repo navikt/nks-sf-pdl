@@ -16,6 +16,7 @@ fun Query.toPersonSf(): PersonBase {
                 folkeregisterId = this.findFolkeregisterIdent(), // !historisk from idents
                 navn = this.hentPerson.navn.filter { !it.metadata!!.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
                 familierelasjoner = this.findFamilieRelasjoner(),
+                forelderBarnRelasjoner = this.findForelderBarnRelasjoner(),
                 folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.filter { !it.metadata.historisk }.map { it.status },
                 adressebeskyttelse = this.hentPerson.adressebeskyttelse.filter { !it.metadata.historisk }.map { it.gradering.toString() }, // first !historisk
                 innflyttingTilNorge = this.hentPerson.innflyttingTilNorge.filter { !it.metadata.historisk }.map {
@@ -180,6 +181,16 @@ private fun Query.findFamilieRelasjoner(): List<FamilieRelasjon> {
                 relatertPersonsIdent = fr.relatertPersonsIdent,
                 relatertPersonsRolle = fr.relatertPersonsRolle.toString(),
                 minRolleForPerson = fr.minRolleForPerson.toString()
+        )
+    }
+}
+
+private fun Query.findForelderBarnRelasjoner(): List<ForelderBarnRelasjon> {
+    return this.hentPerson.forelderBarnRelasjon.filter { fbr -> !fbr.metadata.historisk }.map { fbr ->
+        ForelderBarnRelasjon(
+                relatertPersonsIdent = fbr.relatertPersonsIdent,
+                relatertPersonsRolle = fbr.relatertPersonsRolle.toString(),
+                minRolleForPerson = fbr.minRolleForPerson.toString()
         )
     }
 }
