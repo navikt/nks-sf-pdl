@@ -81,7 +81,10 @@ internal fun initLoadTest() {
             }
 
             workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
-            cRecords.forEach { cr -> resultListTest.add(cr.key()) }
+            cRecords.filter { it.key() == "1000074695334" }.forEach {
+                log.info { "INVESTIGATE - found interesting one" }
+                Investigate.writeText(it.value() ?: "null", true)
+            }
 
             if (heartBeatConsumer == 0) {
                 log.info { "Init test run: Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
@@ -92,7 +95,7 @@ internal fun initLoadTest() {
         }
         heartBeatConsumer = 0
     }
-
+    log.info { "INVESTIGATE - done" }
     log.info { "Init test run : Total records from topic: ${resultListTest.size}" }
     workMetrics.testRunRecordsParsed.set(resultListTest.size.toDouble())
     initReference = resultListTest.stream().distinct().toList().size
