@@ -37,7 +37,7 @@ object Bootstrap {
                 workMetrics.busy.set(1.0)
                 // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
                 loadGtCache() // Use this if not gt init load is used
-                initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
+                // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
                 // initLoad() // Only publish to person/cache topic
                 loadPersonCache() // Will carry cache in memory after this point
                 loop()
