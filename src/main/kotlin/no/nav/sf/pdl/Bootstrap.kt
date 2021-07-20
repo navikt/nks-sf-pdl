@@ -57,7 +57,7 @@ object Bootstrap {
                     log.info { "SLEEP RANGE - In sleep period. LocalTime ${LocalTime.now()}" }
                     sleepInvestigate()
                     workMetrics.busy.set(0.0)
-                    conditionalWait(1800000) // Sleep an half hour then restart
+                    conditionalWait(1800000) // Sleep an half hour then restart TODO remove this at some point
                     isOK = false
                 } else {
                     isOK = work().isOK()

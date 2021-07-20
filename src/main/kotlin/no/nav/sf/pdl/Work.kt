@@ -72,16 +72,17 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
             return@consume KafkaConsumerStates.IsFinished
         }
         exitReason = ExitReason.Work
-        val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
+        val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
         workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
         consumerRecords.forEach {
+            Investigate.writeText("CONSUMED GT OFFSET ${it.offset()}", true)
             if (it.value() == null) {
                 if (gtCache.containsKey(it.key()) && gtCache[it.key()] == null) {
                     workMetrics.gt_cache_blocked_tombstone.inc()
                 } else {
                     if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update_tombstone.inc() else workMetrics.gt_cache_new_tombstone.inc()
                     gtCache[it.key()] = null
-                    resultList.add(Pair(it.key(), null))
+                    resultListChangesToGTCache.add(Pair(it.key(), null))
                 }
             } else {
                 it.value()?.let { v ->
@@ -95,7 +96,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                                     } else {
                                         if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update.inc() else workMetrics.gt_cache_new.inc()
                                         gtCache[it.key()] = gtAsBytes
-                                        resultList.add(Pair(gtValue.aktoerId, gtAsBytes))
+                                        resultListChangesToGTCache.add(Pair(gtValue.aktoerId, gtAsBytes))
                                     }
                                 }
                                 else -> {
@@ -114,13 +115,21 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
             }
         }
 
+        // gtCache is now updated
+
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
-            resultList.fold(true) { acc, pair ->
+            resultListChangesToGTCache.fold(true) { acc, pair ->
                 acc && pair.second?.let {
-                    this.send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also { workMetrics.gtPublished.inc() }
-                } ?: this.sendNullValue(kafkaProducerTopicGt, keyAsByteArray(pair.first)).also { workMetrics.gtPublishedTombstone.inc() }
+                    this.send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also {
+                        Investigate.writeText("${pair.first} UPDATE GT VALUE IN $kafkaProducerTopicGt", true)
+                        workMetrics.gtPublished.inc()
+                    }
+                } ?: this.sendNullValue(kafkaProducerTopicGt, keyAsByteArray(pair.first)).also {
+                    Investigate.writeText("${pair.first} UPDATE GT TO NULL IN $kafkaProducerTopicGt", true)
+                    workMetrics.gtPublishedTombstone.inc()
+                }
             }.let { sent ->
                 if (!sent) {
                     workMetrics.producerIssues.inc()
@@ -135,8 +144,14 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
-            resultList.map { Pair(it.first, personCache[it.first]) }.filter { it.second != null }.map {
+            resultListChangesToGTCache.map { Pair(it.first, personCache[it.first]) }.filter {
+                if (it.second == null) {
+                    Investigate.writeText("${it.first} Skipped update from GT due to tombstone in Person cache", true)
+                }
+                it.second != null
+            }.map {
                 if (gtCache[it.first] == null) {
+                        // Updated GT part to null
                     (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
                 } else {
                     val gtBase = GtBaseFromProto(keyAsByteArray(it.first), gtCache[it.first])
@@ -146,17 +161,22 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                         exitReason = ExitReason.KafkaIssues
                         workMetrics.consumerIssues.inc()
                         log.error { "Fail to parse gt from gt cache at update person" }
+                        Investigate.writeText("${it.first} ERROR Fail to parse gt from gt cache at update person", true)
                         (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
                     }
                 }
             }
                     .map {
                         personCache[it.aktoerId] = it.toPersonProto().second.toByteArray()
+                        Investigate.writeText("${it.aktoerId} PERSON UPDATE DUE TO GT UPDATE, Value: $it", true)
                         it.toPersonProto()
                     }
                     .fold(true) { acc, pair ->
                         acc && pair.second.let {
-                            send(kafkaPersonTopic, pair.first.toByteArray(), it.toByteArray()).also { workMetrics.publishedPersons.inc(); workMetrics.published_by_gt_update.inc() }
+                            send(kafkaPersonTopic, pair.first.toByteArray(), it.toByteArray()).also {
+                                workMetrics.publishedPersons.inc()
+                                workMetrics.published_by_gt_update.inc()
+                            }
                         }
                     }.let { sent ->
                         when (sent) {
@@ -165,6 +185,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                                 exitReason = ExitReason.KafkaIssues
                                 workMetrics.producerIssues.inc()
                                 log.error { "Producer person for gt update has issues sending to topic" }
+                                Investigate.writeText("Producer person for gt update has issues sending to topic", true)
                             }
                         }
                     }
@@ -235,6 +256,7 @@ internal fun work(): ExitReason {
             workMetrics.recordsParsed.inc(cRecords.count().toDouble())
 
             val results = cRecords.map { cr ->
+                Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()}", true)
                 if (cr.value() == null) {
                     val personTombestone = PersonTombestone(aktoerId = cr.key())
                     workMetrics.tombstones.inc()
@@ -335,9 +357,11 @@ internal fun work(): ExitReason {
                 }.map {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
+                            Investigate.writeText("${(it.second as PersonTombestone).aktoerId} UPDATE PERSON TO TOMBSTONE", true)
                             Pair<PersonProto.PersonKey, PersonProto.PersonValue?>(personBase.toPersonTombstoneProtoKey(), null)
                         }
                         is PersonSf -> {
+                            Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
                             personBase.toPersonProto()
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
@@ -355,6 +379,7 @@ internal fun work(): ExitReason {
                             workMetrics.producerIssues.inc()
                             exitReason = ExitReason.KafkaIssues
                             log.error { "Producer new/updated person has issues sending to topic" }
+                            Investigate.writeText("Producer new/updated person has issues sending to topic", true)
                         }
                     }
                 }
