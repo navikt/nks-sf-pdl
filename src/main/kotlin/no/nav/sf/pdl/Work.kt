@@ -110,7 +110,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                                             if (gtCache[it.key()] == null) {
                                                 Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM NULL TO ${it.value()}", true)
                                             } else {
-                                                Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM ${(GtBaseFromProto(keyAsByteArray(it.key()), gtCache[it.key()]) as GtValue)} TO ${it.value()}", true)
+                                                Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM ${(GtBaseFromProto(keyAsByteArray(it.key()), gtCache[it.key()]) as GtValue).toGtProto().second} TO ${it.value()}", true)
                                             }
                                         }
                                         gtCache[it.key()] = gtAsBytes
