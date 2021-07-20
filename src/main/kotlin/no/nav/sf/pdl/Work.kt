@@ -55,6 +55,8 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
 
+    val skipUpdate: MutableSet<String> = mutableSetOf()
+
     currentConsumerMessageHost = "GT_ONPREM"
     AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPrem,
@@ -81,6 +83,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                     workMetrics.gt_cache_blocked_tombstone.inc()
                 } else {
                     if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update_tombstone.inc() else workMetrics.gt_cache_new_tombstone.inc()
+                    Investigate.writeText("${it.key()} DETECTED GT VALUE FROM ${gtCache[it.key()]} TO NULL", true)
                     gtCache[it.key()] = null
                     resultListChangesToGTCache.add(Pair(it.key(), null))
                 }
@@ -95,6 +98,21 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                                         workMetrics.gt_cache_blocked.inc()
                                     } else {
                                         if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update.inc() else workMetrics.gt_cache_new.inc()
+                                        if (!gtCache.containsKey(it.key())) {
+                                            Investigate.writeText("${it.key()} DETECTED NEW GT VALUE ${it.value()}", true)
+                                            if (it.value() == null) {
+                                                skipUpdate.add(it.key())
+                                            }
+                                        } else {
+                                            if (skipUpdate.contains(it.key())) {
+                                                skipUpdate.remove(it.key())
+                                            }
+                                            if (gtCache[it.key()] == null) {
+                                                Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM NULL TO ${it.value()}", true)
+                                            } else {
+                                                Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM ${gtCache[it.key()]} TO ${it.value()}", true)
+                                            }
+                                        }
                                         gtCache[it.key()] = gtAsBytes
                                         resultListChangesToGTCache.add(Pair(gtValue.aktoerId, gtAsBytes))
                                     }
@@ -141,10 +159,12 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
         if (!exitReason.isOK()) return@consume KafkaConsumerStates.HasIssues
 
+        Investigate.writeText("SKIPUPDATELIST: $skipUpdate", true)
+
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
-            resultListChangesToGTCache.map { Pair(it.first, personCache[it.first]) }.filter {
+            resultListChangesToGTCache.asSequence().filter { !skipUpdate.contains(it.first) }.map { Pair(it.first, personCache[it.first]) }.filter {
                 if (it.second == null) {
                     Investigate.writeText("${it.first} Skipped update from GT due to tombstone in Person cache", true)
                 }
