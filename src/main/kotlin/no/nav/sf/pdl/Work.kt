@@ -276,10 +276,10 @@ internal fun work(): ExitReason {
             workMetrics.recordsParsed.inc(cRecords.count().toDouble())
 
             val results = cRecords.map { cr ->
-                Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()}", true)
                 if (cr.value() == null) {
                     val personTombestone = PersonTombestone(aktoerId = cr.key())
                     workMetrics.tombstones.inc()
+                    Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} TOMBSTONE", true)
                     Pair(KafkaConsumerStates.IsOk, personTombestone)
                 } else {
                     when (val query = cr.value().getQueryFromJson()) {
@@ -292,6 +292,7 @@ internal fun work(): ExitReason {
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
                                 is PersonSf -> {
+                                    Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} PERSON ID ${personSf.aktoerId}", true)
                                     /*
                                     if (!sampleTakenThisWorkSession) {
                                         log.info("Taking sample for this work session")
@@ -317,6 +318,7 @@ internal fun work(): ExitReason {
                                             }
                                         }
                                         workMetrics.measurePersonStats(enriched)
+                                        Investigate.writeText("ENRICHED FROM VALUE $personSf TO $enriched")
                                         Pair(KafkaConsumerStates.IsOk, enriched)
                                     } else {
                                         workMetrics.measurePersonStats(personSf)
@@ -374,6 +376,12 @@ internal fun work(): ExitReason {
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
                     }
+                }.filter {
+                    val hollowState = (it.second is PersonSf) && (it.second as PersonSf).isHollowState()
+                    if (hollowState) {
+                        Investigate.writeText("${(it.second as PersonSf).aktoerId} SKIP ENTRY THAT IS HOLLOW STATE")
+                    }
+                    !hollowState
                 }.map {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {

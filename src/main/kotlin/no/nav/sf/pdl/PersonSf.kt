@@ -209,6 +209,17 @@ data class PersonSf(
     fun isDead(): Boolean = doedsfall.isNotEmpty()
 }
 
+fun PersonSf.isHollowState(): Boolean = (navn.isEmpty() && familierelasjoner.isEmpty() &&
+        forelderBarnRelasjoner.isEmpty() && folkeregisterpersonstatus.isEmpty() &&
+        innflyttingTilNorge.isEmpty() && adressebeskyttelse.isEmpty() &&
+        sikkerhetstiltak.isEmpty() && bostedsadresse.utenlandskAdresse.isEmpty() &&
+        bostedsadresse.ukjentBosted.isEmpty() && bostedsadresse.matrikkeladresse.isEmpty() &&
+        bostedsadresse.vegadresse.isEmpty() && oppholdsadresse.utenlandskAdresse.isEmpty() &&
+        oppholdsadresse.ukjentBosted.isEmpty() && oppholdsadresse.matrikkeladresse.isEmpty() &&
+        oppholdsadresse.vegadresse.isEmpty() && statsborgerskap.isEmpty() && sivilstand.isEmpty() &&
+        kjoenn.isEmpty() && doedsfall.isEmpty() && telefonnummer.isEmpty() && utflyttingFraNorge.isEmpty() &&
+        talesspraaktolk.isEmpty() && fullmakt.isEmpty() && vergemaalEllerFremtidsfullmakt.isEmpty() && foedselsdato.isEmpty())
+
 @Serializable
 data class GtValue(
     val aktoerId: String,
