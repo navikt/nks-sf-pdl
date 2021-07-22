@@ -318,7 +318,7 @@ internal fun work(): ExitReason {
                                             }
                                         }
                                         workMetrics.measurePersonStats(enriched)
-                                        Investigate.writeText("ENRICHED FROM VALUE $personSf TO $enriched")
+                                        Investigate.writeText("ENRICHED FROM VALUE $personSf TO $enriched", true)
                                         Pair(KafkaConsumerStates.IsOk, enriched)
                                     } else {
                                         workMetrics.measurePersonStats(personSf)
@@ -379,7 +379,7 @@ internal fun work(): ExitReason {
                 }.filter {
                     val hollowState = (it.second is PersonSf) && (it.second as PersonSf).isHollowState()
                     if (hollowState) {
-                        Investigate.writeText("${(it.second as PersonSf).aktoerId} SKIP ENTRY THAT IS HOLLOW STATE")
+                        Investigate.writeText("${(it.second as PersonSf).aktoerId} SKIP ENTRY THAT IS HOLLOW STATE", true)
                     }
                     !hollowState
                 }.map {
