@@ -81,9 +81,9 @@ internal fun initLoadTest() {
             }
 
             workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
-            cRecords.filter { it.key() == "1000074695334" }.forEach {
+            cRecords.filter { it.key() == "2742294038822" }.forEach {
                 log.info { "INVESTIGATE - found interesting one" }
-                Investigate.writeText(it.value() ?: "null", true)
+                Investigate.writeText(it.value() ?: "null", true, "/tmp/search")
             }
 
             if (heartBeatConsumer == 0) {

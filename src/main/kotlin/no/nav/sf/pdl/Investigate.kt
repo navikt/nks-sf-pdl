@@ -7,12 +7,12 @@ import java.time.format.DateTimeFormatter
 
 interface Investigate {
     companion object {
-        fun writeText(text: String, append: Boolean = false) {
+        fun writeText(text: String, append: Boolean = false, filename: String = "/tmp/investigate") {
             val timeStamp = DateTimeFormatter
                     .ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
                     .withZone(ZoneOffset.systemDefault())
                     .format(Instant.now())
-            FileOutputStream("/tmp/investigate", append).bufferedWriter().use { writer ->
+            FileOutputStream(filename, append).bufferedWriter().use { writer ->
                 writer.write("$timeStamp : $text \n")
             }
         }
