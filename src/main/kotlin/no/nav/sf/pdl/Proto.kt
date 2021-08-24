@@ -25,14 +25,6 @@ fun PersonSf.toPersonProto(): Pair<PersonProto.PersonKey, PersonProto.PersonValu
                     })
                 }
 
-                it.familierelasjoner.forEach { fr ->
-                    addFamilierelasjoner(PersonProto.Familierelasjon.newBuilder().apply {
-                        relatertPersonsIdent = fr.relatertPersonsIdent ?: ""
-                        relatertPersonsRolle = fr.relatertPersonsRolle ?: ""
-                        minRolleForPerson = fr.minRolleForPerson ?: ""
-                    }.build())
-                }
-
                 it.forelderBarnRelasjoner.forEach { fbr ->
                     addForelderBarnRelasjoner(PersonProto.ForelderBarnRelasjon.newBuilder().apply {
                         relatertPersonsIdent = fbr.relatertPersonsIdent ?: ""
@@ -258,12 +250,6 @@ fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
                                 mellomnavn = it.mellomnavn.stringOrNull(),
                                 etternavn = it.etternavn.stringOrNull()
                         ) },
-                        familierelasjoner = v.familierelasjonerList.map {
-                            FamilieRelasjon(
-                                    relatertPersonsIdent = it.relatertPersonsIdent.stringOrNull(),
-                                    relatertPersonsRolle = it.relatertPersonsRolle.stringOrNull(),
-                                    minRolleForPerson = it.minRolleForPerson.stringOrNull())
-                        },
                         forelderBarnRelasjoner = v.forelderBarnRelasjonerList.map {
                             ForelderBarnRelasjon(
                                     relatertPersonsIdent = it.relatertPersonsIdent.stringOrNull(),

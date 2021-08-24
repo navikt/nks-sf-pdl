@@ -15,7 +15,6 @@ fun Query.toPersonSf(): PersonBase {
                 aktoerId = this.findAktoerId(), // ok first !historisk from idents
                 folkeregisterId = this.findFolkeregisterIdent(), // !historisk from idents
                 navn = this.hentPerson.navn.filter { !it.metadata!!.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
-                familierelasjoner = this.findFamilieRelasjoner(),
                 forelderBarnRelasjoner = this.findForelderBarnRelasjoner(),
                 folkeregisterpersonstatus = this.hentPerson.folkeregisterpersonstatus.filter { !it.metadata.historisk }.map { it.status },
                 adressebeskyttelse = this.hentPerson.adressebeskyttelse.filter { !it.metadata.historisk }.map { it.gradering.toString() }, // first !historisk
@@ -172,16 +171,6 @@ fun Query.findAdresseBydelsnummer(): String {
                 }
             } ?: UKJENT_FRA_PDL
         }
-    }
-}
-
-private fun Query.findFamilieRelasjoner(): List<FamilieRelasjon> {
-    return this.hentPerson.familierelasjoner.filter { fr -> !fr.metadata.historisk }.map { fr ->
-        FamilieRelasjon(
-                relatertPersonsIdent = fr.relatertPersonsIdent,
-                relatertPersonsRolle = fr.relatertPersonsRolle.toString(),
-                minRolleForPerson = fr.minRolleForPerson.toString()
-        )
     }
 }
 

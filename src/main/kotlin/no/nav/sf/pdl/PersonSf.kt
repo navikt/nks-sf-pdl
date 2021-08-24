@@ -180,7 +180,6 @@ data class PersonSf(
     val aktoerId: String,
     val folkeregisterId: List<String>,
     val navn: List<Navn>,
-    val familierelasjoner: List<FamilieRelasjon>, // TODO deprecated
     var forelderBarnRelasjoner: List<ForelderBarnRelasjon>,
     val folkeregisterpersonstatus: List<String>,
     val innflyttingTilNorge: List<InnflyttingTilNorge>,
@@ -209,7 +208,7 @@ data class PersonSf(
     fun isDead(): Boolean = doedsfall.isNotEmpty()
 }
 
-fun PersonSf.isHollowState(): Boolean = (navn.isEmpty() && familierelasjoner.isEmpty() &&
+fun PersonSf.isHollowState(): Boolean = (navn.isEmpty() &&
         forelderBarnRelasjoner.isEmpty() && folkeregisterpersonstatus.isEmpty() &&
         innflyttingTilNorge.isEmpty() && adressebeskyttelse.isEmpty() &&
         sikkerhetstiltak.isEmpty() && bostedsadresse.utenlandskAdresse.isEmpty() &&

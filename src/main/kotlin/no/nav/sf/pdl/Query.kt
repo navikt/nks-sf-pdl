@@ -107,7 +107,6 @@ data class HentePerson(
     val bostedsadresse: List<Bostedsadresse> = listOf(),
     val oppholdsadresse: List<Oppholdsadresse> = listOf(), // oppholdsadresse
     val doedsfall: List<Doedsfall> = listOf(),
-    var familierelasjoner: List<FamilieRelasjon> = listOf(), // TODO Deprecated
     var forelderBarnRelasjon: List<ForelderBarnRelasjon> = listOf(),
     var innflyttingTilNorge: List<InnflyttingTilNorge> = listOf(),
     val folkeregisterpersonstatus: List<Folkeregisterpersonstatus> = listOf(),
@@ -238,14 +237,6 @@ data class HentePerson(
     data class InnflyttingTilNorge(
         val fraflyttingsland: String?,
         val fraflyttingsstedIUtlandet: String?,
-        val metadata: Metadata
-    )
-
-    @Serializable
-    data class FamilieRelasjon(
-        val relatertPersonsIdent: String = "",
-        val relatertPersonsRolle: FamilieRelasjonsRolle,
-        val minRolleForPerson: FamilieRelasjonsRolle?,
         val metadata: Metadata
     )
 

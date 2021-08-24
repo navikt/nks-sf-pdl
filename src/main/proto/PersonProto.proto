@@ -54,12 +54,6 @@ message Adresser {
   repeated UkjentBosted ukjentBosted = 4;
 }
 
-message Familierelasjon {
-  string relatertPersonsIdent = 1;
-  string relatertPersonsRolle = 2;
-  string minRolleForPerson = 3;
-}
-
 message ForelderBarnRelasjon {
   string relatertPersonsIdent = 1;
   string relatertPersonsRolle = 2;
@@ -124,7 +118,6 @@ message PersonValue {
   // aktoerid will be placed as key
   repeated string folkeregisterId = 1;
   repeated Navn navn = 2;
-  repeated Familierelasjon familierelasjoner = 24; //Deprecated
   repeated ForelderBarnRelasjon forelderBarnRelasjoner = 3;
   repeated string folkeregisterpersonstatus = 4;
   repeated InnflyttingTilNorge innflyttingTilNorge = 5;
