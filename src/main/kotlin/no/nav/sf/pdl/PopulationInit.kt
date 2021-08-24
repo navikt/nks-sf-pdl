@@ -66,7 +66,7 @@ internal fun initLoadTest() {
             fromBeginning = true
     )
 
-    val resultListTest: MutableList<String> = mutableListOf()
+    // val resultListTest: MutableList<String> = mutableListOf()
 
     while (workMetrics.testRunRecordsParsed.get() == 0.0) {
         kafkaConsumerPdlTest.consume { cRecords ->
@@ -95,11 +95,10 @@ internal fun initLoadTest() {
         }
         heartBeatConsumer = 0
     }
-    log.info { "INVESTIGATE - done" }
-    log.info { "Init test run : Total records from topic: ${resultListTest.size}" }
-    workMetrics.testRunRecordsParsed.set(resultListTest.size.toDouble())
-    initReference = resultListTest.stream().distinct().toList().size
-    log.info { "Init test run : Total unique records from topic: $initReference" }
+    log.info { "INVESTIGATE - done Init test run : Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
+    // workMetrics.testRunRecordsParsed.set(resultListTest.size.toDouble())
+    // initReference = resultListTest.stream().distinct().toList().size
+    // log.info { "Init test run : Total unique records from topic: $initReference" }
 }
 
 internal fun initLoad(): ExitReason {

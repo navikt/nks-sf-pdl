@@ -230,7 +230,8 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
-    log.info { "bootstrap work session starting  (Q sample not taken)" }
+    log.info { "bootstrap work session starting - skip for now " } // TODO Disabled for dev
+    return ExitReason.NoEvents
     workMetrics.clearAll()
 
     if (personCache.isEmpty() || gtCache.isEmpty()) {
