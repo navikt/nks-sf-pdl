@@ -58,6 +58,7 @@ var heartBeatConsumer: Int = 0
 var retry: Int = 0
 
 internal fun initLoadTest() {
+    var interestingHitCount = 0
     log.info { "Start init test" }
     workMetrics.testRunRecordsParsed.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
@@ -81,8 +82,9 @@ internal fun initLoadTest() {
             }
 
             workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
-            cRecords.filter { it.key() == "2742294038822" }.forEach {
+            cRecords.filter { it.key() == "1000013140246" }.forEach {
                 log.info { "INVESTIGATE - found interesting one" }
+                interestingHitCount++
                 Investigate.writeText(it.value() ?: "null", true, "/tmp/search")
             }
 
@@ -95,7 +97,7 @@ internal fun initLoadTest() {
         }
         heartBeatConsumer = 0
     }
-    log.info { "INVESTIGATE - done Init test run : Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
+    log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
     // workMetrics.testRunRecordsParsed.set(resultListTest.size.toDouble())
     // initReference = resultListTest.stream().distinct().toList().size
     // log.info { "Init test run : Total unique records from topic: $initReference" }
