@@ -6,6 +6,7 @@ import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
+import no.nav.sf.library.conditionalWait
 import no.nav.sf.library.send
 import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -19,6 +20,7 @@ fun keyAsByteArray(key: String): ByteArray {
         aktoerId = key
     }.build().toByteArray()
 }
+
 internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase {
     if (cr.value() == null) {
         workMetrics.initialTombstones.inc()
@@ -58,47 +60,50 @@ var heartBeatConsumer: Int = 0
 var retry: Int = 0
 
 internal fun initLoadTest() {
+    conditionalWait(100000) // Pause
+    var retries = 5
     var interestingHitCount = 0
     var count = 0
     log.info { "Start init test" }
     workMetrics.testRunRecordsParsed.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPremSeparateClientId,
-            topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )
 
     // val resultListTest: MutableList<String> = mutableListOf()
 
-    while (workMetrics.testRunRecordsParsed.get() == 0.0) {
-        kafkaConsumerPdlTest.consume { cRecords ->
-            if (cRecords.isEmpty) {
-                if (workMetrics.testRunRecordsParsed.get() == 0.0) {
-                    log.info { "Init test run: Did not get any messages on retry ${++retry}, will wait 60 s and try again" }
-                    Bootstrap.conditionalWait(60000)
-                    return@consume KafkaConsumerStates.IsOk
-                } else {
-                    return@consume KafkaConsumerStates.IsFinished
-                }
+    // while (workMetrics.testRunRecordsParsed.get() == 0.0) {
+    kafkaConsumerPdlTest.consume { cRecords ->
+        if (cRecords.isEmpty) {
+            if (workMetrics.testRunRecordsParsed.get() == 0.0 && retries > 0) {
+                log.info { "Init test run: Did not get any messages on retry $retries, will wait 60 s and try again" }
+                retries--
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            } else {
+                log.info { "Init test run: Decided no more events on topic" }
+                return@consume KafkaConsumerStates.IsFinished
             }
-
-            count += cRecords.count()
-            workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
-            cRecords.filter { it.key() == "1000013140246" || it.value()?.contains("1000013140246") ?: false }.forEach {
-                log.info { "INVESTIGATE - found interesting one" }
-                interestingHitCount++
-                Investigate.writeText(it.value() ?: "null", true, "/tmp/search")
-            }
-
-            if (heartBeatConsumer == 0) {
-                log.info { "Init test run: Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
-            }
-
-            heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
-            KafkaConsumerStates.IsOk
         }
-        heartBeatConsumer = 0
+
+        count += cRecords.count()
+        workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+        cRecords.filter { it.key() == "1000013140246" || it.value()?.contains("1000013140246") ?: false }.forEach {
+            log.info { "INVESTIGATE - found interesting one" }
+            interestingHitCount++
+            Investigate.writeText(it.value() ?: "null", true, "/tmp/search")
+        }
+
+        if (heartBeatConsumer == 0) {
+            log.info { "Init test run: Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
+        }
+
+        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
+        KafkaConsumerStates.IsOk
     }
+    heartBeatConsumer = 0
+    // }
     log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
     // workMetrics.testRunRecordsParsed.set(resultListTest.size.toDouble())
     // initReference = resultListTest.stream().distinct().toList().size
@@ -235,7 +240,8 @@ internal fun initLoad(): ExitReason {
                 config = ws.kafkaProducerGcp
         ).produce {
             it.fold(true) { acc, pair ->
-                acc && pair.second?.let { this.send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
+                acc && pair.second?.let {
+                    this.send(kafkaPersonTopic, keyAsByteArray(pair.first), it).also { workMetrics.initialPublishedPersons.inc() }
                 } ?: this.sendNullValue(kafkaPersonTopic, keyAsByteArray(pair.first)).also { workMetrics.initialPublishedTombstones.inc() }
             }.let { sent ->
                 when (sent) {
