@@ -76,7 +76,7 @@ internal fun initLoadTest() {
     // while (workMetrics.testRunRecordsParsed.get() == 0.0) {
     kafkaConsumerPdlTest.consume { cRecords ->
         if (cRecords.isEmpty) {
-            if (workMetrics.testRunRecordsParsed.get() == 0.0 && retries > 0) {
+            if (count < 2 && retries > 0) {
                 log.info { "Init test run: Did not get any messages on retry $retries, will wait 60 s and try again" }
                 retries--
                 Bootstrap.conditionalWait(60000)
@@ -88,6 +88,7 @@ internal fun initLoadTest() {
         }
 
         count += cRecords.count()
+        log.info { "INVESTIGATE - first offset ${cRecords.first().offset()}" }
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
         cRecords.filter { it.key() == "1000013140246" || it.value()?.contains("1000013140246") ?: false }.forEach {
             log.info { "INVESTIGATE - found interesting one" }
