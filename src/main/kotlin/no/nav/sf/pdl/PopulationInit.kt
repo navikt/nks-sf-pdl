@@ -88,7 +88,7 @@ internal fun initLoadTest() {
         }
 
         count += cRecords.count()
-        log.info { "INVESTIGATE - first offset ${cRecords.first().offset()}" }
+        // log.info { "INVESTIGATE - first offset ${cRecords.first().offset()}" }
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
         cRecords.filter { it.key() == "1000013140246" || it.value()?.contains("1000013140246") ?: false }.forEach {
             log.info { "INVESTIGATE - found interesting one" }
