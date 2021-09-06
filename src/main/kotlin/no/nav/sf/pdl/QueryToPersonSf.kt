@@ -12,6 +12,8 @@ internal const val UKJENT_FRA_PDL = "<UKJENT_FRA_PDL>"
 fun Query.toPersonSf(): PersonBase {
     return runCatching {
         PersonSf(
+                identer = this.hentIdenter.identer,
+                folkeregisteridentifikator = this.hentPerson.folkeregisteridentifikator,
                 aktoerId = this.findAktoerId(), // ok first !historisk from idents
                 folkeregisterId = this.findFolkeregisterIdent(), // !historisk from idents
                 navn = this.hentPerson.navn.filter { !it.metadata!!.historisk }.map { Navn(fornavn = it.fornavn, mellomnavn = it.mellomnavn, etternavn = it.etternavn) },
@@ -272,7 +274,7 @@ private fun Query.findOppholdsAdresse(): Adresser {
 }
 
 private fun Query.findAktoerId(): String {
-    return this.hentIdenter.identer.filter { it.gruppe == IdentGruppe.AKTORID && !it.historisk }.let { it ->
+    return this.hentIdenter.identer.filter { it.gruppe == IdentGruppe.AKTORID.toString() && !it.historisk }.let { it ->
         if (it.isEmpty()) {
             UKJENT_FRA_PDL
         } else {
@@ -285,7 +287,7 @@ private fun Query.findAktoerId(): String {
 }
 
 private fun Query.findFolkeregisterIdent(): List<String> {
-    return this.hentIdenter.identer.filter { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT && !it.historisk }.map { it.ident }
+    return this.hentIdenter.identer.filter { it.gruppe == IdentGruppe.FOLKEREGISTERIDENT.toString() && !it.historisk }.map { it.ident }
 }
 
 fun HentePerson.Bostedsadresse.Vegadresse.findKommuneNummer(): Kommunenummer {

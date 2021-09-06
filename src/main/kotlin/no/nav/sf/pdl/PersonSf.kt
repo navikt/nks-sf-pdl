@@ -89,6 +89,7 @@ data class UtflyttingFraNorge(
 sealed class Adresse {
     @Serializable
     object Missing : Adresse()
+
     @Serializable
     object Invalid : Adresse()
 
@@ -177,6 +178,8 @@ data class VergemaalEllerFremtidsfullmakt(
 
 @Serializable
 data class PersonSf(
+    val identer: List<Ident>,
+    val folkeregisteridentifikator: List<Folkeregisteridentifikator>,
     val aktoerId: String,
     val folkeregisterId: List<String>,
     val navn: List<Navn>,

@@ -77,13 +77,13 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
         val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
         workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
         consumerRecords.forEach {
-            Investigate.writeText("CONSUMED GT OFFSET ${it.offset()}", true)
+            // Investigate.writeText("CONSUMED GT OFFSET ${it.offset()}", true)
             if (it.value() == null) {
                 if (gtCache.containsKey(it.key()) && gtCache[it.key()] == null) {
                     workMetrics.gt_cache_blocked_tombstone.inc()
                 } else {
                     if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update_tombstone.inc() else workMetrics.gt_cache_new_tombstone.inc()
-                    Investigate.writeText("${it.key()} DETECTED GT VALUE FROM ${gtCache[it.key()]} TO NULL", true)
+                    // Investigate.writeText("${it.key()} DETECTED GT VALUE FROM ${gtCache[it.key()]} TO NULL", true)
                     gtCache[it.key()] = null
                     resultListChangesToGTCache.add(Pair(it.key(), null))
                 }
@@ -99,7 +99,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                                     } else {
                                         if (gtCache.containsKey(it.key())) workMetrics.gt_cache_update.inc() else workMetrics.gt_cache_new.inc()
                                         if (!gtCache.containsKey(it.key())) {
-                                            Investigate.writeText("${it.key()} DETECTED NEW GT VALUE ${it.value()}", true)
+                                            // Investigate.writeText("${it.key()} DETECTED NEW GT VALUE ${it.value()}", true)
                                             if (it.value() == null) {
                                                 skipUpdate.add(it.key())
                                             }
@@ -108,9 +108,9 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                                                 skipUpdate.remove(it.key())
                                             }
                                             if (gtCache[it.key()] == null) {
-                                                Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM NULL TO ${it.value()}", true)
+                                                // Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM NULL TO ${it.value()}", true)
                                             } else {
-                                                Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM ${(GtBaseFromProto(keyAsByteArray(it.key()), gtCache[it.key()]) as GtValue).toGtProto().second} TO ${it.value()}", true)
+                                                // Investigate.writeText("${it.key()} DETECTED GT VALUE CHANGE FROM ${(GtBaseFromProto(keyAsByteArray(it.key()), gtCache[it.key()]) as GtValue).toGtProto().second} TO ${it.value()}", true)
                                             }
                                         }
                                         gtCache[it.key()] = gtAsBytes
@@ -141,11 +141,11 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
             resultListChangesToGTCache.fold(true) { acc, pair ->
                 acc && pair.second?.let {
                     this.send(kafkaProducerTopicGt, keyAsByteArray(pair.first), it).also {
-                        Investigate.writeText("${pair.first} UPDATE GT VALUE IN $kafkaProducerTopicGt", true)
+                        // Investigate.writeText("${pair.first} UPDATE GT VALUE IN $kafkaProducerTopicGt", true)
                         workMetrics.gtPublished.inc()
                     }
                 } ?: this.sendNullValue(kafkaProducerTopicGt, keyAsByteArray(pair.first)).also {
-                    Investigate.writeText("${pair.first} UPDATE GT TO NULL IN $kafkaProducerTopicGt", true)
+                    // Investigate.writeText("${pair.first} UPDATE GT TO NULL IN $kafkaProducerTopicGt", true)
                     workMetrics.gtPublishedTombstone.inc()
                 }
             }.let { sent ->
@@ -159,14 +159,14 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
         if (!exitReason.isOK()) return@consume KafkaConsumerStates.HasIssues
 
-        Investigate.writeText("SKIPUPDATELIST: $skipUpdate", true)
+        // Investigate.writeText("SKIPUPDATELIST: $skipUpdate", true)
 
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
             resultListChangesToGTCache.asSequence().filter { !skipUpdate.contains(it.first) }.map { Pair(it.first, personCache[it.first]) }.filter {
                 if (it.second == null) {
-                    Investigate.writeText("${it.first} Skipped update from GT due to tombstone in Person cache", true)
+                    // Investigate.writeText("${it.first} Skipped update from GT due to tombstone in Person cache", true)
                 }
                 it.second != null
             }.map {
@@ -181,14 +181,14 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                         exitReason = ExitReason.KafkaIssues
                         workMetrics.consumerIssues.inc()
                         log.error { "Fail to parse gt from gt cache at update person" }
-                        Investigate.writeText("${it.first} ERROR Fail to parse gt from gt cache at update person", true)
+                        // Investigate.writeText("${it.first} ERROR Fail to parse gt from gt cache at update person", true)
                         (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
                     }
                 }
             }
                     .map {
                         personCache[it.aktoerId] = it.toPersonProto().second.toByteArray()
-                        Investigate.writeText("${it.aktoerId} PERSON UPDATE DUE TO GT UPDATE, Value: $it", true)
+                        // Investigate.writeText("${it.aktoerId} PERSON UPDATE DUE TO GT UPDATE, Value: $it", true)
                         it.toPersonProto()
                     }
                     .fold(true) { acc, pair ->
@@ -205,7 +205,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                                 exitReason = ExitReason.KafkaIssues
                                 workMetrics.producerIssues.inc()
                                 log.error { "Producer person for gt update has issues sending to topic" }
-                                Investigate.writeText("Producer person for gt update has issues sending to topic", true)
+                                // Investigate.writeText("Producer person for gt update has issues sending to topic", true)
                             }
                         }
                     }
@@ -280,7 +280,7 @@ internal fun work(): ExitReason {
                 if (cr.value() == null) {
                     val personTombestone = PersonTombestone(aktoerId = cr.key())
                     workMetrics.tombstones.inc()
-                    Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} TOMBSTONE", true)
+                    // Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} TOMBSTONE", true)
                     Pair(KafkaConsumerStates.IsOk, personTombestone)
                 } else {
                     when (val query = cr.value().getQueryFromJson()) {
@@ -293,7 +293,7 @@ internal fun work(): ExitReason {
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
                                 is PersonSf -> {
-                                    Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} PERSON ID ${personSf.aktoerId}", true)
+                                    // Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} PERSON ID ${personSf.aktoerId}", true)
                                     /*
                                     if (!sampleTakenThisWorkSession) {
                                         log.info("Taking sample for this work session")
@@ -319,7 +319,7 @@ internal fun work(): ExitReason {
                                             }
                                         }
                                         workMetrics.measurePersonStats(enriched)
-                                        Investigate.writeText("ENRICHED FROM VALUE $personSf TO $enriched", true)
+                                        // Investigate.writeText("ENRICHED FROM VALUE $personSf TO $enriched", true)
                                         Pair(KafkaConsumerStates.IsOk, enriched)
                                     } else {
                                         workMetrics.measurePersonStats(personSf)
@@ -380,17 +380,17 @@ internal fun work(): ExitReason {
                 }.filter {
                     val hollowState = (it.second is PersonSf) && (it.second as PersonSf).isHollowState()
                     if (hollowState) {
-                        Investigate.writeText("${(it.second as PersonSf).aktoerId} SKIP ENTRY THAT IS HOLLOW STATE", true)
+                        // Investigate.writeText("${(it.second as PersonSf).aktoerId} SKIP ENTRY THAT IS HOLLOW STATE", true)
                     }
                     !hollowState
                 }.map {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
-                            Investigate.writeText("${(it.second as PersonTombestone).aktoerId} UPDATE PERSON TO TOMBSTONE", true)
+                            // Investigate.writeText("${(it.second as PersonTombestone).aktoerId} UPDATE PERSON TO TOMBSTONE", true)
                             Pair<PersonProto.PersonKey, PersonProto.PersonValue?>(personBase.toPersonTombstoneProtoKey(), null)
                         }
                         is PersonSf -> {
-                            Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
+                            // Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
                             personBase.toPersonProto()
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
@@ -408,7 +408,7 @@ internal fun work(): ExitReason {
                             workMetrics.producerIssues.inc()
                             exitReason = ExitReason.KafkaIssues
                             log.error { "Producer new/updated person has issues sending to topic" }
-                            Investigate.writeText("Producer new/updated person has issues sending to topic", true)
+                            // Investigate.writeText("Producer new/updated person has issues sending to topic", true)
                         }
                     }
                 }

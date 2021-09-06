@@ -75,9 +75,33 @@ enum class Tiltakstype {
 }
 
 @Serializable
+data class Folkeregistermetadata(
+    val ajourholdstidspunkt: String?,
+    val gyldighetstidspunkt: String?,
+    val opphoerstidspunkt: String?,
+    val kilde: String?,
+    val aarsak: String?
+)
+
+val FolkeregistermetadataNull = Folkeregistermetadata("NULL", null, null, null, null)
+
+@Serializable
 data class Metadata(
+    val opplysningsId: String,
+    val master: String,
     val historisk: Boolean = true,
-    val master: String
+    val endringer: List<Endring> = listOf()
+)
+
+val MetadataNull = Metadata("NULL", "", true, listOf())
+
+@Serializable
+data class Endring(
+    val type: String,
+    val registrert: String,
+    val registrertAv: String,
+    val systemkilde: String,
+    val kilde: String
 )
 
 sealed class QueryBase
@@ -86,20 +110,31 @@ object InvalidQuery : QueryBase()
 @Serializable
 data class Query(
     val hentPerson: HentePerson,
-    val hentIdenter: Identliste
+    val hentIdenter: HenteIdenter
 ) : QueryBase()
 
 @Serializable
-data class Identliste(
-    val identer: List<IdentInformasjon>
-) {
-    @Serializable
-    data class IdentInformasjon(
-        val ident: String,
-        val historisk: Boolean,
-        val gruppe: IdentGruppe
-    )
-}
+data class HenteIdenter(
+    val identer: List<Ident>
+)
+
+@Serializable
+data class Ident(
+    val ident: String,
+    val historisk: Boolean,
+    val gruppe: String,
+    val metadata: Metadata?,
+    val folkeregistermetadata: Folkeregistermetadata?
+)
+
+@Serializable
+data class Folkeregisteridentifikator(
+    val identifikasjonsnummer: String,
+    val type: String,
+    val status: String,
+    val metadata: Metadata?,
+    val folkeregistermetadata: Folkeregistermetadata?
+)
 
 @Serializable
 data class HentePerson(
@@ -121,7 +156,8 @@ data class HentePerson(
     val tilrettelagtKommunikasjon: List<TilrettelagtKommunikasjon> = listOf(),
     val fullmakt: List<Fullmakt> = listOf(),
     val vergemaalEllerFremtidsfullmakt: List<VergemaalEllerFremtidsfullmakt> = listOf(),
-    val foedsel: List<Foedsel> = listOf()
+    val foedsel: List<Foedsel> = listOf(),
+    val folkeregisteridentifikator: List<Folkeregisteridentifikator> = listOf()
 ) {
     @Serializable
     data class Foedsel(

@@ -113,9 +113,50 @@ message VergemaalEllerFremtidsfullmakt {
   string omfangetErInnenPersonligOmraade = 6;
 }
 
+message Endring {
+  string type = 1;
+  string registrert = 2;
+  string registrertAv = 3;
+  string systemkilde = 4;
+  string kilde = 5;
+}
+
+message Metadata {
+  string opplysningsId = 1;
+  string master = 2;
+  bool historisk = 3;
+  repeated Endring endringer = 4;
+}
+
+message Folkeregistermetadata {
+  string ajourholdstidspunkt = 1;
+  string gyldighetstidspunkt = 2;
+  string opphoerstidspunkt = 3;
+  string kilde = 4;
+  string aarsak = 5;
+}
+
+message Folkeregisteridentifikator {
+  string identifikasjonsnummer = 1;
+  string type = 2;
+  string status = 3;
+  Folkeregistermetadata folkeregistermetadata = 4;
+  Metadata metadata = 5;
+}
+
+message Ident {
+  string ident = 1;
+  bool historisk = 2;
+  string gruppe = 3;
+  Metadata metadata = 4;
+  Folkeregistermetadata folkeregistermetadata = 5;
+}
+
 // this message will be the value part of kafka payload
 message PersonValue {
   // aktoerid will be placed as key
+  repeated Ident identer = 24;
+  repeated Folkeregisteridentifikator folkeregisteridentifikator = 25;
   repeated string folkeregisterId = 1;
   repeated Navn navn = 2;
   repeated ForelderBarnRelasjon forelderBarnRelasjoner = 3;
