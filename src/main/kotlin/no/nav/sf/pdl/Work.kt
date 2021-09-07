@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.io.File
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -228,6 +229,8 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
     return exitReason
 }
 
+var samplesLeft = 5
+
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
     log.info { "bootstrap work session starting " }
@@ -391,6 +394,11 @@ internal fun work(): ExitReason {
                         }
                         is PersonSf -> {
                             // Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
+                            if (samplesLeft > 0 && (it.first as PersonSf).identer.isNotEmpty() || (it.first as PersonSf).folkeregisteridentifikator.isNotEmpty()) {
+                                log.info { "Sampled published" }
+                                File("/tmp/investigate").appendText("Sample json:\n${(it.first as PersonSf).toJson()}\n}")
+                                samplesLeft--
+                            }
                             personBase.toPersonProto()
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
