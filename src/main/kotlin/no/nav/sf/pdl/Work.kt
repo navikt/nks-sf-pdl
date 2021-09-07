@@ -402,7 +402,7 @@ internal fun work(): ExitReason {
                             // Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
                             if (samplesLeft > 0 && (personBase as PersonSf).identer.isNotEmpty() || (personBase as PersonSf).folkeregisteridentifikator.isNotEmpty()) {
                                 log.info { "Sampled published" }
-                                File("/tmp/investigate").appendText("Sample json:\n${(it.first as PersonSf).toJson()}\n}")
+                                File("/tmp/investigate").appendText("Sample json:\n${(personBase as PersonSf).toJson()}\n}")
                                 samplesLeft--
                             }
                             personBase.toPersonProto()
