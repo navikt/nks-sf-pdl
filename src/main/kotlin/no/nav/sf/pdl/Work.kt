@@ -231,6 +231,8 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
 var samplesLeft = 5
 
+var presampleLeft = 3
+
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
     log.info { "bootstrap work session starting " }
@@ -296,6 +298,10 @@ internal fun work(): ExitReason {
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
                                 is PersonSf -> {
+                                    if (presampleLeft > 0) {
+                                        File("/tmp/presample$presampleLeft").appendText("Sample query json:\n${cr.value()}\n\nSample query:\n" +
+                                                "${query}\n\nSample json:\n${personSf.toJson()}}")
+                                    }
                                     // Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} PERSON ID ${personSf.aktoerId}", true)
                                     /*
                                     if (!sampleTakenThisWorkSession) {
@@ -394,7 +400,7 @@ internal fun work(): ExitReason {
                         }
                         is PersonSf -> {
                             // Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
-                            if (samplesLeft > 0 && (it.first as PersonSf).identer.isNotEmpty() || (it.first as PersonSf).folkeregisteridentifikator.isNotEmpty()) {
+                            if (samplesLeft > 0 && (personBase as PersonSf).identer.isNotEmpty() || (personBase as PersonSf).folkeregisteridentifikator.isNotEmpty()) {
                                 log.info { "Sampled published" }
                                 File("/tmp/investigate").appendText("Sample json:\n${(it.first as PersonSf).toJson()}\n}")
                                 samplesLeft--
