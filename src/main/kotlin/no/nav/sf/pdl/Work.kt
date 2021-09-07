@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import java.io.File
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -298,10 +297,13 @@ internal fun work(): ExitReason {
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
                                 is PersonSf -> {
+                                    /*
                                     if (presampleLeft > 0) {
                                         File("/tmp/presample$presampleLeft").appendText("Sample query json:\n${cr.value()}\n\nSample query:\n" +
                                                 "${query}\n\nSample json:\n${personSf.toJson()}}")
+                                        presampleLeft--
                                     }
+                                     */
                                     // Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} PERSON ID ${personSf.aktoerId}", true)
                                     /*
                                     if (!sampleTakenThisWorkSession) {
@@ -400,11 +402,14 @@ internal fun work(): ExitReason {
                         }
                         is PersonSf -> {
                             // Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
+                            /*
                             if (samplesLeft > 0 && (personBase as PersonSf).identer.isNotEmpty() || (personBase as PersonSf).folkeregisteridentifikator.isNotEmpty()) {
+
+
                                 log.info { "Sampled published" }
                                 File("/tmp/investigate").appendText("Sample json:\n${(personBase as PersonSf).toJson()}\n}")
                                 samplesLeft--
-                            }
+                            }*/
                             personBase.toPersonProto()
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
