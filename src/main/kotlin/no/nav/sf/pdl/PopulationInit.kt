@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import kotlin.streams.toList
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -90,10 +89,12 @@ internal fun initLoadTest() {
         count += cRecords.count()
         // log.info { "INVESTIGATE - first offset ${cRecords.first().offset()}" }
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
-        cRecords.filter { it.key() == "1000013140246" || it.value()?.contains("1000013140246") ?: false }.forEach {
+        cRecords.filter { it.key() == "1000101177162" || it.value()?.contains("1000101177162") == true ||
+                it.key() == "1000008353068" || it.value()?.contains("1000008353068") == true ||
+                it.key() == "1000096233942" || it.value()?.contains("1000096233942") == true }.forEach {
             log.info { "INVESTIGATE - found interesting one" }
             interestingHitCount++
-            Investigate.writeText(it.value() ?: "null", true, "/tmp/search")
+            Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.key()}\n\n", true, "/tmp/search")
         }
 
         if (heartBeatConsumer == 0) {
