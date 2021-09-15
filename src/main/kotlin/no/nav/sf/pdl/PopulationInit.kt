@@ -89,12 +89,12 @@ internal fun initLoadTest() {
         count += cRecords.count()
         // log.info { "INVESTIGATE - first offset ${cRecords.first().offset()}" }
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
-        cRecords.filter { it.key() == "1000101177162" || it.value()?.contains("1000101177162") == true ||
-                it.key() == "1000008353068" || it.value()?.contains("1000008353068") == true ||
-                it.key() == "1000096233942" || it.value()?.contains("1000096233942") == true }.forEach {
+
+        cRecords.filter { it.key() == "25084845399" || it.value()?.contains("25084845399") == true ||
+                it.key() == "1000040130378" || it.value()?.contains("1000040130378") == true }.forEach {
             log.info { "INVESTIGATE - found interesting one" }
             interestingHitCount++
-            Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.key()}\n\n", true, "/tmp/search")
+            Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.key()}\n\n", true)
         }
 
         if (heartBeatConsumer == 0) {

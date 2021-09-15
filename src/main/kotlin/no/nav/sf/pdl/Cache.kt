@@ -183,6 +183,9 @@ fun loadPersonCache(): ExitReason {
                         return@consume KafkaConsumerStates.HasIssues
                     }
                     is PersonSf -> {
+                        if (pb.aktoerId == "25084845399" || pb.aktoerId == "1000040130378") {
+                            Investigate.writeText("Found in person cache:\n${pb}\n\n", true)
+                        }
                         workMetrics.measurePersonStats(pb)
                         resultList.add(Pair(pb.aktoerId, it.value()))
                     }
