@@ -12,11 +12,11 @@ interface Investigate {
                     .ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
                     .withZone(ZoneOffset.systemDefault())
                     .format(Instant.now())
-            if (filename != "/tmp/investigate") {
+            // if (filename != "/tmp/investigate") {
                 FileOutputStream(filename, append).bufferedWriter().use { writer ->
                     writer.write("$timeStamp : $text \n")
                 } // TODO Muted Investigate for later use
-            }
+            // }
         }
     }
 }
