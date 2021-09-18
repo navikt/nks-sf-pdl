@@ -92,7 +92,7 @@ internal fun initLoadTest() {
 
         cRecords.filter { it.key() == "25084845399" || it.value()?.contains("25084845399") == true ||
                 it.key() == "1000040130378" || it.value()?.contains("1000040130378") == true }.forEach {
-            log.info { "INVESTIGATE - found interesting one" }
+            // log.info { "INVESTIGATE - found interesting one" }
             interestingHitCount++
             Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.value()}\n\n", true)
         }
