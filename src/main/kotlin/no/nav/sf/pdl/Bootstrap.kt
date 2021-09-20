@@ -66,7 +66,7 @@ object Bootstrap {
                     conditionalWait()
                 }
 
-                if (isOK) loop() else log.info { "Terminate signal (Work exit reason NOK)" }.also { conditionalWait() }
+                if (isOK) loop() else log.info { "Terminate signal  (Work exit reason NOK)" }.also { conditionalWait() }
             }
         }
     }
