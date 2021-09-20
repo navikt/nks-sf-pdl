@@ -238,10 +238,10 @@ internal fun work(): ExitReason {
     // return ExitReason.NoEvents
     workMetrics.clearAll()
 
-    if (personCache.isEmpty() || gtCache.isEmpty()) {
-        log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
-        return ExitReason.NoCache
-    }
+    // if (personCache.isEmpty() || gtCache.isEmpty()) {
+    //    log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
+    //    return ExitReason.NoCache
+    // }
 
     var exitReason = updateGtCacheAndAffectedPersons()
 
