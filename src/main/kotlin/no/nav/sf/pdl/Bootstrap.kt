@@ -40,7 +40,7 @@ object Bootstrap {
                 loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
                 // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
                 // initLoad() // Only publish to person/cache topic
-                loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
+                // loadPersonCache() // TODO New cache. Activate for next run. Disabled for dev  Will carry cache in memory after this point
                 loop()
             }
         }

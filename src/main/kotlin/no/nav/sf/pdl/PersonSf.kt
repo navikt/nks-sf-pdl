@@ -66,13 +66,6 @@ enum class AdresseType {
 }
 
 @Serializable
-data class FamilieRelasjon(
-    val relatertPersonsIdent: String?,
-    val relatertPersonsRolle: String?,
-    val minRolleForPerson: String?
-)
-
-@Serializable
 data class ForelderBarnRelasjon(
     val relatertPersonsIdent: String?,
     val relatertPersonsRolle: String?,
@@ -175,6 +168,54 @@ data class VergemaalEllerFremtidsfullmakt(
     val omfang: String?,
     val omfangetErInnenPersonligOmraade: Boolean?
 )
+
+@Serializable
+data class Ident(
+    val ident: String,
+    val historisk: Boolean,
+    val gruppe: String,
+    val metadata: Metadata?,
+    val folkeregistermetadata: Folkeregistermetadata?
+)
+
+@Serializable
+data class Folkeregisteridentifikator(
+    val identifikasjonsnummer: String,
+    val type: String,
+    val status: String,
+    val metadata: Metadata?,
+    val folkeregistermetadata: Folkeregistermetadata?
+)
+
+@Serializable
+data class Folkeregistermetadata(
+    val ajourholdstidspunkt: String?,
+    val gyldighetstidspunkt: String?,
+    val opphoerstidspunkt: String?,
+    val kilde: String?,
+    val aarsak: String?
+)
+
+val FolkeregistermetadataNull = Folkeregistermetadata("NULL", null, null, null, null)
+
+@Serializable
+data class Metadata(
+    val opplysningsId: String,
+    val master: String,
+    val historisk: Boolean = true,
+    val endringer: List<Endring> = listOf()
+)
+
+@Serializable
+data class Endring(
+    val type: String,
+    val registrert: String,
+    val registrertAv: String,
+    val systemkilde: String,
+    val kilde: String
+)
+
+val MetadataNull = Metadata("NULL", "", true, listOf())
 
 @Serializable
 data class PersonSf(

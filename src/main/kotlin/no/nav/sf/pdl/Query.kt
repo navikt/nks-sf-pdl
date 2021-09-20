@@ -74,36 +74,6 @@ enum class Tiltakstype {
     TOAN
 }
 
-@Serializable
-data class Folkeregistermetadata(
-    val ajourholdstidspunkt: String?,
-    val gyldighetstidspunkt: String?,
-    val opphoerstidspunkt: String?,
-    val kilde: String?,
-    val aarsak: String?
-)
-
-val FolkeregistermetadataNull = Folkeregistermetadata("NULL", null, null, null, null)
-
-@Serializable
-data class Metadata(
-    val opplysningsId: String,
-    val master: String,
-    val historisk: Boolean = true,
-    val endringer: List<Endring> = listOf()
-)
-
-val MetadataNull = Metadata("NULL", "", true, listOf())
-
-@Serializable
-data class Endring(
-    val type: String,
-    val registrert: String,
-    val registrertAv: String,
-    val systemkilde: String,
-    val kilde: String
-)
-
 sealed class QueryBase
 object InvalidQuery : QueryBase()
 
@@ -116,24 +86,6 @@ data class Query(
 @Serializable
 data class HenteIdenter(
     val identer: List<Ident>
-)
-
-@Serializable
-data class Ident(
-    val ident: String,
-    val historisk: Boolean,
-    val gruppe: String,
-    val metadata: Metadata?,
-    val folkeregistermetadata: Folkeregistermetadata?
-)
-
-@Serializable
-data class Folkeregisteridentifikator(
-    val identifikasjonsnummer: String,
-    val type: String,
-    val status: String,
-    val metadata: Metadata?,
-    val folkeregistermetadata: Folkeregistermetadata?
 )
 
 @Serializable
