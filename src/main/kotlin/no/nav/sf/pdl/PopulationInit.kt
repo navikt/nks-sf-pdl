@@ -88,8 +88,8 @@ internal fun initLoadTest() {
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
-        cRecords.filter { it.key() == "100531094" || it.key() == "100531095" || it.key() == "100531096" }.forEach {
-            log.info { "INVESTIGATE - found interesting one Key ${it.key()}" }
+        cRecords.filter { it.offset() == 100531094L || it.offset() == 100531095L || it.offset() == 100531096L }.forEach {
+            log.info { "INVESTIGATE - found interesting one - Offset: ${it.offset()}, Key: ${it.key()}" }
             interestingHitCount++
             Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.value()}\n\n", true)
         }
