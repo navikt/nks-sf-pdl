@@ -67,12 +67,10 @@ internal fun initLoadTest() {
     workMetrics.testRunRecordsParsed.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPremSeparateClientId,
-            fromBeginning = true
+            fromBeginning = true,
+            topics = listOf(kafkaGTTopic)
     )
 
-    // val resultListTest: MutableList<String> = mutableListOf()
-
-    // while (workMetrics.testRunRecordsParsed.get() == 0.0) {
     kafkaConsumerPdlTest.consume { cRecords ->
         if (cRecords.isEmpty) {
             if (count < 2 && retries > 0) {
@@ -87,12 +85,11 @@ internal fun initLoadTest() {
         }
 
         count += cRecords.count()
-        // log.info { "INVESTIGATE - first offset ${cRecords.first().offset()}" }
+
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
-        cRecords.filter { it.key() == "25084845399" || it.value()?.contains("25084845399") == true ||
-                it.key() == "1000040130378" || it.value()?.contains("1000040130378") == true }.forEach {
-            // log.info { "INVESTIGATE - found interesting one" }
+        cRecords.filter { it.key() == "100531094" || it.key() == "100531095" || it.key() == "100531096" }.forEach {
+            log.info { "INVESTIGATE - found interesting one Key ${it.key()}" }
             interestingHitCount++
             Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.value()}\n\n", true)
         }
@@ -105,11 +102,7 @@ internal fun initLoadTest() {
         KafkaConsumerStates.IsOk
     }
     heartBeatConsumer = 0
-    // }
     log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
-    // workMetrics.testRunRecordsParsed.set(resultListTest.size.toDouble())
-    // initReference = resultListTest.stream().distinct().toList().size
-    // log.info { "Init test run : Total unique records from topic: $initReference" }
 }
 
 internal fun initLoad(): ExitReason {

@@ -44,7 +44,8 @@ sealed class ExitReason {
     object NoKafkaConsumer : ExitReason()
     object KafkaIssues : ExitReason()
     object NoEvents : ExitReason()
-    object NoCache : ExitReason()object InvalidCache : ExitReason()
+    object NoCache : ExitReason()
+    object InvalidCache : ExitReason()
     object Work : ExitReason()
 
     fun isOK(): Boolean = this is Work || this is NoEvents
@@ -171,7 +172,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                 it.second != null
             }.map {
                 if (gtCache[it.first] == null) {
-                        // Updated GT part to null
+                    // Updated GT part to null
                     (PersonBaseFromProto(keyAsByteArray(it.first), it.second) as PersonSf).copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
                 } else {
                     val gtBase = GtBaseFromProto(keyAsByteArray(it.first), gtCache[it.first])
@@ -238,10 +239,10 @@ internal fun work(): ExitReason {
     // return ExitReason.NoEvents
     workMetrics.clearAll()
 
-    // if (personCache.isEmpty() || gtCache.isEmpty()) {
-    //    log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
-    //    return ExitReason.NoCache
-    // }
+    if (personCache.isEmpty() || gtCache.isEmpty()) {
+        log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
+        return ExitReason.NoCache
+    }
 
     var exitReason = updateGtCacheAndAffectedPersons()
 
