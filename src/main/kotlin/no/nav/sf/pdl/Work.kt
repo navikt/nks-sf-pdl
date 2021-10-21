@@ -60,7 +60,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     currentConsumerMessageHost = "GT_ONPREM"
     AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerOnPrem,
+            config = ws.kafkaConsumerOnPremReducedPollSize,
             fromBeginning = false,
             topics = listOf(kafkaGTTopic)
     ).consume { consumerRecords ->
