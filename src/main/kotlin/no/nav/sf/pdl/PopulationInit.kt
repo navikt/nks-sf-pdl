@@ -54,9 +54,16 @@ fun List<Pair<String, PersonBase>>.isValid(): Boolean {
     return this.map { it.second }.filterIsInstance<PersonInvalid>().isEmpty() && this.map { it.second }.filterIsInstance<PersonProtobufIssue>().isEmpty()
 }
 
+fun List<Triple<String, PersonBase, String?>>.isValidT(): Boolean {
+    return this.map { it.second }.filterIsInstance<PersonInvalid>().isEmpty() && this.map { it.second }.filterIsInstance<PersonProtobufIssue>().isEmpty()
+}
+
 var heartBeatConsumer: Int = 0
 
 var retry: Int = 0
+
+val targetfnr1 = "06114331587"
+val targetfnr2 = "11066444742"
 
 internal fun initLoadTest() {
     conditionalWait(100000) // Pause
@@ -87,12 +94,43 @@ internal fun initLoadTest() {
         count += cRecords.count()
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+        val parsedBatch: List<Triple<String, PersonBase, String?>> = cRecords.map { cr ->
+            Triple(cr.key(), parsePdlJsonOnInit(cr), cr.value())
+        }
 
+        if (parsedBatch.isValidT()) {
+            workMetrics.initialRecordsParsed.inc(cRecords.count().toDouble())
+            parsedBatch.forEach {
+                when (val personBase = it.second) {
+                    is PersonSf -> {
+                        if ((it.second as PersonSf).identer.any { it.ident == targetfnr1 || it.ident == targetfnr2 } || (it.second as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr1 || it.identifikasjonsnummer == targetfnr2 }) {
+                            log.info { "INVESTIGATE - found data of interest on pdl queue" }
+                            interestingHitCount++
+                            Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1 || it.ident == targetfnr2 }}, key (aktoerid): ${it.first}. Value:\n${(it.second as PersonSf).toJson()}\n\n", true)
+                            Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1 || it.ident == targetfnr2 }}, key (aktoerid): ${it.first}. Query:\n${it.third}\n\n", true, "/tmp/queries")
+                        }
+                    }
+                    is PersonTombestone -> {
+                    }
+                    else -> {
+                        log.error { "Should never arrive here" }; KafkaConsumerStates.HasIssues
+                    }
+                }
+            }
+            KafkaConsumerStates.IsOk
+        } else {
+            log.info { "INVESTIGATE - error state" }
+            workMetrics.consumerIssues.inc()
+            KafkaConsumerStates.HasIssues
+        }
+
+        /*
         cRecords.filter { it.offset() == 100531094L || it.offset() == 100531095L || it.offset() == 100531096L }.forEach {
             log.info { "INVESTIGATE - found interesting one - Offset: ${it.offset()}, Key: ${it.key()}" }
             interestingHitCount++
             Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.value()}\n\n", true)
         }
+         */
 
         if (heartBeatConsumer == 0) {
             log.info { "Init test run: Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
