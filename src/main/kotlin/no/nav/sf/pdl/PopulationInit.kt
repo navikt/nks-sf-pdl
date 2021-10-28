@@ -75,7 +75,7 @@ internal fun initLoadTest() {
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPremSeparateClientId,
             fromBeginning = true,
-            topics = listOf(kafkaGTTopic)
+            topics = listOf(kafkaPDLTopic)
     )
 
     kafkaConsumerPdlTest.consume { cRecords ->
