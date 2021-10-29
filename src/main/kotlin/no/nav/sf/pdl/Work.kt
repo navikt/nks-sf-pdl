@@ -286,14 +286,14 @@ internal fun work(): ExitReason {
                     val personTombestone = PersonTombestone(aktoerId = cr.key())
                     workMetrics.tombstones.inc()
                     // Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} TOMBSTONE", true)
-                    Pair(KafkaConsumerStates.IsOk, personTombestone)
+                    Triple(KafkaConsumerStates.IsOk, personTombestone, cr.offset())
                 } else {
                     when (val query = cr.value().getQueryFromJson()) {
                         InvalidQuery -> {
                             workMetrics.consumerIssues.inc()
                             log.error { "Unable to parse topic value PDL" }
                             exitReason = ExitReason.KafkaIssues
-                            Pair(KafkaConsumerStates.HasIssues, PersonInvalid)
+                            Triple(KafkaConsumerStates.HasIssues, PersonInvalid, cr.offset())
                         }
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
@@ -332,22 +332,22 @@ internal fun work(): ExitReason {
                                         }
                                         workMetrics.measurePersonStats(enriched)
                                         // Investigate.writeText("ENRICHED FROM VALUE $personSf TO $enriched", true)
-                                        Pair(KafkaConsumerStates.IsOk, enriched)
+                                        Triple(KafkaConsumerStates.IsOk, enriched, cr.offset())
                                     } else {
                                         workMetrics.measurePersonStats(personSf)
-                                        Pair(KafkaConsumerStates.IsOk, personSf)
+                                        Triple(KafkaConsumerStates.IsOk, personSf, cr.offset())
                                     }
                                 }
                                 is PersonInvalid -> {
                                     workMetrics.consumerIssues.inc()
                                     exitReason = ExitReason.KafkaIssues
-                                    Pair(KafkaConsumerStates.HasIssues, PersonInvalid)
+                                    Triple(KafkaConsumerStates.HasIssues, PersonInvalid, cr.offset())
                                 }
                                 else -> {
                                     workMetrics.consumerIssues.inc()
                                     exitReason = ExitReason.KafkaIssues
                                     log.error { "Returned unhandled PersonBase from Query.toPersonSf" }
-                                    Pair(KafkaConsumerStates.HasIssues, PersonInvalid)
+                                    Triple(KafkaConsumerStates.HasIssues, PersonInvalid, cr.offset())
                                 }
                             }
                         }
@@ -399,7 +399,7 @@ internal fun work(): ExitReason {
                     when (val personBase = it.second) {
                         is PersonTombestone -> {
                             // Investigate.writeText("${(it.second as PersonTombestone).aktoerId} UPDATE PERSON TO TOMBSTONE", true)
-                            Pair<PersonProto.PersonKey, PersonProto.PersonValue?>(personBase.toPersonTombstoneProtoKey(), null)
+                            Triple<PersonProto.PersonKey, PersonProto.PersonValue?, Long>(personBase.toPersonTombstoneProtoKey(), null, it.third)
                         }
                         is PersonSf -> {
                             // Investigate.writeText("${(it.second as PersonSf).aktoerId} UPDATE PERSON TO VALUE: ${(it.second as PersonSf)}", true)
@@ -411,14 +411,15 @@ internal fun work(): ExitReason {
                                 File("/tmp/investigate").appendText("Sample json:\n${(personBase as PersonSf).toJson()}\n}")
                                 samplesLeft--
                             }*/
-                            personBase.toPersonProto()
+                            val protoPair = personBase.toPersonProto()
+                            Triple(protoPair.first, protoPair.second, it.third)
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
                     }
-                }.fold(true) { acc, pair ->
-                    acc && pair.second?.let {
-                        send(kafkaPersonTopic, pair.first.toByteArray(), it.toByteArray()).also { workMetrics.publishedPersons.inc() }
-                    } ?: sendNullValue(kafkaPersonTopic, pair.first.toByteArray()).also {
+                }.fold(true) { acc, triple ->
+                    acc && triple.second?.let {
+                        send(kafkaPersonTopic, triple.first.toByteArray(), it.toByteArray()).also { workMetrics.publishedPersons.inc() ; workMetrics.latestPublishedPersonsOffset.set(triple.third.toDouble()) }
+                    } ?: sendNullValue(kafkaPersonTopic, triple.first.toByteArray()).also {
                         workMetrics.publishedTombstones.inc()
                     }
                 }.let { sent ->
@@ -441,7 +442,7 @@ internal fun work(): ExitReason {
     } // Producer person topic
 
     log.info {
-        "Work persons - Published new persons: ${workMetrics.publishedPersons.get().toInt()}, new tombstones: ${workMetrics.publishedTombstones.get().toInt()}" +
+        "Work persons - Published new persons: ${workMetrics.publishedPersons.get().toInt()} (lastest offset ${workMetrics.latestPublishedPersonsOffset}), new tombstones: ${workMetrics.publishedTombstones.get().toInt()}" +
                 ". Cache enrich actions: ${workMetrics.enriching_from_gt_cache.get().toInt()} person new: ${workMetrics.cache_new.get().toInt()} update: ${workMetrics.cache_update.get().toInt()} blocked: ${workMetrics.cache_blocked.get().toInt()}" +
                 ", Tombstones new: ${workMetrics.cache_new_tombstone.get().toInt()} update: ${workMetrics.cache_update_tombstone.get().toInt()} blocked: ${workMetrics.cache_blocked_tombstone.get().toInt()}"
     }
