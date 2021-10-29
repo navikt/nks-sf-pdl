@@ -64,6 +64,7 @@ var retry: Int = 0
 
 val targetfnr1 = "06114331587"
 val targetfnr2 = "11066444742"
+val targetAktoerid = "1000033414297"
 
 internal fun initLoadTest() {
     conditionalWait(100000) // Pause
@@ -94,6 +95,20 @@ internal fun initLoadTest() {
         count += cRecords.count()
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+
+        cRecords.filter { it.key() == targetAktoerid }.forEach {
+            val parsed = parsePdlJsonOnInit(it)
+            if (parsed is PersonSf) {
+                val person = parsed as PersonSf
+                interestingHitCount++
+                log.info { "INVESTIGATE - found data of interest on pdl queue offset ${it.offset()}" }
+                Investigate.writeText("Offset ${it.offset()}\nValue as person:\n${person.toJson()}\nValue query:${it.value()}\n\n", true)
+            } else {
+                log.info { "INVESTIGATE - found data on aktoerid not parsed as personsf!" }
+            }
+        }
+
+        /*
         val parsedBatch: List<Triple<String, PersonBase, String?>> = cRecords.map { cr ->
             Triple(cr.key(), parsePdlJsonOnInit(cr), cr.value())
         }
@@ -123,7 +138,7 @@ internal fun initLoadTest() {
             workMetrics.consumerIssues.inc()
             KafkaConsumerStates.HasIssues
         }
-
+*/
         /*
         cRecords.filter { it.offset() == 100531094L || it.offset() == 100531095L || it.offset() == 100531096L }.forEach {
             log.info { "INVESTIGATE - found interesting one - Offset: ${it.offset()}, Key: ${it.key()}" }
