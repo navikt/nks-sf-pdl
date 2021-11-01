@@ -233,9 +233,11 @@ var samplesLeft = 5
 
 var presampleLeft = 3
 
+var lifetime = 0
+
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
-    log.info { "bootstrap work session starting " }
+    log.info { "bootstrap work session starting, lifetime ${++lifetime}" }
     // return ExitReason.NoEvents
     workMetrics.clearAll()
 
@@ -261,7 +263,7 @@ internal fun work(): ExitReason {
     ).produce {
         exitReason = ExitReason.NoKafkaConsumer
         currentConsumerMessageHost = "PERSON_ONPREM"
-        AKafkaConsumer<String, String>(
+        AKafkaConsumer<String, String?>(
                 config = ws.kafkaConsumerOnPrem,
                 fromBeginning = false
         ).consume { cRecords ->
@@ -288,7 +290,7 @@ internal fun work(): ExitReason {
                     // Investigate.writeText("CONSUMED PERSON OFFSET ${cr.offset()} TOMBSTONE", true)
                     Triple(KafkaConsumerStates.IsOk, personTombestone, cr.offset())
                 } else {
-                    when (val query = cr.value().getQueryFromJson()) {
+                    when (val query = cr.value()!!.getQueryFromJson()) {
                         InvalidQuery -> {
                             workMetrics.consumerIssues.inc()
                             log.error { "Unable to parse topic value PDL" }

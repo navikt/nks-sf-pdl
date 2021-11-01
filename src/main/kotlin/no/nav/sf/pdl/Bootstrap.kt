@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import investigateCache
 import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -28,27 +29,28 @@ object Bootstrap {
 
     fun start() {
         enableNAISAPI {
-                log.info { "Starting - grace period 3 m after enableNAISAPI" }
-                conditionalWait(180000)
-                log.info { "Starting - post grace period enableNAISAPI" }
-            if (LocalTime.now().inSleepRange()) {
-                loop()
-            } else {
-                workMetrics.busy.set(1.0)
-                initLoadTest() // TODO Tmp investigate run
-                // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
-                loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
-                // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
-                // initLoad() // Only publish to person/cache topic
-                loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
-                loop()
-            }
+            log.info { "Starting - grace period 3 m after enableNAISAPI" }
+            conditionalWait(180000)
+            log.info { "Starting - post grace period enableNAISAPI" }
+            // if (LocalTime.now().inSleepRange()) { //TODO Ignore sleep range
+            //    loop()
+            // } else {
+            workMetrics.busy.set(1.0)
+            investigateCache() // creates mismatch file - includes load gt and person cache
+            // initLoadTest() // TODO Tmp investigate run
+            // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
+            // loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
+            // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
+            // initLoad() // Only publish to person/cache topic
+            // loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
+            loop()
+            // }
         }
         log.info { "Finished!" }
     }
 
     private tailrec fun loop() {
-    val stop = ShutdownHook.isActive() || PrestopHook.isActive()
+        val stop = ShutdownHook.isActive() || PrestopHook.isActive()
         when {
             stop -> Unit
             !stop -> {

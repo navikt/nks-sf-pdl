@@ -1,0 +1,240 @@
+import java.io.File
+import mu.KotlinLogging
+import no.nav.pdlsf.proto.PersonProto
+import no.nav.sf.library.AKafkaConsumer
+import no.nav.sf.library.KafkaConsumerStates
+import no.nav.sf.library.conditionalWait
+import no.nav.sf.pdl.Bootstrap
+import no.nav.sf.pdl.GtBaseFromProto
+import no.nav.sf.pdl.GtValue
+import no.nav.sf.pdl.InvalidQuery
+import no.nav.sf.pdl.PersonInvalid
+import no.nav.sf.pdl.PersonSf
+import no.nav.sf.pdl.PersonTombestone
+import no.nav.sf.pdl.Query
+import no.nav.sf.pdl.UKJENT_FRA_PDL
+import no.nav.sf.pdl.getQueryFromJson
+import no.nav.sf.pdl.gtCache
+import no.nav.sf.pdl.heartBeatConsumer
+import no.nav.sf.pdl.isHollowState
+import no.nav.sf.pdl.kafkaPDLTopic
+import no.nav.sf.pdl.kafkaPersonTopic
+import no.nav.sf.pdl.keyAsByteArray
+import no.nav.sf.pdl.loadGtCache
+import no.nav.sf.pdl.loadPersonCache
+import no.nav.sf.pdl.pdlQueueCache
+import no.nav.sf.pdl.personCache
+import no.nav.sf.pdl.toPersonProto
+import no.nav.sf.pdl.toPersonSf
+import no.nav.sf.pdl.workMetrics
+import no.nav.sf.pdl.ws
+
+private val log = KotlinLogging.logger {}
+
+internal fun investigateCache() {
+
+    val resultListPdlQueue: MutableList<Pair<String, ByteArray?>> = mutableListOf()
+    val offsetCutOffStart = 250_000_000L
+    val offsetCutOffEnd = -1L
+
+    loadGtCache() // For processing old queue to cache equivalent
+
+    loadPersonCache()
+
+    log.info { "INVESTIGATE - Will start consume pdl queue for cache compare" }
+    var count = 0
+    var retries = 5
+    workMetrics.testRunRecordsParsed.clear()
+    val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
+            config = ws.kafkaConsumerOnPremSeparateClientId,
+            fromBeginning = true,
+            topics = listOf(kafkaPDLTopic)
+    )
+
+    kafkaConsumerPdlTest.consume { cRecords ->
+        if (cRecords.isEmpty) {
+            if (count < 2 && retries > 0) {
+                log.info { "Init test run: Did not get any messages on retry $retries, will wait 60 s and try again" }
+                retries--
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            } else {
+                log.info { "Init test run: Decided no more events on topic" }
+                return@consume KafkaConsumerStates.IsFinished
+            }
+        }
+
+        if (offsetCutOffStart != -1L && cRecords.last().offset() < offsetCutOffStart) {
+            // Not yet reached interesting offset range - will ignore
+            return@consume KafkaConsumerStates.IsOk
+        }
+
+        if (offsetCutOffEnd != -1L && cRecords.first().offset() > offsetCutOffEnd) {
+            log.info { "INVESTIGATE - passed interesting offset range. Finish read job" }
+            return@consume KafkaConsumerStates.IsFinished
+        }
+
+        count += cRecords.count()
+
+        workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+
+        // ************* DO THE SAME AS WORK BUT PUT RESULT IN LIST
+
+        val results = cRecords.map { cr ->
+            if (cr.value() == null) {
+                val personTombestone = PersonTombestone(aktoerId = cr.key())
+                workMetrics.tombstones.inc()
+                Triple(KafkaConsumerStates.IsOk, personTombestone, cr.offset())
+            } else {
+                when (val query = cr.value()!!.getQueryFromJson()) {
+                    InvalidQuery -> {
+                        workMetrics.consumerIssues.inc()
+                        log.error { "Unable to parse topic value PDL" }
+                        Triple(KafkaConsumerStates.HasIssues, PersonInvalid, cr.offset())
+                    }
+                    is Query -> {
+                        when (val personSf = query.toPersonSf()) {
+                            is PersonSf -> {
+                                // Enrich with data from gt Cache
+                                if (gtCache.containsKey(personSf.aktoerId)) {
+                                    workMetrics.enriching_from_gt_cache.inc()
+                                    val enriched = if (gtCache[personSf.aktoerId] == null) {
+                                        personSf.copy(kommunenummerFraGt = UKJENT_FRA_PDL, bydelsnummerFraGt = UKJENT_FRA_PDL)
+                                    } else {
+                                        val gtBase = GtBaseFromProto(keyAsByteArray(personSf.aktoerId), gtCache[personSf.aktoerId])
+                                        if (gtBase is GtValue) {
+                                            personSf.copy(kommunenummerFraGt = gtBase.kommunenummerFraGt, bydelsnummerFraGt = gtBase.bydelsnummerFraGt)
+                                        } else {
+                                            workMetrics.consumerIssues.inc()
+                                            log.error { "Fail to parse gt from gt cache" }
+                                            personSf
+                                        }
+                                    }
+                                    Triple(KafkaConsumerStates.IsOk, enriched, cr.offset())
+                                } else {
+                                    Triple(KafkaConsumerStates.IsOk, personSf, cr.offset())
+                                }
+                            }
+                            is PersonInvalid -> {
+                                workMetrics.consumerIssues.inc()
+                                Triple(KafkaConsumerStates.HasIssues, PersonInvalid, cr.offset())
+                            }
+                            else -> {
+                                workMetrics.consumerIssues.inc()
+                                log.error { "Returned unhandled PersonBase from Query.toPersonSf" }
+                                Triple(KafkaConsumerStates.HasIssues, PersonInvalid, cr.offset())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val areOk = results.map { it.first }.filterIsInstance<KafkaConsumerStates.HasIssues>().isEmpty()
+
+        if (areOk) {
+            results.filter {
+                when (val personBase = it.second) {
+                    is PersonTombestone -> {
+                        if (!personCache.containsKey(personBase.aktoerId)) {
+                            workMetrics.cache_new_tombstone.inc()
+                            personCache[personBase.aktoerId] = null
+                            true
+                        } else if (personCache[personBase.aktoerId] != null) {
+                            workMetrics.cache_update_tombstone.inc()
+                            personCache[personBase.aktoerId] = null
+                            true
+                        } else {
+                            workMetrics.cache_blocked_tombstone.inc()
+                            false
+                        }
+                    }
+                    is PersonSf -> {
+                        if (!personCache.containsKey(personBase.aktoerId)) {
+                            workMetrics.cache_new.inc()
+                            personCache[personBase.aktoerId] = personBase.toPersonProto().second.toByteArray()
+                            true
+                        } else if (personCache[personBase.aktoerId] == null || personCache[personBase.aktoerId]?.contentEquals(personBase.toPersonProto().second.toByteArray()) != true) {
+                            workMetrics.cache_update.inc()
+                            personCache[personBase.aktoerId] = personBase.toPersonProto().second.toByteArray()
+                            true
+                        } else {
+                            workMetrics.cache_blocked.inc()
+                            false
+                        }
+                    }
+                    else -> return@consume KafkaConsumerStates.HasIssues
+                }
+            }.filter {
+                val hollowState = (it.second is PersonSf) && (it.second as PersonSf).isHollowState()
+                if (hollowState) {
+                    // Investigate.writeText("${(it.second as PersonSf).aktoerId} SKIP ENTRY THAT IS HOLLOW STATE", true)
+                }
+                !hollowState
+            }.map {
+                when (val personBase = it.second) {
+                    is PersonTombestone -> {
+                        Triple<PersonProto.PersonKey, PersonProto.PersonValue?, Long>(personBase.toPersonTombstoneProtoKey(), null, it.third)
+                    }
+                    is PersonSf -> {
+                        val protoPair = personBase.toPersonProto()
+                        Triple(protoPair.first, protoPair.second, it.third)
+                    }
+                    else -> return@consume KafkaConsumerStates.HasIssues
+                }
+            }.fold(true) { acc, triple ->
+                acc && triple.second.let {
+                    resultListPdlQueue.add(Pair(triple.first.aktoerId, triple.second?.toByteArray()))
+                    true
+                }
+            }.let { sent ->
+                when (sent) {
+                    true -> KafkaConsumerStates.IsOk
+                    false -> KafkaConsumerStates.HasIssues.also {
+                        log.error { "Should not reach!" }
+                    }
+                }
+            }
+        } else {
+            log.error { "Issue found" }
+            KafkaConsumerStates.HasIssues
+        }
+        // *************
+
+        KafkaConsumerStates.IsOk
+    }
+    heartBeatConsumer = 0
+
+    log.info { "INVESTIGATE pdl Cache - Number of records from topic $kafkaPersonTopic is ${resultListPdlQueue.size}" }
+
+    pdlQueueCache.putAll(resultListPdlQueue.toMap())
+
+    log.info { "INVESTIGATE pdl Cache - resulting cache size ${pdlQueueCache.size} of which are tombstones ${pdlQueueCache.values.filter{it == null}.count()}" }
+
+    resultListPdlQueue.clear()
+
+    var notReflected = 0 // expected 0
+    var uptodate = 0
+    var mismatch = 0
+
+    pdlQueueCache.forEach {
+        if (!personCache.contains(it.key)) {
+            notReflected++
+        } else if (personCache[it.key] == it.value) {
+            uptodate++
+        } else {
+            mismatch++
+
+            if (mismatch < 1000) {
+                File("/tmp/mismatch").appendText("${it.key}\n")
+            }
+        }
+    }
+
+    File("/tmp/mismatch").appendText("$mismatch number of mismatches")
+
+    log.info { "INVESTIGATE. Of ${pdlQueueCache.size} aktoers investigated, $mismatch are mismatch, $uptodate is up-to-date, and $notReflected is not reflected in person cache" }
+
+    pdlQueueCache.clear()
+
+    log.info { "INVESTIGATE - done Investigate cache, Total records investigated from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
+}

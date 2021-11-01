@@ -14,6 +14,8 @@ val personCache: MutableMap<String, ByteArray?> = mutableMapOf()
 
 val gtCache: MutableMap<String, ByteArray?> = mutableMapOf()
 
+val pdlQueueCache: MutableMap<String, ByteArray?> = mutableMapOf()
+
 fun gtInitLoad(ws: WorkSettings) {
     workMetrics.clearAll()
     var gtTombestones = 0
