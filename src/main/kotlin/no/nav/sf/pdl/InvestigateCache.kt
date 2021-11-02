@@ -37,7 +37,11 @@ internal fun investigateCache() {
     val offsetCutOffStart = 250_000_000L
     val offsetCutOffEnd = -1L
 
+    log.info { "INVESTIGATE - Will load gt Cache" }
+
     loadGtCache() // For processing old queue to cache equivalent
+
+    log.info { "INVESTIGATE - Will load person Cache" }
 
     loadPersonCache()
 
