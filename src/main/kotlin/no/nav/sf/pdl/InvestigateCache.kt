@@ -9,6 +9,7 @@ import no.nav.sf.pdl.GtBaseFromProto
 import no.nav.sf.pdl.GtValue
 import no.nav.sf.pdl.InvalidQuery
 import no.nav.sf.pdl.PersonInvalid
+import no.nav.sf.pdl.PersonProtobufIssue
 import no.nav.sf.pdl.PersonSf
 import no.nav.sf.pdl.PersonTombestone
 import no.nav.sf.pdl.Query
@@ -220,23 +221,55 @@ internal fun investigateCache() {
     var uptodate = 0
     var mismatch = 0
 
+    var parseerror = 0
+
+    var uptodatebytes = 0
+
+    var tombstoneskip = 0
+
+    var heaviercompare = 100
+
     pdlQueueCache.forEach {
         if (!personCache.contains(it.key)) {
             notReflected++
-        } else if (personCache[it.key] == it.value) {
-            uptodate++
+        } else if (personCache[it.key] == null || it.value == null) {
+            tombstoneskip++
         } else {
-            mismatch++
+            if (heaviercompare > 0) {
+                heaviercompare--
+                val parsedPersonCache = personCache[it.key]!!.toPersonSf(it.key)
+                val parsedPdlCache = it.value!!.toPersonSf(it.key)
+                if (parsedPersonCache is PersonProtobufIssue || parsedPdlCache is PersonProtobufIssue) {
+                    log.error{ "INVESTIGATE - Parse error"}
+                    parseerror++
+                } else {
+                    val personCacheJson = (parsedPersonCache as PersonSf).toJson()
+                    val pdlCacheJson = (parsedPdlCache as PersonSf).toJson()
+                    val match = personCacheJson == pdlCacheJson
+                    val filename = if (match) "match" else "mismatch"
+                    File("/tmp/$filename$heaviercompare").writeText("Key: ${it.key}\nPersonCache:\n$personCacheJson\n\nPdlCache:\n$pdlCacheJson")
+                    if (match) {
+                        uptodate++
+                    } else {
+                        mismatch++
+                    }
+                }
+            } else if (personCache[it.key]!!.contentEquals(it.value!!)){
+                uptodate++
+                uptodatebytes++
+            } else {
+                mismatch++
 
-            if (mismatch < 1000) {
-                File("/tmp/mismatch").appendText("${it.key}\n")
+                if (mismatch < 1000) {
+                    File("/tmp/mismatch").appendText("${it.key}\n")
+                }
             }
         }
     }
 
     File("/tmp/mismatch").appendText("$mismatch number of mismatches")
 
-    log.info { "INVESTIGATE. Of ${pdlQueueCache.size} aktoers investigated, $mismatch are mismatch, $uptodate is up-to-date, and $notReflected is not reflected in person cache" }
+    log.info { "INVESTIGATE. Of ${pdlQueueCache.size} aktoers investigated, $tombstoneskip are skipped due tombstone, $parseerror parse errors, $mismatch are mismatch, $uptodate is up-to-date ($uptodatebytes by bytecompare), and $notReflected is not reflected in person cache" }
 
     pdlQueueCache.clear()
 

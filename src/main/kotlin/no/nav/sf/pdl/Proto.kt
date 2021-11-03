@@ -303,187 +303,193 @@ fun folkeregistermetadataFromProto(proto: PersonProto.Folkeregistermetadata): Fo
     return if (folkeregistermetadata.ajourholdstidspunkt == FolkeregistermetadataNull.ajourholdstidspunkt) null else folkeregistermetadata
 }
 
+fun ByteArray.toPersonSf(aktoerId : String) : PersonBase {
+    return kotlin.runCatching {
+        PersonProto.PersonValue.parseFrom(this).let { v ->
+            PersonSf(
+                    identer = v.identerList.map {
+                        Ident(
+                                ident = it.ident,
+                                historisk = it.historisk,
+                                gruppe = it.gruppe,
+                                metadata = metaDataFromProto(it.metadata),
+                                folkeregistermetadata = folkeregistermetadataFromProto(it.folkeregistermetadata))
+                    },
+                    folkeregisteridentifikator = v.folkeregisteridentifikatorList.map {
+                        Folkeregisteridentifikator(
+                                identifikasjonsnummer = it.identifikasjonsnummer,
+                                type = it.type,
+                                status = it.status,
+                                metadata = metaDataFromProto(it.metadata),
+                                folkeregistermetadata = folkeregistermetadataFromProto(it.folkeregistermetadata))
+                    },
+                    aktoerId = aktoerId,
+                    folkeregisterId = v.folkeregisterIdList,
+                    navn = v.navnList.map {
+                        Navn(
+                                fornavn = it.fornavn.stringOrNull(),
+                                mellomnavn = it.mellomnavn.stringOrNull(),
+                                etternavn = it.etternavn.stringOrNull()
+                        )
+                    },
+                    forelderBarnRelasjoner = v.forelderBarnRelasjonerList.map {
+                        ForelderBarnRelasjon(
+                                relatertPersonsIdent = it.relatertPersonsIdent.stringOrNull(),
+                                relatertPersonsRolle = it.relatertPersonsRolle.stringOrNull(),
+                                minRolleForPerson = it.minRolleForPerson.stringOrNull())
+                    },
+                    folkeregisterpersonstatus = v.folkeregisterpersonstatusList,
+                    innflyttingTilNorge = v.innflyttingTilNorgeList.map {
+                        InnflyttingTilNorge(
+                                fraflyttingsland = it.fraflyttingsland.stringOrNull(),
+                                fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet.stringOrNull()
+                        )
+                    },
+                    adressebeskyttelse = v.adressebeskyttelseList,
+                    sikkerhetstiltak = v.sikkerhetstiltakList.map {
+                        Sikkerhetstiltak(
+                                beskrivelse = it.beskrivelse.stringOrNull(),
+                                tiltaksType = it.tiltakstype.stringOrNull(),
+                                gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
+                                gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate(),
+                                kontaktpersonId = it.kontaktpersonId.stringOrNull(),
+                                kontaktpersonEnhet = it.kontaktpersonEnhet.stringOrNull()
+                        )
+                    },
+                    bostedsadresse = Adresser(
+                            vegadresse = v.bostedsadresse.vegadresseList.map {
+                                Vegadresse(
+                                        kommunenummer = it.kommunenummer.stringOrNull(),
+                                        adressenavn = it.adressenavn.stringOrNull(),
+                                        husnummer = it.husnummer.stringOrNull(),
+                                        husbokstav = it.husbokstav.stringOrNull(),
+                                        postnummer = it.postnummer.stringOrNull(),
+                                        bydelsnummer = it.bydelsnummer.stringOrNull(),
+                                        koordinater = it.koordinater.stringOrNull()
+                                )
+                            },
+                            matrikkeladresse = v.bostedsadresse.matrikkeladresseList.map {
+                                Matrikkeladresse(
+                                        kommunenummer = it.kommunenummer.stringOrNull(),
+                                        postnummer = it.postnummer.stringOrNull(),
+                                        bydelsnummer = it.bydelsnummer.stringOrNull(),
+                                        koordinater = it.koordinater.stringOrNull()
+                                )
+                            },
+                            ukjentBosted = v.bostedsadresse.ukjentBostedList.map {
+                                UkjentBosted(bostedskommune = it.bostedskommune.stringOrNull())
+                            },
+                            utenlandskAdresse = v.bostedsadresse.utenlandskAdresseList.map {
+                                UtenlandskAdresse(
+                                        adressenavnNummer = it.adressenavnNummer.stringOrNull(),
+                                        bygningEtasjeLeilighet = it.bygningEtasjeLeilighet.stringOrNull(),
+                                        postboksNummerNavn = it.postboksNummerNavn.stringOrNull(),
+                                        postkode = it.postkode.stringOrNull(),
+                                        bySted = it.bySted.stringOrNull(),
+                                        regionDistriktOmraade = it.regionDistriktOmraade.stringOrNull(),
+                                        landkode = it.landkode.stringOrNull()
+                                )
+                            }
+                    ),
+                    oppholdsadresse = Adresser(
+                            vegadresse = v.oppholdsadresse.vegadresseList.map {
+                                Vegadresse(
+                                        kommunenummer = it.kommunenummer.stringOrNull(),
+                                        adressenavn = it.adressenavn.stringOrNull(),
+                                        husnummer = it.husnummer.stringOrNull(),
+                                        husbokstav = it.husbokstav.stringOrNull(),
+                                        postnummer = it.postnummer.stringOrNull(),
+                                        bydelsnummer = it.bydelsnummer.stringOrNull(),
+                                        koordinater = it.koordinater.stringOrNull()
+                                )
+                            },
+                            matrikkeladresse = v.oppholdsadresse.matrikkeladresseList.map {
+                                Matrikkeladresse(
+                                        kommunenummer = it.kommunenummer.stringOrNull(),
+                                        postnummer = it.postnummer.stringOrNull(),
+                                        bydelsnummer = it.bydelsnummer.stringOrNull(),
+                                        koordinater = it.koordinater.stringOrNull()
+                                )
+                            },
+                            ukjentBosted = v.oppholdsadresse.ukjentBostedList.map {
+                                UkjentBosted(bostedskommune = it.bostedskommune.stringOrNull())
+                            },
+                            utenlandskAdresse = v.oppholdsadresse.utenlandskAdresseList.map {
+                                UtenlandskAdresse(
+                                        adressenavnNummer = it.adressenavnNummer.stringOrNull(),
+                                        bygningEtasjeLeilighet = it.bygningEtasjeLeilighet.stringOrNull(),
+                                        postboksNummerNavn = it.postboksNummerNavn.stringOrNull(),
+                                        postkode = it.postkode.stringOrNull(),
+                                        bySted = it.bySted.stringOrNull(),
+                                        regionDistriktOmraade = it.regionDistriktOmraade.stringOrNull(),
+                                        landkode = it.landkode.stringOrNull()
+                                )
+                            }
+                    ),
+                    statsborgerskap = v.statsborgerskapList,
+                    sivilstand = v.sivilstandList.map {
+                        Sivilstand(
+                                type = it.type.stringOrNull(),
+                                gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
+                                relatertVedSivilstand = it.relatertVedSivilstand.stringOrNull()
+                        )
+                    },
+                    kommunenummerFraGt = v.kommunenummerFraGt,
+                    bydelsnummerFraGt = v.bydelsnummerFraGt,
+                    kommunenummerFraAdresse = v.kommunenummerFraAdresse,
+                    bydelsnummerFraAdresse = v.bydelsnummerFraAdresse,
+                    kjoenn = v.kjoennList,
+                    doedsfall = v.doedsfallList.map {
+                        Doedsfall(
+                                doedsdato = it.doedsdato.toLocalDate(),
+                                master = it.master.stringOrNull()
+                        )
+                    },
+                    telefonnummer = v.telefonnummerList.map {
+                        Telefonnummer(
+                                nummer = it.nummer.stringOrNull(),
+                                landskode = it.landkode.stringOrNull(),
+                                prioritet = it.prioritet
+                        )
+                    },
+                    utflyttingFraNorge = v.utflyttingFraNorgeList.map {
+                        UtflyttingFraNorge(
+                                tilflyttingsland = it.tilflyttingsland.stringOrNull(),
+                                tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet.stringOrNull()
+                        )
+                    },
+                    talesspraaktolk = v.talesspraaktolkList,
+                    fullmakt = v.fullmaktList.map {
+                        Fullmakt(
+                                motpartsRolle = it.motpartsRolle.stringOrNull(),
+                                motpartsPersonident = it.motpartsPersonident.stringOrNull(),
+                                omraader = it.omraaderList,
+                                gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
+                                gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate()
+                        )
+                    },
+                    vergemaalEllerFremtidsfullmakt = v.vergemaalEllerFremtidsfullmaktList.map {
+                        VergemaalEllerFremtidsfullmakt(
+                                type = it.type.stringOrNull(),
+                                embete = it.embete.stringOrNull(),
+                                navn = if (it.navn.fornavn == "" && it.navn.mellomnavn == "" && it.navn.etternavn == "") null else Navn(fornavn = it.navn.fornavn.stringOrNull(), mellomnavn = it.navn.mellomnavn.stringOrNull(), etternavn = it.navn.etternavn.stringOrNull()),
+                                motpartsPersonident = it.motpartsPersonident.stringOrNull(),
+                                omfang = it.omfang.stringOrNull(),
+                                omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade.booleanOrNull()
+                        )
+                    },
+                    foedselsdato = v.foedselsdatoList
+            )
+        }
+    }.getOrDefault(PersonProtobufIssue)
+}
+
 fun PersonBaseFromProto(key: ByteArray, value: ByteArray?): PersonBase =
         if (value == null) {
             PersonBase.createPersonTombstone(key)
         } else {
             kotlin.runCatching {
-                PersonProto.PersonValue.parseFrom(value).let { v ->
-                    PersonSf(
-                            identer = v.identerList.map {
-                                Ident(
-                                        ident = it.ident,
-                                        historisk = it.historisk,
-                                        gruppe = it.gruppe,
-                                        metadata = metaDataFromProto(it.metadata),
-                                        folkeregistermetadata = folkeregistermetadataFromProto(it.folkeregistermetadata))
-                            },
-                            folkeregisteridentifikator = v.folkeregisteridentifikatorList.map {
-                                Folkeregisteridentifikator(
-                                        identifikasjonsnummer = it.identifikasjonsnummer,
-                                        type = it.type,
-                                        status = it.status,
-                                        metadata = metaDataFromProto(it.metadata),
-                                        folkeregistermetadata = folkeregistermetadataFromProto(it.folkeregistermetadata))
-                            },
-                            aktoerId = PersonProto.PersonKey.parseFrom(key).aktoerId,
-                            folkeregisterId = v.folkeregisterIdList,
-                            navn = v.navnList.map {
-                                Navn(
-                                        fornavn = it.fornavn.stringOrNull(),
-                                        mellomnavn = it.mellomnavn.stringOrNull(),
-                                        etternavn = it.etternavn.stringOrNull()
-                                )
-                            },
-                            forelderBarnRelasjoner = v.forelderBarnRelasjonerList.map {
-                                ForelderBarnRelasjon(
-                                        relatertPersonsIdent = it.relatertPersonsIdent.stringOrNull(),
-                                        relatertPersonsRolle = it.relatertPersonsRolle.stringOrNull(),
-                                        minRolleForPerson = it.minRolleForPerson.stringOrNull())
-                            },
-                            folkeregisterpersonstatus = v.folkeregisterpersonstatusList,
-                            innflyttingTilNorge = v.innflyttingTilNorgeList.map {
-                                InnflyttingTilNorge(
-                                        fraflyttingsland = it.fraflyttingsland.stringOrNull(),
-                                        fraflyttingsstedIUtlandet = it.fraflyttingsstedIUtlandet.stringOrNull()
-                                )
-                            },
-                            adressebeskyttelse = v.adressebeskyttelseList,
-                            sikkerhetstiltak = v.sikkerhetstiltakList.map {
-                                Sikkerhetstiltak(
-                                        beskrivelse = it.beskrivelse.stringOrNull(),
-                                        tiltaksType = it.tiltakstype.stringOrNull(),
-                                        gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
-                                        gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate(),
-                                        kontaktpersonId = it.kontaktpersonId.stringOrNull(),
-                                        kontaktpersonEnhet = it.kontaktpersonEnhet.stringOrNull()
-                                )
-                            },
-                            bostedsadresse = Adresser(
-                                    vegadresse = v.bostedsadresse.vegadresseList.map {
-                                        Vegadresse(
-                                                kommunenummer = it.kommunenummer.stringOrNull(),
-                                                adressenavn = it.adressenavn.stringOrNull(),
-                                                husnummer = it.husnummer.stringOrNull(),
-                                                husbokstav = it.husbokstav.stringOrNull(),
-                                                postnummer = it.postnummer.stringOrNull(),
-                                                bydelsnummer = it.bydelsnummer.stringOrNull(),
-                                                koordinater = it.koordinater.stringOrNull()
-                                        )
-                                    },
-                                    matrikkeladresse = v.bostedsadresse.matrikkeladresseList.map {
-                                        Matrikkeladresse(
-                                                kommunenummer = it.kommunenummer.stringOrNull(),
-                                                postnummer = it.postnummer.stringOrNull(),
-                                                bydelsnummer = it.bydelsnummer.stringOrNull(),
-                                                koordinater = it.koordinater.stringOrNull()
-                                        )
-                                    },
-                                    ukjentBosted = v.bostedsadresse.ukjentBostedList.map {
-                                        UkjentBosted(bostedskommune = it.bostedskommune.stringOrNull())
-                                    },
-                                    utenlandskAdresse = v.bostedsadresse.utenlandskAdresseList.map {
-                                        UtenlandskAdresse(
-                                                adressenavnNummer = it.adressenavnNummer.stringOrNull(),
-                                                bygningEtasjeLeilighet = it.bygningEtasjeLeilighet.stringOrNull(),
-                                                postboksNummerNavn = it.postboksNummerNavn.stringOrNull(),
-                                                postkode = it.postkode.stringOrNull(),
-                                                bySted = it.bySted.stringOrNull(),
-                                                regionDistriktOmraade = it.regionDistriktOmraade.stringOrNull(),
-                                                landkode = it.landkode.stringOrNull()
-                                        )
-                                    }
-                            ),
-                            oppholdsadresse = Adresser(
-                                    vegadresse = v.oppholdsadresse.vegadresseList.map {
-                                        Vegadresse(
-                                                kommunenummer = it.kommunenummer.stringOrNull(),
-                                                adressenavn = it.adressenavn.stringOrNull(),
-                                                husnummer = it.husnummer.stringOrNull(),
-                                                husbokstav = it.husbokstav.stringOrNull(),
-                                                postnummer = it.postnummer.stringOrNull(),
-                                                bydelsnummer = it.bydelsnummer.stringOrNull(),
-                                                koordinater = it.koordinater.stringOrNull()
-                                        )
-                                    },
-                                    matrikkeladresse = v.oppholdsadresse.matrikkeladresseList.map {
-                                        Matrikkeladresse(
-                                                kommunenummer = it.kommunenummer.stringOrNull(),
-                                                postnummer = it.postnummer.stringOrNull(),
-                                                bydelsnummer = it.bydelsnummer.stringOrNull(),
-                                                koordinater = it.koordinater.stringOrNull()
-                                        )
-                                    },
-                                    ukjentBosted = v.oppholdsadresse.ukjentBostedList.map {
-                                        UkjentBosted(bostedskommune = it.bostedskommune.stringOrNull())
-                                    },
-                                    utenlandskAdresse = v.oppholdsadresse.utenlandskAdresseList.map {
-                                        UtenlandskAdresse(
-                                                adressenavnNummer = it.adressenavnNummer.stringOrNull(),
-                                                bygningEtasjeLeilighet = it.bygningEtasjeLeilighet.stringOrNull(),
-                                                postboksNummerNavn = it.postboksNummerNavn.stringOrNull(),
-                                                postkode = it.postkode.stringOrNull(),
-                                                bySted = it.bySted.stringOrNull(),
-                                                regionDistriktOmraade = it.regionDistriktOmraade.stringOrNull(),
-                                                landkode = it.landkode.stringOrNull()
-                                        )
-                                    }
-                            ),
-                            statsborgerskap = v.statsborgerskapList,
-                            sivilstand = v.sivilstandList.map {
-                                Sivilstand(
-                                        type = it.type.stringOrNull(),
-                                        gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
-                                        relatertVedSivilstand = it.relatertVedSivilstand.stringOrNull()
-                                )
-                            },
-                            kommunenummerFraGt = v.kommunenummerFraGt,
-                            bydelsnummerFraGt = v.bydelsnummerFraGt,
-                            kommunenummerFraAdresse = v.kommunenummerFraAdresse,
-                            bydelsnummerFraAdresse = v.bydelsnummerFraAdresse,
-                            kjoenn = v.kjoennList,
-                            doedsfall = v.doedsfallList.map {
-                                Doedsfall(
-                                        doedsdato = it.doedsdato.toLocalDate(),
-                                        master = it.master.stringOrNull()
-                                )
-                            },
-                            telefonnummer = v.telefonnummerList.map {
-                                Telefonnummer(
-                                        nummer = it.nummer.stringOrNull(),
-                                        landskode = it.landkode.stringOrNull(),
-                                        prioritet = it.prioritet
-                                )
-                            },
-                            utflyttingFraNorge = v.utflyttingFraNorgeList.map {
-                                UtflyttingFraNorge(
-                                        tilflyttingsland = it.tilflyttingsland.stringOrNull(),
-                                        tilflyttingsstedIUtlandet = it.tilflyttingsstedIUtlandet.stringOrNull()
-                                )
-                            },
-                            talesspraaktolk = v.talesspraaktolkList,
-                            fullmakt = v.fullmaktList.map {
-                                Fullmakt(
-                                        motpartsRolle = it.motpartsRolle.stringOrNull(),
-                                        motpartsPersonident = it.motpartsPersonident.stringOrNull(),
-                                        omraader = it.omraaderList,
-                                        gyldigFraOgMed = it.gyldigFraOgMed.toLocalDate(),
-                                        gyldigTilOgMed = it.gyldigTilOgMed.toLocalDate()
-                                )
-                            },
-                            vergemaalEllerFremtidsfullmakt = v.vergemaalEllerFremtidsfullmaktList.map {
-                                VergemaalEllerFremtidsfullmakt(
-                                        type = it.type.stringOrNull(),
-                                        embete = it.embete.stringOrNull(),
-                                        navn = if (it.navn.fornavn == "" && it.navn.mellomnavn == "" && it.navn.etternavn == "") null else Navn(fornavn = it.navn.fornavn.stringOrNull(), mellomnavn = it.navn.mellomnavn.stringOrNull(), etternavn = it.navn.etternavn.stringOrNull()),
-                                        motpartsPersonident = it.motpartsPersonident.stringOrNull(),
-                                        omfang = it.omfang.stringOrNull(),
-                                        omfangetErInnenPersonligOmraade = it.omfangetErInnenPersonligOmraade.booleanOrNull()
-                                )
-                            },
-                            foedselsdato = v.foedselsdatoList
-                    )
-                }
+                value.toPersonSf(PersonProto.PersonKey.parseFrom(key).aktoerId)
             }.getOrDefault(PersonProtobufIssue)
         }
 
