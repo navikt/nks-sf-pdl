@@ -240,7 +240,7 @@ internal fun investigateCache() {
                 val parsedPersonCache = personCache[it.key]!!.toPersonSf(it.key)
                 val parsedPdlCache = it.value!!.toPersonSf(it.key)
                 if (parsedPersonCache is PersonProtobufIssue || parsedPdlCache is PersonProtobufIssue) {
-                    log.error{ "INVESTIGATE - Parse error"}
+                    log.error { "INVESTIGATE - Parse error" }
                     parseerror++
                 } else {
                     val personCacheJson = (parsedPersonCache as PersonSf).toJson()
@@ -254,7 +254,7 @@ internal fun investigateCache() {
                         mismatch++
                     }
                 }
-            } else if (personCache[it.key]!!.contentEquals(it.value!!)){
+            } else if (personCache[it.key]!!.contentEquals(it.value!!)) {
                 uptodate++
                 uptodatebytes++
             } else {

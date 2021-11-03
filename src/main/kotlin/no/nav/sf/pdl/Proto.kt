@@ -303,7 +303,7 @@ fun folkeregistermetadataFromProto(proto: PersonProto.Folkeregistermetadata): Fo
     return if (folkeregistermetadata.ajourholdstidspunkt == FolkeregistermetadataNull.ajourholdstidspunkt) null else folkeregistermetadata
 }
 
-fun ByteArray.toPersonSf(aktoerId : String) : PersonBase {
+fun ByteArray.toPersonSf(aktoerId: String): PersonBase {
     return kotlin.runCatching {
         PersonProto.PersonValue.parseFrom(this).let { v ->
             PersonSf(
