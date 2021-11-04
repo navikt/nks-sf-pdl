@@ -35,7 +35,7 @@ private val log = KotlinLogging.logger {}
 internal fun investigateCache() {
 
     val resultListPdlQueue: MutableList<Pair<String, ByteArray?>> = mutableListOf()
-    val offsetCutOffStart = 250_000_000L
+    val offsetCutOffStart = 0L // 250_000_000L
     val offsetCutOffEnd = -1L
 
     log.info { "INVESTIGATE - Will load gt Cache" }
