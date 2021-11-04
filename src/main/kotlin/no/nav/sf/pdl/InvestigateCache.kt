@@ -235,8 +235,10 @@ internal fun investigateCache() {
         } else if (personCache[it.key] == null || it.value == null) {
             tombstoneskip++
         } else {
-            if (heaviercompare > 0) {
-                heaviercompare--
+            // if ((it.first as PersonSf).identer.any { it.ident == targetAktoerId || it.ident == targetfnr2 } || (it.first as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr2 })
+            if (it.key == "1000033414297") {
+                log.info { "INVESTIGATE - hit interesting" }
+                // heaviercompare--
                 val parsedPersonCache = personCache[it.key]!!.toPersonSf(it.key)
                 val parsedPdlCache = it.value!!.toPersonSf(it.key)
                 if (parsedPersonCache is PersonProtobufIssue || parsedPdlCache is PersonProtobufIssue) {
@@ -246,8 +248,8 @@ internal fun investigateCache() {
                     val personCacheJson = (parsedPersonCache as PersonSf).toJson()
                     val pdlCacheJson = (parsedPdlCache as PersonSf).toJson()
                     val match = personCacheJson == pdlCacheJson
-                    val filename = if (match) "match" else "mismatch"
-                    File("/tmp/$filename$heaviercompare").writeText("Key: ${it.key}\nPersonCache:\n$personCacheJson\n\nPdlCache:\n$pdlCacheJson")
+                    val filename = if (match) "hit" else "miss"
+                    File("/tmp/$filename").writeText("Key: ${it.key}\nPersonCache:\n$personCacheJson\n\nPdlCache:\n$pdlCacheJson\n\nBytecompare:${personCache[it.key]!!.contentEquals(it.value!!)}")
                     if (match) {
                         uptodate++
                     } else {
