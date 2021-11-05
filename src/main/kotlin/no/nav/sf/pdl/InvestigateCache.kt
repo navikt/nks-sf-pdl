@@ -1,34 +1,11 @@
 import java.io.File
 import mu.KotlinLogging
-import no.nav.pdlsf.proto.PersonProto
-import no.nav.sf.library.AKafkaConsumer
-import no.nav.sf.library.KafkaConsumerStates
-import no.nav.sf.library.conditionalWait
-import no.nav.sf.pdl.Bootstrap
-import no.nav.sf.pdl.GtBaseFromProto
-import no.nav.sf.pdl.GtValue
-import no.nav.sf.pdl.InvalidQuery
-import no.nav.sf.pdl.PersonInvalid
 import no.nav.sf.pdl.PersonProtobufIssue
 import no.nav.sf.pdl.PersonSf
-import no.nav.sf.pdl.PersonTombestone
-import no.nav.sf.pdl.Query
-import no.nav.sf.pdl.UKJENT_FRA_PDL
-import no.nav.sf.pdl.getQueryFromJson
-import no.nav.sf.pdl.gtCache
-import no.nav.sf.pdl.heartBeatConsumer
-import no.nav.sf.pdl.isHollowState
-import no.nav.sf.pdl.kafkaPDLTopic
-import no.nav.sf.pdl.kafkaPersonTopic
-import no.nav.sf.pdl.keyAsByteArray
 import no.nav.sf.pdl.loadGtCache
 import no.nav.sf.pdl.loadPersonCache
-import no.nav.sf.pdl.pdlQueueCache
 import no.nav.sf.pdl.personCache
-import no.nav.sf.pdl.toPersonProto
 import no.nav.sf.pdl.toPersonSf
-import no.nav.sf.pdl.workMetrics
-import no.nav.sf.pdl.ws
 
 private val log = KotlinLogging.logger {}
 
@@ -45,7 +22,7 @@ internal fun investigateCache() {
     log.info { "INVESTIGATE - Will load person Cache" }
 
     loadPersonCache()
-
+/*
     log.info { "INVESTIGATE - Will start consume pdl queue for cache compare" }
     var count = 0
     var retries = 5
@@ -271,9 +248,25 @@ internal fun investigateCache() {
 
     File("/tmp/mismatch").appendText("$mismatch number of mismatches")
 
-    log.info { "INVESTIGATE. Of ${pdlQueueCache.size} aktoers investigated, $tombstoneskip are skipped due tombstone, $parseerror parse errors, $mismatch are mismatch, $uptodate is up-to-date ($uptodatebytes by bytecompare), and $notReflected is not reflected in person cache" }
+ */
 
-    pdlQueueCache.clear()
+    // log.info { "INVESTIGATE. Of ${pdlQueueCache.size} aktoers investigated, $tombstoneskip are skipped due tombstone, $parseerror parse errors, $mismatch are mismatch, $uptodate is up-to-date ($uptodatebytes by bytecompare), and $notReflected is not reflected in person cache" }
 
-    log.info { "INVESTIGATE - done Investigate cache, Total records investigated from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
+    // pdlQueueCache.clear()
+
+    var parseerror = 0
+
+    listOf("1000049973123", "1000033414297", "1000016199761").forEach { aktoerid ->
+        val parsedPersonCache = personCache[aktoerid]!!.toPersonSf(aktoerid)
+        if (parsedPersonCache is PersonProtobufIssue) {
+            log.error { "INVESTIGATE - short check Parse error" }
+            parseerror++
+        } else {
+            log.error { "INVESTIGATE - short check hit" }
+            val personCacheJson = (parsedPersonCache as PersonSf).toJson()
+            File("/tmp/$aktoerid").writeText("Key: ${aktoerid}\nPersonCache:\n$personCacheJson\n\n")
+        }
+    }
+
+    log.info { "INVESTIGATE - done Investigate cache short check ,parseerror $parseerror" } // , Total records investigated from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
 }

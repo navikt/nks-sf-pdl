@@ -58,6 +58,9 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     val skipUpdate: MutableSet<String> = mutableSetOf()
 
+    var first = true
+    var last = 0L
+
     currentConsumerMessageHost = "GT_ONPREM"
     AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPremReducedPollSize,
@@ -78,6 +81,12 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
         val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
         workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
         consumerRecords.forEach {
+
+            if (first) {
+                first = false
+                log.info { "Work gt cache update First offset read ${it.offset()}" }
+            }
+            last = it.offset()
             // Investigate.writeText("CONSUMED GT OFFSET ${it.offset()}", true)
             if (it.value() == null) {
                 if (gtCache.containsKey(it.key()) && gtCache[it.key()] == null) {
@@ -135,6 +144,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
         }
 
         // gtCache is now updated
+        log.info { "Work gt cache update last offset read $last" }
 
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
@@ -162,6 +172,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
         // Investigate.writeText("SKIPUPDATELIST: $skipUpdate", true)
 
+        log.info { "Work Commence produce resultListChangesToGTGache of size ${resultListChangesToGTCache.size}" }
         AKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
@@ -246,7 +257,9 @@ internal fun work(): ExitReason {
         return ExitReason.NoCache
     }
 
+    log.info { "Commence updateGtCacheAndAffectedPersons" }
     var exitReason = updateGtCacheAndAffectedPersons()
+    log.info { "done updateGtCacheAndAffectedPersons" }
 
     if (!exitReason.isOK()) {
         log.warn { "Aborting work session since update of gt cache and affected persons returned NOK" }
