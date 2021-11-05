@@ -40,6 +40,7 @@ internal fun investigateCache() {
     var retries = 5
 
     var lastOffsetCurrently = 0L
+    var firstOffset = 0L
 
     kafkaConsumerPdlTest.consume { cRecords ->
         if (cRecords.isEmpty) {
@@ -54,11 +55,12 @@ internal fun investigateCache() {
             }
         }
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+        if (firstOffset == 0L) firstOffset = cRecords.first().offset()
         lastOffsetCurrently = cRecords.last().offset()
         KafkaConsumerStates.IsOk
     }
 
-    log.info { "INVESTIGATE - last offset on pdl queue $lastOffsetCurrently" }
+    log.info { "INVESTIGATE - first offset consumed when read from beginning: $firstOffset, last offset on pdl queue: $lastOffsetCurrently" }
 
 /*
     log.info { "INVESTIGATE - Will start consume pdl queue for cache compare" }
