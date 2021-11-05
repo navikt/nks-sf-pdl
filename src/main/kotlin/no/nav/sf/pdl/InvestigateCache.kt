@@ -1,11 +1,17 @@
 import java.io.File
 import mu.KotlinLogging
+import no.nav.sf.library.AKafkaConsumer
+import no.nav.sf.library.KafkaConsumerStates
+import no.nav.sf.pdl.Bootstrap
 import no.nav.sf.pdl.PersonProtobufIssue
 import no.nav.sf.pdl.PersonSf
+import no.nav.sf.pdl.kafkaPDLTopic
 import no.nav.sf.pdl.loadGtCache
 import no.nav.sf.pdl.loadPersonCache
 import no.nav.sf.pdl.personCache
 import no.nav.sf.pdl.toPersonSf
+import no.nav.sf.pdl.workMetrics
+import no.nav.sf.pdl.ws
 
 private val log = KotlinLogging.logger {}
 
@@ -22,6 +28,38 @@ internal fun investigateCache() {
     log.info { "INVESTIGATE - Will load person Cache" }
 
     loadPersonCache()
+
+    workMetrics.testRunRecordsParsed.clear()
+    val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
+            config = ws.kafkaConsumerOnPremSeparateClientId,
+            fromBeginning = true,
+            topics = listOf(kafkaPDLTopic)
+    )
+
+    var count = 0
+    var retries = 5
+
+    var lastOffsetCurrently = 0L
+
+    kafkaConsumerPdlTest.consume { cRecords ->
+        if (cRecords.isEmpty) {
+            if (count < 2 && retries > 0) {
+                log.info { "Init test run: Did not get any messages on retry $retries, will wait 60 s and try again" }
+                retries--
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            } else {
+                log.info { "Init test run: Decided no more events on topic" }
+                return@consume KafkaConsumerStates.IsFinished
+            }
+        }
+        workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+        lastOffsetCurrently = cRecords.last().offset()
+        KafkaConsumerStates.IsOk
+    }
+
+    log.info { "INVESTIGATE - last offset on pdl queue $lastOffsetCurrently" }
+
 /*
     log.info { "INVESTIGATE - Will start consume pdl queue for cache compare" }
     var count = 0

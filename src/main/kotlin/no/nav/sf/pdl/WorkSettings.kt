@@ -42,7 +42,7 @@ data class WorkSettings(
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
             "schema.registry.url" to kafkaSchemaReg,
             ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to fetchEnv(EV_kafkaBrokersOnPrem),
-            ConsumerConfig.MAX_POLL_RECORDS_CONFIG to 10
+            ConsumerConfig.MAX_POLL_RECORDS_CONFIG to 50
     ),
     val kafkaConsumerOnPremSeparateClientId: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
