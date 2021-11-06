@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import investigateCache
 import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -36,13 +35,13 @@ object Bootstrap {
             //    loop()
             // } else {
             workMetrics.busy.set(1.0)
-            investigateCache() // creates mismatch file - includes load gt and person cache
+            // investigateCache() // creates mismatch file - includes load gt and person cache
             // initLoadTest() // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
-            // loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
+            loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
             // initLoad() // Only publish to person/cache topic
-            // loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
+            loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
             loop()
             // }
         }

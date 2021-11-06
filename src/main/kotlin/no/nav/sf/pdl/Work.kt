@@ -51,6 +51,8 @@ sealed class ExitReason {
     fun isOK(): Boolean = this is Work || this is NoEvents
 }
 
+var firstOffsetLimitGt = 128891680L
+
 internal fun updateGtCacheAndAffectedPersons(): ExitReason {
     var gtRetries = 5
 
@@ -60,7 +62,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     var first = true
     var firstPersonUpdate = true
-    var last = 0L
+    var lastOffset = 0L
 
     val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
 
@@ -82,13 +84,19 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
         }
         exitReason = ExitReason.Work
 
+        if (consumerRecords.last().offset() < firstOffsetLimitGt) {
+            log.error { "Gt attempting consuming offset last ${consumerRecords.last().offset()} before limit $firstOffsetLimitGt. Failed to fetch offset commit from kafka? abort" }
+            exitReason = ExitReason.KafkaIssues
+            return@consume KafkaConsumerStates.HasIssues
+        }
+
         workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
         consumerRecords.forEach {
             if (first) {
                 first = false
                 log.info { "Work gt cache update First offset read ${it.offset()}" }
             }
-            last = it.offset()
+            lastOffset = it.offset()
             // Investigate.writeText("CONSUMED GT OFFSET ${it.offset()}", true)
             if (it.value() == null) {
                 if (gtCache.containsKey(it.key()) && gtCache[it.key()] == null) {
@@ -151,7 +159,12 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
         }
     }
 
-    log.info { "Work Gt Read of gt done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $last " }
+    if (!exitReason.isOK()) {
+        log.error { "Aborting gt update due to kafka issue" }
+        return exitReason
+    }
+
+    log.info { "Work Gt Read of gt done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $lastOffset " }
 
     if (resultListChangesToGTCache.size > 0) {
         AKafkaProducer<ByteArray, ByteArray>(
@@ -176,7 +189,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
             }
         }
 
-        log.info { "Work Gt Post new gt done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $last " }
+        log.info { "Work Gt Post new gt done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $lastOffset " }
     }
 
     // Investigate.writeText("SKIPUPDATELIST: $skipUpdate", true)
@@ -233,8 +246,9 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                 }
     }
 
-    log.info { "Work Gt Posted affected persons done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $last " }
+    log.info { "Work Gt Posted affected persons done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $lastOffset " }
 
+    firstOffsetLimitGt = lastOffset
     // if (!exitReason.isOK()) return@consume KafkaConsumerStates.HasIssues
 
     // KafkaConsumerStates.IsOk // Continue consume cycle
@@ -256,6 +270,8 @@ var samplesLeft = 5
 var presampleLeft = 3
 
 var lifetime = 0
+
+var limitPersonOffset = 312812365L
 
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
@@ -306,6 +322,12 @@ internal fun work(): ExitReason {
             }
             exitReason = ExitReason.Work
             workMetrics.recordsParsed.inc(cRecords.count().toDouble())
+
+            if (cRecords.last().offset() < limitPersonOffset) {
+                log.error { "Kafka person consumed with last offset ${cRecords.last().offset()} is before limit $limitPersonOffset. Abort" }
+                exitReason = ExitReason.KafkaIssues
+                return@consume KafkaConsumerStates.HasIssues
+            }
 
             val results = cRecords.map { cr ->
                 if (cr.value() == null) {
@@ -444,7 +466,7 @@ internal fun work(): ExitReason {
                     }
                 }.fold(true) { acc, triple ->
                     acc && triple.second?.let {
-                        send(kafkaPersonTopic, triple.first.toByteArray(), it.toByteArray()).also { workMetrics.publishedPersons.inc(); workMetrics.latestPublishedPersonsOffset.set(triple.third.toDouble()) }
+                        send(kafkaPersonTopic, triple.first.toByteArray(), it.toByteArray()).also { workMetrics.publishedPersons.inc(); workMetrics.latestPublishedPersonsOffset.set(triple.third.toDouble()); limitPersonOffset = cRecords.last().offset() }
                     } ?: sendNullValue(kafkaPersonTopic, triple.first.toByteArray()).also {
                         workMetrics.publishedTombstones.inc()
                     }
