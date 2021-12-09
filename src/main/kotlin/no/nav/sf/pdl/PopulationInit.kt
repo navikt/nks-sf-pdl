@@ -64,7 +64,7 @@ var retry: Int = 0
 
 val targetfnr1 = "06114331587"
 val targetfnr2 = "11066444742"
-val targetAktoerid = "1000033414297"
+val targetAktoerid = "1000021175788"
 
 internal fun initLoadTest() {
     conditionalWait(100000) // Pause
