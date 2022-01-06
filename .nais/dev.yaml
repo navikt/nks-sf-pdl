@@ -48,7 +48,7 @@ spec:
     - name: KAFKA_SCREG
       value: https://kafka-schema-registry.nais-q.adeo.no
     - name: KAFKA_CLIENTID
-      value: nks-sf-pdl-v2
+      value: nks-sf-pdl-sit
     - name: KAFKA_SECURITY
       value: 'TRUE'
     - name: KAFKA_SECPROT
