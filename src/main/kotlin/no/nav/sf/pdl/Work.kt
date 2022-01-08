@@ -51,7 +51,7 @@ sealed class ExitReason {
     fun isOK(): Boolean = this is Work || this is NoEvents
 }
 
-var firstOffsetLimitGt = 128891680L
+var firstOffsetLimitGt = -1L
 
 internal fun updateGtCacheAndAffectedPersons(): ExitReason {
     var gtRetries = 5
