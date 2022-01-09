@@ -27,7 +27,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
     } else {
         when (val query = cr.value()?.getQueryFromJson() ?: InvalidQuery) {
             InvalidQuery -> {
-                log.error { "Init: Unable to parse topic value as query object" }
+                // log.error { "Init: Unable to parse topic value as query object" }
                 return PersonInvalid
             }
             is Query -> {
@@ -52,6 +52,10 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
 
 fun List<Pair<String, PersonBase>>.isValid(): Boolean {
     return this.map { it.second }.filterIsInstance<PersonInvalid>().isEmpty() && this.map { it.second }.filterIsInstance<PersonProtobufIssue>().isEmpty()
+}
+
+fun List<Pair<String, PersonBase>>.filterOutInvalidPairs(): List<Pair<String, PersonBase>> {
+    return this.filter { it.second is PersonSf || it.second is PersonTombestone }
 }
 
 fun List<Triple<String, PersonBase, String?>>.isValidT(): Boolean {
@@ -201,8 +205,17 @@ internal fun initLoad(): ExitReason {
                     return@consume KafkaConsumerStates.IsFinished
                 }
             }
-            val parsedBatch: List<Pair<String, PersonBase>> = cRecords.map { cr ->
+            val parsedBatchBeforeFilter: List<Pair<String, PersonBase>> = cRecords.map { cr ->
                 Pair(cr.key(), parsePdlJsonOnInit(cr))
+            }
+
+            // log.info { "INVESTIGATE - found ${parsedBatchBeforeFilter.invalidCount()} invalid person of ${parsedBatchBeforeFilter.count()} records" }
+
+            val parsedBatch = parsedBatchBeforeFilter.filterOutInvalidPairs()
+
+            if (parsedBatch.count() == 0) {
+                log.warn { "Skipped at batch with only invalids" }
+                return@consume KafkaConsumerStates.IsOk
             }
             if (heartBeatConsumer == 0) {
                 log.info { "Init: Successfully consumed a batch (This is prompted first and each 10000th consume batch) Batch size: ${parsedBatch.size}" }
