@@ -271,7 +271,7 @@ var presampleLeft = 3
 
 var lifetime = 0
 
-var limitPersonOffset = 312812365L
+var limitPersonOffset = -1L
 
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
