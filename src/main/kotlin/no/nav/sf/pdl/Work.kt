@@ -341,7 +341,8 @@ internal fun work(): ExitReason {
                             workMetrics.consumerIssues.inc()
                             log.error { "Unable to parse topic value PDL" }
                             exitReason = ExitReason.KafkaIssues
-                            Triple(KafkaConsumerStates.HasIssues, PersonInvalid, cr.offset())
+                            // TODO SIT: Let trash data pass by
+                            Triple(KafkaConsumerStates.IsOk, PersonInvalid, cr.offset())
                         }
                         is Query -> {
                             when (val personSf = query.toPersonSf()) {
@@ -434,6 +435,10 @@ internal fun work(): ExitReason {
                                 workMetrics.cache_blocked.inc()
                                 false
                             }
+                        }
+                        is PersonInvalid -> {
+                            // Sit specific : Filter away invalid data
+                            false
                         }
                         else -> return@consume KafkaConsumerStates.HasIssues
                     }
