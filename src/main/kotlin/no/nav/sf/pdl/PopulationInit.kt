@@ -58,6 +58,14 @@ fun List<Triple<String, PersonBase, String?>>.isValidT(): Boolean {
     return this.map { it.second }.filterIsInstance<PersonInvalid>().isEmpty() && this.map { it.second }.filterIsInstance<PersonProtobufIssue>().isEmpty()
 }
 
+fun List<Triple<String, PersonBase, String?>>.invalidCount(): Int {
+    return this.map { it.second }.filterIsInstance<PersonInvalid>().count()
+}
+
+fun List<Triple<String, PersonBase, String?>>.filterOutInvalid(): List<Triple<String, PersonBase, String?>> {
+    return this.filter { it.second is PersonSf || it.second is PersonTombestone }
+}
+
 var heartBeatConsumer: Int = 0
 
 var retry: Int = 0
@@ -108,9 +116,13 @@ internal fun initLoadTest() {
             }
         }
 
-        val parsedBatch: List<Triple<String, PersonBase, String?>> = cRecords.map { cr ->
+        val parsedBatchBeforeFilter: List<Triple<String, PersonBase, String?>> = cRecords.map { cr ->
             Triple(cr.key(), parsePdlJsonOnInit(cr), cr.value())
         }
+
+        log.info { "INVESTIGATE - found ${parsedBatchBeforeFilter.invalidCount()} invalid person of ${parsedBatchBeforeFilter.count()} records" }
+
+        val parsedBatch = parsedBatchBeforeFilter.filterOutInvalid()
 
         if (parsedBatch.isValidT()) {
             workMetrics.initialRecordsParsed.inc(cRecords.count().toDouble())
