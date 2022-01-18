@@ -109,8 +109,7 @@ internal fun initLoadTest() {
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
-        /*
-        cRecords.filter { it.key() == targetAktoerid }.forEach {
+        cRecords.filter { it.key() == "2014653859757" || it.value()?.contains("10108000398") == true }.forEach {
             val parsed = parsePdlJsonOnInit(it)
             if (parsed is PersonSf) {
                 val person = parsed as PersonSf
@@ -121,8 +120,6 @@ internal fun initLoadTest() {
                 log.info { "INVESTIGATE - found data on aktoerid not parsed as personsf!" }
             }
         }
-
-         */
 
         val parsedBatchBeforeFilter: List<Triple<String, PersonBase, String?>> = cRecords.map { cr ->
             Triple(cr.key(), parsePdlJsonOnInit(cr), cr.value())
@@ -138,16 +135,17 @@ internal fun initLoadTest() {
                 when (val personBase = it.second) {
                     is PersonSf -> {
                         // if ((it.second as PersonSf).identer.any { it.ident == targetfnr1 } || (it.second as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr1 }) {
-                        if ((it.second as PersonSf).navn.any { (it.fornavn?.contains("TEST") ?: false) ||
-                                    (it.mellomnavn?.contains("TEST") ?: false) ||
-                                    (it.etternavn?.contains("TEST") ?: false)
+                        if ((it.second as PersonSf).navn.any { (it.fornavn?.contains("TESTF") ?: false) ||
+                                    (it.mellomnavn?.contains("TESTF") ?: false) ||
+                                    (it.etternavn?.contains("TESTF") ?: false)
                         }) {
                             val p = (it.second as PersonSf)
-                            log.info { "INVESTIGATE TESTUSER seen: ${p.navn.map{"${it.fornavn} ${it.mellomnavn} ${it.etternavn}"}
-                                .joinToString(" ")} fnr ${(it.second as PersonSf).folkeregisterId}, aktoerid ${p.aktoerId}" }
+                            log.info { "INVESTIGATE TESTF-USER seen: ${p.navn.map{"${it.fornavn} ${it.mellomnavn} ${it.etternavn}"}
+                                .joinToString(" ")} fnr ${(it.second as PersonSf).folkeregisterId}, aktoerid ${p.aktoerId}\nq: ${it.third}\n\n" }
 
                             File("/tmp/test").appendText("${p.navn.map{"${it.fornavn} ${it.mellomnavn} ${it.etternavn}"}
-                                .joinToString(" ")} fnr ${p.folkeregisterId}, aktoerid ${p.aktoerId}\n")
+                                .joinToString(" ")} fnr ${p.folkeregisterId}, aktoerid ${p.aktoerId}\n" +
+                                    "q: ${it.third}\n\n")
 
                             // log.info { "INVESTIGATE - found data of interest on pdl queue" }
                             interestingHitCount++
