@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.io.File
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -108,6 +109,7 @@ internal fun initLoadTest() {
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
+        /*
         cRecords.filter { it.key() == targetAktoerid }.forEach {
             val parsed = parsePdlJsonOnInit(it)
             if (parsed is PersonSf) {
@@ -119,6 +121,8 @@ internal fun initLoadTest() {
                 log.info { "INVESTIGATE - found data on aktoerid not parsed as personsf!" }
             }
         }
+
+         */
 
         val parsedBatchBeforeFilter: List<Triple<String, PersonBase, String?>> = cRecords.map { cr ->
             Triple(cr.key(), parsePdlJsonOnInit(cr), cr.value())
@@ -133,11 +137,22 @@ internal fun initLoadTest() {
             parsedBatch.forEach {
                 when (val personBase = it.second) {
                     is PersonSf -> {
-                        if ((it.second as PersonSf).identer.any { it.ident == targetfnr1 } || (it.second as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr1 }) {
-                            log.info { "INVESTIGATE - found data of interest on pdl queue" }
+                        // if ((it.second as PersonSf).identer.any { it.ident == targetfnr1 } || (it.second as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr1 }) {
+                        if ((it.second as PersonSf).navn.any { (it.fornavn?.contains("TEST") ?: false) ||
+                                    (it.mellomnavn?.contains("TEST") ?: false) ||
+                                    (it.etternavn?.contains("TEST") ?: false)
+                        }) {
+                            val p = (it.second as PersonSf)
+                            log.info { "INVESTIGATE TESTUSER seen: ${p.navn.map{"${it.fornavn} ${it.mellomnavn} ${it.etternavn}"}
+                                .joinToString(" ")} fnr ${(it.second as PersonSf).folkeregisterId}, aktoerid ${p.aktoerId}" }
+
+                            File("/tmp/test").appendText("${p.navn.map{"${it.fornavn} ${it.mellomnavn} ${it.etternavn}"}
+                                .joinToString(" ")} fnr ${p.folkeregisterId}, aktoerid ${p.aktoerId}\n")
+
+                            // log.info { "INVESTIGATE - found data of interest on pdl queue" }
                             interestingHitCount++
-                            Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Value:\n${(it.second as PersonSf).toJson()}\n\n", true)
-                            Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Query:\n${it.third}\n\n", true, "/tmp/queries")
+                            // Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Value:\n${(it.second as PersonSf).toJson()}\n\n", true)
+                            // Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Query:\n${it.third}\n\n", true, "/tmp/queries")
                         }
                     }
                     is PersonTombestone -> {

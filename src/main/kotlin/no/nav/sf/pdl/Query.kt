@@ -71,7 +71,8 @@ enum class Tiltakstype {
     FYUS,
     TFUS,
     FTUS,
-    TOAN
+    TOAN,
+    DIUS
 }
 
 sealed class QueryBase
