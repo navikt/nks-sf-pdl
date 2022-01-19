@@ -124,7 +124,7 @@ internal fun initLoadTest() {
             Triple(cr.key(), parsePdlJsonOnInit(cr), cr.value())
         }
 
-        log.info { "INVESTIGATE - found ${parsedBatchBeforeFilter.invalidCount()} invalid person of ${parsedBatchBeforeFilter.count()} records" }
+        // log.info { "INVESTIGATE - found ${parsedBatchBeforeFilter.invalidCount()} invalid person of ${parsedBatchBeforeFilter.count()} records" }
 
         val parsedBatch = parsedBatchBeforeFilter.filterOutInvalid().filter { it.third?.contains("TESTFAMILIEN") == true }
 
