@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import java.io.File
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -109,7 +108,7 @@ internal fun initLoadTest() {
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
-        cRecords.filter { it.key() == "2014653859757" || it.value()?.contains("10108000398") == true }.forEach {
+        cRecords.filter { it.value()?.contains("TESTFAMILIEN") == true }.forEach {
             val parsed = parsePdlJsonOnInit(it)
             if (parsed is PersonSf) {
                 val person = parsed as PersonSf
@@ -127,36 +126,58 @@ internal fun initLoadTest() {
 
         log.info { "INVESTIGATE - found ${parsedBatchBeforeFilter.invalidCount()} invalid person of ${parsedBatchBeforeFilter.count()} records" }
 
-        val parsedBatch = parsedBatchBeforeFilter.filterOutInvalid()
+        val parsedBatch = parsedBatchBeforeFilter.filterOutInvalid().filter { it.third?.contains("TESTFAMILIEN") == true }
 
+        if (parsedBatch.isEmpty()) return@consume KafkaConsumerStates.IsOk
         if (parsedBatch.isValidT()) {
             workMetrics.initialRecordsParsed.inc(cRecords.count().toDouble())
-            parsedBatch.forEach {
-                when (val personBase = it.second) {
-                    is PersonSf -> {
-                        // if ((it.second as PersonSf).identer.any { it.ident == targetfnr1 } || (it.second as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr1 }) {
-                        if ((it.second as PersonSf).navn.any { (it.fornavn?.contains("TESTF") ?: false) ||
-                                    (it.mellomnavn?.contains("TESTF") ?: false) ||
-                                    (it.etternavn?.contains("TESTF") ?: false)
-                        }) {
-                            val p = (it.second as PersonSf)
-                            log.info { "INVESTIGATE TESTF-USER seen: ${p.navn.map{"${it.fornavn} ${it.mellomnavn} ${it.etternavn}"}
-                                .joinToString(" ")} fnr ${(it.second as PersonSf).folkeregisterId}, aktoerid ${p.aktoerId}\nq: ${it.third}\n\n" }
+            AKafkaProducer<ByteArray, ByteArray>(
+                config = ws.kafkaProducerGcp
+            ).produce {
+                parsedBatch.forEach {
+                    when (val personBase = it.second) {
+                        is PersonSf -> {
+                            /*
+                            // if ((it.second as PersonSf).identer.any { it.ident == targetfnr1 } || (it.second as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr1 }) {
+                            if ((it.second as PersonSf).navn.any {
+                                    (it.fornavn?.contains("TESTF") ?: false) ||
+                                            (it.mellomnavn?.contains("TESTF") ?: false) ||
+                                            (it.etternavn?.contains("TESTF") ?: false)
+                                }) {
+                                val p = (it.second as PersonSf)
+                                log.info {
+                                    "INVESTIGATE TESTF-USER seen: ${
+                                        p.navn.map { "${it.fornavn} ${it.mellomnavn} ${it.etternavn}" }
+                                            .joinToString(" ")
+                                    } fnr ${(it.second as PersonSf).folkeregisterId}, aktoerid ${p.aktoerId}\nq: ${it.third}\n\n"
+                                }
 
-                            File("/tmp/test").appendText("${p.navn.map{"${it.fornavn} ${it.mellomnavn} ${it.etternavn}"}
-                                .joinToString(" ")} fnr ${p.folkeregisterId}, aktoerid ${p.aktoerId}\n" +
-                                    "q: ${it.third}\n\n")
+                                File("/tmp/test").appendText(
+                                    "${
+                                        p.navn.map { "${it.fornavn} ${it.mellomnavn} ${it.etternavn}" }
+                                            .joinToString(" ")
+                                    } fnr ${p.folkeregisterId}, aktoerid ${p.aktoerId}\n" +
+                                            "q: ${it.third}\n\n")
 
-                            // log.info { "INVESTIGATE - found data of interest on pdl queue" }
+
+
+                                // log.info { "INVESTIGATE - found data of interest on pdl queue" }
+
+                                // Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Value:\n${(it.second as PersonSf).toJson()}\n\n", true)
+                                // Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Query:\n${it.third}\n\n", true, "/tmp/queries")
+                            }
+
+                             */
                             interestingHitCount++
-                            // Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Value:\n${(it.second as PersonSf).toJson()}\n\n", true)
-                            // Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1}}, key (aktoerid): ${it.first}. Query:\n${it.third}\n\n", true, "/tmp/queries")
+                            val key = it.first
+                            val personProto = personBase.toPersonProto()
+                            send(kafkaPersonTopic, personProto.first.toByteArray(), personProto.second.toByteArray()).also { workMetrics.publishedPersons.inc(); log.info { "Posted chosen record of key $key" } }
                         }
-                    }
-                    is PersonTombestone -> {
-                    }
-                    else -> {
-                        log.error { "Should never arrive here" }; KafkaConsumerStates.HasIssues
+                        is PersonTombestone -> {
+                        }
+                        else -> {
+                            log.error { "Should never arrive here" }; KafkaConsumerStates.HasIssues
+                        }
                     }
                 }
             }
