@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.io.File
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -272,6 +273,35 @@ var presampleLeft = 3
 var lifetime = 0
 
 var limitPersonOffset = -1L
+
+fun trysamplequeue() {
+    log.info { "SAMPLEQUEUE START" }
+    var retries = 5
+    val topic = "aapen-person-pdl-dokument-v1-tagged"
+    AKafkaConsumer<String, String?>(
+        config = ws.kafkaConsumerOnPrem,
+        fromBeginning = false,
+        topics = listOf(topic)
+    ).consume { cRecords ->
+        // exitReason = ExitReason.NoEvents
+        if (cRecords.isEmpty) {
+            if (workMetrics.recordsParsed.get().toInt() == 0 && retries > 0) {
+                // exitReason = ExitReason.NoEvents
+                log.info { "SAMPLEQUEUE: No records found $retries retries left, wait 60 w" }
+                retries--
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            } else {
+                log.info { "SAMPLEQUEUE No more records found (or given up) - end consume session" }
+                return@consume KafkaConsumerStates.IsFinished
+            }
+        }
+        log.info { "SAMPLEQUEUE - Found ${cRecords.count()} on a batch from topic $topic" }
+        File("/tmp/samplequeue").writeText(cRecords.last().value() ?: "null")
+        KafkaConsumerStates.IsFinished
+    }
+    log.info { "SAMPLEQUEUE END" }
+}
 
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
