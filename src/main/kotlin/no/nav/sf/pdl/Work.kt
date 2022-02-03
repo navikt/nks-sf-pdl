@@ -302,7 +302,7 @@ fun trysamplequeue() {
             File("/tmp/samplequeue").writeText(result.last().value() ?: "null")
             KafkaConsumerStates.IsFinished
         } else {
-            log.info { "SAMPLEQUEUE - No tags on batch, continue" }
+            // log.info { "SAMPLEQUEUE - No tags on batch, continue" }
             KafkaConsumerStates.IsOk
         }
     }
