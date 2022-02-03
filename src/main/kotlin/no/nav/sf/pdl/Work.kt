@@ -296,9 +296,9 @@ fun trysamplequeue() {
                 return@consume KafkaConsumerStates.IsFinished
             }
         }
-        val result = cRecords.filter { it.value() != null && !it.value()!!.contains("\"tags\":null") }
+        val result = cRecords.filter { it.value() != null && it.value()!!.contains("SALESFORCE") }
         if (result.count() > 0) {
-            log.info { "SAMPLEQUEUE - Found ${result.count()} w tags on a batch from topic $topic" }
+            log.info { "SAMPLEQUEUE - Found ${result.count()} w SF tag on a batch from topic $topic" }
             File("/tmp/samplequeue").writeText(result.last().value() ?: "null")
             KafkaConsumerStates.IsFinished
         } else {
