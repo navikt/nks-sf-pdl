@@ -277,7 +277,7 @@ var limitPersonOffset = -1L
 fun trysamplequeue() {
     log.info { "SAMPLEQUEUE START" }
     var retries = 5
-    val topic = "aapen-person-pdl-dokument-v1-tagged"
+    val topic = "privat-person-pdl-dokument-tagged-v1"
     AKafkaConsumer<String, String?>(
         config = ws.kafkaConsumerOnPrem,
         fromBeginning = false,
