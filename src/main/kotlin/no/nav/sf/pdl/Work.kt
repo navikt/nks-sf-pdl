@@ -272,7 +272,7 @@ var presampleLeft = 3
 
 var lifetime = 0
 
-var limitPersonOffset = 456097878L
+var limitPersonOffset = 31557000L
 
 fun trysamplequeue() {
     log.info { "SAMPLEQUEUE START" }
