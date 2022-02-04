@@ -300,7 +300,7 @@ fun trysamplequeue() {
         if (result.count() > 0) {
             log.info { "SAMPLEQUEUE - Found ${result.count()} w SF tag on a batch from topic $topic" }
             File("/tmp/samplequeue").writeText(result.last().value() ?: "null")
-            KafkaConsumerStates.IsFinished
+            KafkaConsumerStates.IsOk
         } else {
             // log.info { "SAMPLEQUEUE - No tags on batch, continue" }
             KafkaConsumerStates.IsOk
