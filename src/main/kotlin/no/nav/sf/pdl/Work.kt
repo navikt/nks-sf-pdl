@@ -272,7 +272,7 @@ var presampleLeft = 3
 
 var lifetime = 0
 
-var limitPersonOffset = -1L
+var limitPersonOffset = 456097878L
 
 fun trysamplequeue() {
     log.info { "SAMPLEQUEUE START" }
@@ -342,9 +342,9 @@ internal fun work(): ExitReason {
         AKafkaConsumer<String, String?>(
                 config = ws.kafkaConsumerOnPrem,
                 fromBeginning = false
-        ).consume { cRecords ->
+        ).consume { cRecordsPreFilter ->
             exitReason = ExitReason.NoEvents
-            if (cRecords.isEmpty) {
+            if (cRecordsPreFilter.isEmpty) {
                 if (workMetrics.recordsParsed.get().toInt() == 0 && retries > 0) {
                     exitReason = ExitReason.NoEvents
                     log.info { "Work: No records found $retries retries left, wait 60 w" }
@@ -357,13 +357,21 @@ internal fun work(): ExitReason {
                 }
             }
             exitReason = ExitReason.Work
-            workMetrics.recordsParsed.inc(cRecords.count().toDouble())
+            workMetrics.recordsParsed.inc(cRecordsPreFilter.count().toDouble())
 
-            if (cRecords.last().offset() < limitPersonOffset) {
-                log.error { "Kafka person consumed with last offset ${cRecords.last().offset()} is before limit $limitPersonOffset. Abort" }
+            if (cRecordsPreFilter.last().offset() < limitPersonOffset) {
+                log.error { "Kafka person consumed with last offset ${cRecordsPreFilter.last().offset()} is before limit $limitPersonOffset. Abort" }
                 exitReason = ExitReason.KafkaIssues
                 return@consume KafkaConsumerStates.HasIssues
             }
+
+            val cRecords = cRecordsPreFilter.filter { it.value() == null || it.value()?.contains("SALESFORCE") == true }
+
+            if (cRecords.isEmpty()) { // No tombstones or records with SALESFORCE found
+                return@consume KafkaConsumerStates.IsOk
+            }
+
+            log.info { "Found ${cRecords.count()} records with tag SALESFORCE (or tombstones)" }
 
             val results = cRecords.map { cr ->
                 if (cr.value() == null) {
