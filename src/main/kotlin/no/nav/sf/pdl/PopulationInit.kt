@@ -173,7 +173,7 @@ internal fun initLoadTest(targets: List<String>) {
         File("/tmp/report").appendText("${it.key}=${it.value}\n")
     }
 
-    log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
+    log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}, report $report" }
 }
 
 internal fun initLoad(): ExitReason {
