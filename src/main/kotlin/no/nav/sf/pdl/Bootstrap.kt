@@ -1,5 +1,8 @@
 package no.nav.sf.pdl
 
+import java.io.BufferedReader
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -36,7 +39,9 @@ object Bootstrap {
             // } else {
             workMetrics.busy.set(1.0)
             // investigateCache() // creates mismatch file - includes load gt and person cache
-            initLoadTest() // TODO Tmp investigate run
+            val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
+            val lines = readFromInputStream(s)
+            initLoadTest(lines) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
@@ -97,5 +102,16 @@ object Bootstrap {
 
     fun LocalTime.inSleepRange(): Boolean {
         return this.isAfter(sleepRangeStart) && this.isBefore(sleepRangeStop)
+    }
+
+    private fun readFromInputStream(inputStream: InputStream): List<String> {
+        val resultStringBuilder = StringBuilder()
+        BufferedReader(InputStreamReader(inputStream)).use { br ->
+            var line: String?
+            while (br.readLine().also { line = it } != null) {
+                resultStringBuilder.append(line).append("\n")
+            }
+        }
+        return resultStringBuilder.toString().lines()
     }
 }

@@ -1,5 +1,6 @@
 package no.nav.sf.pdl
 
+import java.io.File
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
@@ -66,12 +67,17 @@ val targetfnr1 = "06114331587"
 val targetfnr2 = "11066444742"
 val targetAktoerid = "1000021175788"
 
-internal fun initLoadTest() {
+internal fun initLoadTest(targets: List<String>) {
     conditionalWait(100000) // Pause
     var retries = 5
     var interestingHitCount = 0
     var count = 0
     log.info { "Start init test" }
+
+    var report: MutableMap<String, String> = mutableMapOf()
+
+    targets.forEach { report[it] = "" }
+
     workMetrics.testRunRecordsParsed.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerOnPremSeparateClientId,
@@ -96,13 +102,21 @@ internal fun initLoadTest() {
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
-        cRecords.filter { it.key() == targetAktoerid }.forEach {
+        cRecords.filter { targets.contains(it.key()) }.forEach {
             val parsed = parsePdlJsonOnInit(it)
             if (parsed is PersonSf) {
                 val person = parsed as PersonSf
                 interestingHitCount++
                 log.info { "INVESTIGATE - found data of interest on pdl queue offset ${it.offset()}" }
-                Investigate.writeText("Offset ${it.offset()}\nValue as person:\n${person.toJson()}\nValue query:${it.value()}\n\n", true)
+                File("/tmp/reportlisting").appendText("${it.key()} Offset ${it.offset()} PERSON\n")
+                Investigate.writeText("${it.key()} Offset ${it.offset()}\nValue as person:\n${person.toJson()}\nValue query:${it.value()}\n\n", true)
+                report.put((it as PersonSf).aktoerId, report[it.aktoerId]!! + "P ")
+            } else if (parsed is PersonTombestone) {
+                interestingHitCount++
+                log.info { "INVESTIGATE - found tombstone data of interest on pdl queue offset ${it.offset()}" }
+                File("/tmp/report").appendText("${it.key()} Offset ${it.offset()} TOMBSTONE\n")
+                Investigate.writeText("${it.key()} Offset ${it.offset()} TOMBSTONE\n\n", true)
+                report.put((it as PersonTombestone).aktoerId, report[it.aktoerId]!! + "T ")
             } else {
                 log.info { "INVESTIGATE - found data on aktoerid not parsed as personsf!" }
             }
@@ -155,6 +169,10 @@ internal fun initLoadTest() {
         KafkaConsumerStates.IsOk
     }
     heartBeatConsumer = 0
+    report.forEach {
+        File("/tmp/report").appendText("${it.key}=${it.value}\n")
+    }
+
     log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
 }
 
