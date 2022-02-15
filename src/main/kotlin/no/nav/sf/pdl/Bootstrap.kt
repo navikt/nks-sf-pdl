@@ -39,9 +39,9 @@ object Bootstrap {
             // } else {
             workMetrics.busy.set(1.0)
             // investigateCache() // creates mismatch file - includes load gt and person cache
-            val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
-            val lines = readFromInputStream(s)
-            initLoadTest(lines) // TODO Tmp investigate run
+            // val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
+            // val lines = readFromInputStream(s)
+            // initLoadTest(lines) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
