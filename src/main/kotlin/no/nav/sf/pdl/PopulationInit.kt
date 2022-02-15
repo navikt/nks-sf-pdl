@@ -102,21 +102,29 @@ internal fun initLoadTest(targets: List<String>) {
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
-        cRecords.filter { targets.contains(it.key()) }.forEach {
-            val parsed = parsePdlJsonOnInit(it)
+        cRecords.filter { targets.contains(it.key()) }.forEach { c ->
+            val parsed = parsePdlJsonOnInit(c)
             if (parsed is PersonSf) {
                 val person = parsed as PersonSf
                 interestingHitCount++
-                log.info { "INVESTIGATE - found data of interest on pdl queue offset ${it.offset()}" }
-                File("/tmp/reportlisting").appendText("${it.key()} Offset ${it.offset()} PERSON\n")
-                Investigate.writeText("${it.key()} Offset ${it.offset()}\nValue as person:\n${person.toJson()}\nValue query:${it.value()}\n\n", true)
-                report.put((it as PersonSf).aktoerId, report[it.aktoerId]!! + "P ")
+                log.info { "INVESTIGATE - found data of interest on pdl queue offset ${c.offset()}" }
+                File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} PERSON\n")
+                Investigate.writeText("${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:${c.value()}\n\n", true)
+                report.put(c.key(), report[c.key()]!! + "P ")
             } else if (parsed is PersonTombestone) {
+                val tombstone = parsed as PersonTombestone
                 interestingHitCount++
-                log.info { "INVESTIGATE - found tombstone data of interest on pdl queue offset ${it.offset()}" }
-                File("/tmp/report").appendText("${it.key()} Offset ${it.offset()} TOMBSTONE\n")
-                Investigate.writeText("${it.key()} Offset ${it.offset()} TOMBSTONE\n\n", true)
-                report.put((it as PersonTombestone).aktoerId, report[it.aktoerId]!! + "T ")
+                log.info { "INVESTIGATE - found tombstone data of interest on pdl queue offset ${c.offset()}" }
+                File("/tmp/report").appendText("${c.key()} Offset ${c.offset()} TOMBSTONE\n")
+                Investigate.writeText("${c.key()} Offset ${c.offset()} TOMBSTONE\n\n", true)
+                report.put(c.key(), report[(c.key())]!! + "T ")
+            } else if (c.value() != null && targets.any { c.value()!!.contains(it) }) {
+                val person = parsed as PersonSf
+                interestingHitCount++
+                log.info { "INVESTIGATE - found INDIRECT data of interest on pdl queue offset ${c.offset()}" }
+                File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} INDIRECT PERSON FIND\n")
+                Investigate.writeText("${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:${c.value()}\n\n", true)
+                report.put(c.key(), report[c.key()]!! + "! ")
             } else {
                 log.info { "INVESTIGATE - found data on aktoerid not parsed as personsf!" }
             }
@@ -173,7 +181,7 @@ internal fun initLoadTest(targets: List<String>) {
         File("/tmp/report").appendText("${it.key}=${it.value}\n")
     }
 
-    log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}, report $report" }
+    log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
 }
 
 internal fun initLoad(): ExitReason {
