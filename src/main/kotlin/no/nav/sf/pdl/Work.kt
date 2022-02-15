@@ -315,7 +315,11 @@ internal fun work(): ExitReason {
     // return ExitReason.NoEvents
     workMetrics.clearAll()
 
-    if (personCache.isEmpty() || gtCache.isEmpty()) {
+    if (personCache.isEmpty()) {
+        log.warn { "Noted empty person cache" }
+    }
+
+    if (gtCache.isEmpty()) {
         log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
         return ExitReason.NoCache
     }
