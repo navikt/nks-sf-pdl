@@ -102,7 +102,7 @@ internal fun initLoadTest(targets: List<String>) {
 
         workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
 
-        cRecords.filter { targets.contains(it.key()) }.forEach { c ->
+        cRecords.filter { targets.contains(it.key()) || ((it.value() != null && it.value().let { v -> targets.any { v!!.contains(it) } })) }.forEach { c ->
             val parsed = parsePdlJsonOnInit(c)
             if (parsed is PersonSf) {
                 val person = parsed as PersonSf

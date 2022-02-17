@@ -38,6 +38,12 @@ object Bootstrap {
             //    loop()
             // } else {
             workMetrics.busy.set(1.0)
+
+            /*
+
+            INVESTIGATE - found tombstone data of interest on pdl queue offset 302445542"}
+{"@timestamp":"2022-02-17T08:59:54.758+01:00","@version":"1","logger_name":"no.nav.sf.pdl.PopulationInit","thread_name":"main","level":"INFO","level_value":20000,"message":"[] - INVESTIGATE - found tombstone data of interest on pdl queue offset 314041290"}
+             */
             // investigateCache() // creates mismatch file - includes load gt and person cache
             val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
             val lines = readFromInputStream(s!!) + listOf("1000003553491") // Add reference
