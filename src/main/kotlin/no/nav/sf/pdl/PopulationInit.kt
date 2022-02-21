@@ -7,6 +7,7 @@ import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.library.conditionalWait
+import no.nav.sf.library.currentConsumerMessageHost
 import no.nav.sf.library.send
 import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -38,6 +39,7 @@ internal fun parsePdlJsonOnInit(cr: ConsumerRecord<String, String?>): PersonBase
                         return personSf
                     }
                     is PersonInvalid -> {
+                        File("/tmp/personinvalid").writeText("Query:\nquery")
                         log.error { "Init: Failed to parse person" }
                         return PersonInvalid
                     }
@@ -68,6 +70,7 @@ val targetfnr2 = "11066444742"
 val targetAktoerid = "1000021175788"
 
 internal fun initLoadTest(targets: List<String>) {
+    currentConsumerMessageHost = "INITLOADTEST"
     conditionalWait(100000) // Pause
     var retries = 5
     var interestingHitCount = 0
@@ -104,21 +107,26 @@ internal fun initLoadTest(targets: List<String>) {
 
         cRecords.filter { targets.contains(it.key()) || ((it.value() != null && it.value().let { v -> targets.any { v!!.contains(it) } })) }.forEach { c ->
             val parsed = parsePdlJsonOnInit(c)
-            if (parsed is PersonSf) {
-                val person = parsed as PersonSf
-                interestingHitCount++
-                log.info { "INVESTIGATE - found data of interest on pdl queue offset ${c.offset()}" }
-                File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} PERSON\n")
-                Investigate.writeText("${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:${c.value()}\n\n", true)
-                report.put(c.key(), report[c.key()]!! + "P ")
-            } else if (parsed is PersonTombestone) {
-                val tombstone = parsed as PersonTombestone
-                interestingHitCount++
-                log.info { "INVESTIGATE - found tombstone data of interest on pdl queue offset ${c.offset()}" }
-                File("/tmp/report").appendText("${c.key()} Offset ${c.offset()} TOMBSTONE\n")
-                Investigate.writeText("${c.key()} Offset ${c.offset()} TOMBSTONE\n\n", true)
-                report.put(c.key(), report[(c.key())]!! + "T ")
-            } else if (c.value() != null && targets.any { c.value()!!.contains(it) }) {
+            if (targets.contains(c.key())) {
+                if (parsed is PersonSf) {
+                    val person = parsed as PersonSf
+                    interestingHitCount++
+                    log.info { "INVESTIGATE - found data of interest on pdl queue offset ${c.offset()}" }
+                    File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} PERSON\n")
+                    Investigate.writeText(
+                        "${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:\n${c.value()}\n\n",
+                        true
+                    )
+                    report.put(c.key(), report[c.key()]!! + "P ")
+                } else if (parsed is PersonTombestone) {
+                    val tombstone = parsed as PersonTombestone
+                    interestingHitCount++
+                    log.info { "INVESTIGATE - found tombstone data of interest on pdl queue offset ${c.offset()}" }
+                    File("/tmp/report").appendText("${c.key()} Offset ${c.offset()} TOMBSTONE\n")
+                    Investigate.writeText("${c.key()} Offset ${c.offset()} TOMBSTONE\n\n", true)
+                    report.put(c.key(), report[(c.key())]!! + "T ")
+                }
+            } else {
                 if (parsed is PersonInvalid) {
                     interestingHitCount++
                     log.info { "INVESTIGATE - found invalid person data of interest on pdl queue offset ${c.offset()}" }
@@ -140,8 +148,6 @@ internal fun initLoadTest(targets: List<String>) {
                     )
                     report.put(c.key(), report[c.key()]!! + "! ")
                 }
-            } else {
-                log.info { "INVESTIGATE - found data on aktoerid not parsed as personsf!" }
             }
         }
 
