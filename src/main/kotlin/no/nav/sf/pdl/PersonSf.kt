@@ -175,7 +175,7 @@ data class Ident(
     val historisk: Boolean,
     val gruppe: String,
     val metadata: Metadata?,
-    val folkeregistermetadata: Folkeregistermetadata?
+    val folkeregistermetadata: Folkeregistermetadata? = null
 )
 
 @Serializable
@@ -184,7 +184,7 @@ data class Folkeregisteridentifikator(
     val type: String,
     val status: String,
     val metadata: Metadata?,
-    val folkeregistermetadata: Folkeregistermetadata?
+    val folkeregistermetadata: Folkeregistermetadata? = null
 )
 
 @Serializable

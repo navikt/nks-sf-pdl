@@ -1,4 +1,5 @@
 package no.nav.sf.pdl
+import java.io.File
 import java.time.LocalDate
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
@@ -10,6 +11,7 @@ fun String.getQueryFromJson(): QueryBase = runCatching {
     jsonNonStrict.parse(Query.serializer(), this)
 }
         .onFailure {
+            File("/tmp/failedquery").writeText(this)
             log.error { "Cannot convert kafka value to query - ${it.localizedMessage}" }
         }
         .getOrDefault(InvalidQuery)
