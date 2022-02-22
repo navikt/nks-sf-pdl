@@ -147,7 +147,13 @@ internal fun initLoadTest(targets: List<String>) {
                         "${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:${c.value()}\n\n",
                         true
                     )
-                    report.put(hits.first(), report[c.key()]!! + "! ")
+                    val firsthit = hits.first()
+                    if (report.containsKey(firsthit)) {
+                        report.put(firsthit, report[firsthit]!! + "! ")
+                    } else {
+                        log.info { "INVESTIGATE - Did not find key $firsthit among targets" }
+                        File("/tmp/losthit").appendText("$firsthit\n\n$report\n\n\n")
+                    }
                 }
             }
         }
