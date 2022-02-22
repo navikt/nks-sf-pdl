@@ -138,15 +138,16 @@ internal fun initLoadTest(targets: List<String>) {
                     )
                     report.put(c.key(), report[c.key()]!! + "# ")
                 } else {
+                    val hits = targets.filter { c.value()!!.contains(it) }
                     val person = parsed as PersonSf
                     interestingHitCount++
-                    log.info { "INVESTIGATE - found INDIRECT data of interest on pdl queue offset ${c.offset()}" }
+                    log.info { "INVESTIGATE - found INDIRECT (${hits.count()}) data of interest on pdl queue offset ${c.offset()}" }
                     File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} INDIRECT PERSON FIND\n")
                     Investigate.writeText(
                         "${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:${c.value()}\n\n",
                         true
                     )
-                    report.put(c.key(), report[c.key()]!! + "! ")
+                    report.put(hits.first(), report[c.key()]!! + "! ")
                 }
             }
         }
