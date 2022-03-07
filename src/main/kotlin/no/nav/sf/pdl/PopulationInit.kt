@@ -122,7 +122,7 @@ internal fun initLoadTest(targets: List<String>) {
                     val tombstone = parsed as PersonTombestone
                     interestingHitCount++
                     log.info { "INVESTIGATE - found tombstone data of interest on pdl queue offset ${c.offset()}" }
-                    File("/tmp/report").appendText("${c.key()} Offset ${c.offset()} TOMBSTONE\n")
+                    File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} TOMBSTONE\n")
                     Investigate.writeText("${c.key()} Offset ${c.offset()} TOMBSTONE\n\n", true)
                     report.put(c.key(), report[(c.key())]!! + "T ")
                 }
