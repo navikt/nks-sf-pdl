@@ -45,8 +45,9 @@ object Bootstrap {
 {"@timestamp":"2022-02-17T08:59:54.758+01:00","@version":"1","logger_name":"no.nav.sf.pdl.PopulationInit","thread_name":"main","level":"INFO","level_value":20000,"message":"[] - INVESTIGATE - found tombstone data of interest on pdl queue offset 314041290"}
              */
             // investigateCache() // creates mismatch file - includes load gt and person cache //  2321543592093 Offset 18599938
-            val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
-            val lines = readFromInputStream(s!!) + listOf("1000003553491") // Add reference
+            // val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
+            // val lines = readFromInputStream(s!!) + listOf("1000003553491") // Add reference
+            val lines = listOf("2268170288677")
             initLoadTest(lines.filter { it.isNotBlank() }) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
