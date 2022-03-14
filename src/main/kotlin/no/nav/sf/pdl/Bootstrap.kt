@@ -47,8 +47,8 @@ object Bootstrap {
             // investigateCache() // creates mismatch file - includes load gt and person cache //  2321543592093 Offset 18599938
             // val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
             // val lines = readFromInputStream(s!!) + listOf("1000003553491") // Add reference
-            val lines = listOf("2268170288677")
-            initLoadTest(lines.filter { it.isNotBlank() }) // TODO Tmp investigate run
+            // val lines = listOf("2268170288677")
+            // initLoadTest(lines.filter { it.isNotBlank() }) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
