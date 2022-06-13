@@ -51,7 +51,8 @@ enum class FamilieRelasjonsRolle {
     BARN,
     MOR,
     FAR,
-    MEDMOR
+    MEDMOR,
+    DOEDFOEDT_BARN /*Only a handful on queue by fault, added to make them parsable*/
 }
 
 @Serializable

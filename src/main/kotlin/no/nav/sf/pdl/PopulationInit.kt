@@ -364,3 +364,75 @@ internal fun initLoad(): ExitReason {
 
     return exitReason
 }
+
+fun offsetLookGt(offsets: List<Long>) {
+    workMetrics.testRunRecordsParsed.clear()
+    var count = 0
+    var retries = 3
+    val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
+        config = ws.kafkaConsumerOnPremSeparateClientId,
+        fromBeginning = true,
+        topics = listOf(kafkaGTTopic)
+    )
+
+    kafkaConsumerPdlTest.consume { cRecords ->
+        if (cRecords.isEmpty) {
+            if (count < 2 && retries > 0) {
+                log.info { "Init test run OFFSET GT: Did not get any messages on retry $retries, will wait 60 s and try again" }
+                retries--
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            } else {
+                log.info { "Init test run OFFSET GT: Decided no more events on topic" }
+                return@consume KafkaConsumerStates.IsFinished
+            }
+        }
+
+        count += cRecords.count()
+
+        workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+
+        cRecords.filter { offsets.contains(it.offset()) }.forEach {
+            log.info { "INVESTIGATE found OFFSET GT target" }
+            File("/tmp/offsetGtTarget").appendText("OFFSET: ${it.offset()}, KEY: ${it.key()}, VALUE: ${it.value()}\n\n")
+        }
+
+        KafkaConsumerStates.IsOk
+    }
+}
+
+fun offsetLookPerson(offsets: List<Long>) {
+    workMetrics.testRunRecordsParsed.clear()
+    var count = 0
+    var retries = 3
+    val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
+        config = ws.kafkaConsumerOnPremSeparateClientId,
+        fromBeginning = true,
+        topics = listOf(kafkaPDLTopic)
+    )
+
+    kafkaConsumerPdlTest.consume { cRecords ->
+        if (cRecords.isEmpty) {
+            if (count < 2 && retries > 0) {
+                log.info { "Init test run OFFSET PERSON: Did not get any messages on retry $retries, will wait 60 s and try again" }
+                retries--
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            } else {
+                log.info { "Init test run OFFSET PERSON: Decided no more events on topic" }
+                return@consume KafkaConsumerStates.IsFinished
+            }
+        }
+
+        count += cRecords.count()
+
+        workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+
+        cRecords.filter { offsets.contains(it.offset()) }.forEach {
+            log.info { "INVESTIGATE found OFFSET PERSON target" }
+            File("/tmp/offsetTarget").appendText("OFFSET: ${it.offset()}, KEY: ${it.key()}, VALUE: ${it.value()}\n\n")
+        }
+
+        KafkaConsumerStates.IsOk
+    }
+}
