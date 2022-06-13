@@ -271,8 +271,9 @@ var presampleLeft = 3
 
 var lifetime = 0
 
-var limitPersonOffset = 312812365L
+var limitPersonOffset = 318141130L
 
+var firstrun = true
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
     log.info { "bootstrap work session starting, lifetime ${++lifetime}" }
@@ -305,7 +306,7 @@ internal fun work(): ExitReason {
         currentConsumerMessageHost = "PERSON_ONPREM"
         AKafkaConsumer<String, String?>(
                 config = ws.kafkaConsumerOnPrem,
-                fromBeginning = false
+                fromBeginning = firstrun
         ).consume { cRecords ->
             exitReason = ExitReason.NoEvents
             if (cRecords.isEmpty) {
@@ -324,9 +325,10 @@ internal fun work(): ExitReason {
             workMetrics.recordsParsed.inc(cRecords.count().toDouble())
 
             if (cRecords.last().offset() < limitPersonOffset) {
-                log.error { "Kafka person consumed with last offset ${cRecords.last().offset()} is before limit $limitPersonOffset. Abort" }
+                // log.error { "Kafka person consumed with last offset ${cRecords.last().offset()} is before limit $limitPersonOffset. Abort" }
                 exitReason = ExitReason.KafkaIssues
-                return@consume KafkaConsumerStates.HasIssues
+                return@consume KafkaConsumerStates.IsOk
+                // return@consume KafkaConsumerStates.HasIssues
             }
 
             val results = cRecords.map { cr ->
@@ -489,6 +491,7 @@ internal fun work(): ExitReason {
         } // Consumer pdl topic
     } // Producer person topic
 
+    firstrun = false
     log.info {
         "Work persons - Published new persons: ${workMetrics.publishedPersons.get().toInt()} (lastest offset ${workMetrics.latestPublishedPersonsOffset}), new tombstones: ${workMetrics.publishedTombstones.get().toInt()}" +
                 ". Cache enrich actions: ${workMetrics.enriching_from_gt_cache.get().toInt()} person new: ${workMetrics.cache_new.get().toInt()} update: ${workMetrics.cache_update.get().toInt()} blocked: ${workMetrics.cache_blocked.get().toInt()}" +

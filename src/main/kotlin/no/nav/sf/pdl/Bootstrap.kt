@@ -48,8 +48,8 @@ object Bootstrap {
             // val s = Thread.currentThread().contextClassLoader.getResourceAsStream("unfound.txt")
             // val lines = readFromInputStream(s!!) + listOf("1000003553491") // Add reference
             // val lines = listOf("2268170288677")
-            offsetLookGt(listOf(133952843L, 135712966L))
-            offsetLookPerson(listOf(318185145L))
+            // offsetLookGt(listOf(133952843L, 135712966L))
+            // offsetLookPerson(listOf(318185145L))
             // initLoadTest(listOf("1000101208235", "10078520561")) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
