@@ -1,11 +1,13 @@
 package no.nav.sf.pdl
 
+import java.io.File
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.library.conditionalWait
+import no.nav.sf.library.currentConsumerMessageHost
 import no.nav.sf.library.send
 import no.nav.sf.library.sendNullValue
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -367,4 +369,147 @@ internal fun initLoad(): ExitReason {
     log.info { "Init load - Ok? ${exitReason.isOK()} " }
 
     return exitReason
+}
+
+internal fun initLoadTest(targets: List<String>) {
+    currentConsumerMessageHost = "INITLOADTEST"
+    conditionalWait(100000) // Pause
+    var retries = 5
+    var interestingHitCount = 0
+    var count = 0
+    log.info { "Start init test" }
+
+    var report: MutableMap<String, String> = mutableMapOf()
+
+    targets.forEach { report[it] = "" }
+
+    workMetrics.testRunRecordsParsed.clear()
+    val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
+        config = ws.kafkaConsumerOnPremSeparateClientId,
+        fromBeginning = true,
+        topics = listOf(kafkaPDLTopic)
+    )
+
+    kafkaConsumerPdlTest.consume { cRecords ->
+        if (cRecords.isEmpty) {
+            if (count < 2 && retries > 0) {
+                log.info { "Init test run: Did not get any messages on retry $retries, will wait 60 s and try again" }
+                retries--
+                Bootstrap.conditionalWait(60000)
+                return@consume KafkaConsumerStates.IsOk
+            } else {
+                log.info { "Init test run: Decided no more events on topic" }
+                return@consume KafkaConsumerStates.IsFinished
+            }
+        }
+
+        count += cRecords.count()
+
+        workMetrics.testRunRecordsParsed.inc(cRecords.count().toDouble())
+
+        cRecords.filter { targets.contains(it.key()) || ((it.value() != null && it.value().let { v -> targets.any { v!!.contains(it) } })) }.forEach { c ->
+            val parsed = parsePdlJsonOnInit(c)
+            if (targets.contains(c.key())) {
+                if (parsed is PersonSf) {
+                    val person = parsed as PersonSf
+                    interestingHitCount++
+                    log.info { "INVESTIGATE - found data of interest on pdl queue offset ${c.offset()}" }
+                    File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} PERSON\n")
+                    Investigate.writeText(
+                        "${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:\n${c.value()}\n\n",
+                        true
+                    )
+                    report.put(c.key(), report[c.key()]!! + "P ")
+                } else if (parsed is PersonTombestone) {
+                    val tombstone = parsed as PersonTombestone
+                    interestingHitCount++
+                    log.info { "INVESTIGATE - found tombstone data of interest on pdl queue offset ${c.offset()}" }
+                    File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} TOMBSTONE\n")
+                    Investigate.writeText("${c.key()} Offset ${c.offset()} TOMBSTONE\n\n", true)
+                    report.put(c.key(), report[(c.key())]!! + "T ")
+                }
+            } else {
+                if (parsed is PersonInvalid) {
+                    interestingHitCount++
+                    log.info { "INVESTIGATE - found invalid person data of interest on pdl queue offset ${c.offset()}" }
+                    File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} INVALID PERSON FIND\n")
+                    File("/tmp/invalid").appendText("${c.value()}\n\n")
+                    Investigate.writeText(
+                        "${c.key()} Offset ${c.offset()}\nInvalid person\nValue query:${c.value()}\n\n",
+                        true
+                    )
+                    report.put(c.key(), report[c.key()]!! + "# ")
+                } else {
+                    val hits = targets.filter { c.value()!!.contains(it) }
+                    val person = parsed as PersonSf
+                    interestingHitCount++
+                    log.info { "INVESTIGATE - found INDIRECT (${hits.count()}) data of interest on pdl queue offset ${c.offset()}" }
+                    File("/tmp/reportlisting").appendText("${c.key()} Offset ${c.offset()} INDIRECT PERSON FIND\n")
+                    Investigate.writeText(
+                        "${c.key()} Offset ${c.offset()}\nValue as person:\n${person.toJson()}\nValue query:${c.value()}\n\n",
+                        true
+                    )
+                    val firsthit = hits.first()
+                    if (report.containsKey(firsthit)) {
+                        report.put(firsthit, report[firsthit]!! + "! ")
+                    } else {
+                        log.info { "INVESTIGATE - Did not find key $firsthit among targets" }
+                        File("/tmp/losthit").appendText("$firsthit\n\n$report\n\n\n")
+                    }
+                }
+            }
+        }
+
+        /*
+        val parsedBatch: List<Triple<String, PersonBase, String?>> = cRecords.map { cr ->
+            Triple(cr.key(), parsePdlJsonOnInit(cr), cr.value())
+        }
+
+        if (parsedBatch.isValidT()) {
+            workMetrics.initialRecordsParsed.inc(cRecords.count().toDouble())
+            parsedBatch.forEach {
+                when (val personBase = it.second) {
+                    is PersonSf -> {
+                        if ((it.second as PersonSf).identer.any { it.ident == targetfnr1 || it.ident == targetfnr2 } || (it.second as PersonSf).folkeregisteridentifikator.any { it.identifikasjonsnummer == targetfnr1 || it.identifikasjonsnummer == targetfnr2 }) {
+                            log.info { "INVESTIGATE - found data of interest on pdl queue" }
+                            interestingHitCount++
+                            Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1 || it.ident == targetfnr2 }}, key (aktoerid): ${it.first}. Value:\n${(it.second as PersonSf).toJson()}\n\n", true)
+                            Investigate.writeText("Fnr: ${(it.second as PersonSf).identer.firstOrNull { it.ident == targetfnr1 || it.ident == targetfnr2 }}, key (aktoerid): ${it.first}. Query:\n${it.third}\n\n", true, "/tmp/queries")
+                        }
+                    }
+                    is PersonTombestone -> {
+                    }
+                    else -> {
+                        log.error { "Should never arrive here" }; KafkaConsumerStates.HasIssues
+                    }
+                }
+            }
+            KafkaConsumerStates.IsOk
+        } else {
+            log.info { "INVESTIGATE - error state" }
+            workMetrics.consumerIssues.inc()
+            KafkaConsumerStates.HasIssues
+        }
+*/
+        /*
+        cRecords.filter { it.offset() == 100531094L || it.offset() == 100531095L || it.offset() == 100531096L }.forEach {
+            log.info { "INVESTIGATE - found interesting one - Offset: ${it.offset()}, Key: ${it.key()}" }
+            interestingHitCount++
+            Investigate.writeText("Offset: ${it.offset()}\nKey: ${it.key()}\n${it.value()}\n\n", true)
+        }
+         */
+
+        if (heartBeatConsumer == 0) {
+            log.info { "Init test run: Successfully consumed a batch (This is prompted at start and each 100000th consume batch)" }
+        }
+
+        heartBeatConsumer = ((heartBeatConsumer + 1) % 100000)
+        KafkaConsumerStates.IsOk
+    }
+    heartBeatConsumer = 0
+    report.forEach {
+        File("/tmp/report").appendText("${it.key}=${it.value}\n")
+    }
+
+    log.info { "INVESTIGATE - done Init test run, Interesting hit count: $interestingHitCount, Count $count, Total records from topic: ${workMetrics.testRunRecordsParsed.get().toInt()}" }
 }
