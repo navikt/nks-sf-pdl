@@ -28,8 +28,8 @@ object Bootstrap {
 
     fun start() {
         enableNAISAPI {
-            log.info { "Starting - grace period 3 m after enableNAISAPI" }
-            conditionalWait(180000)
+            log.info { "Starting - grace period 0.3 m after enableNAISAPI" }
+            conditionalWait(18000)
             log.info { "Starting - post grace period enableNAISAPI" }
             // if (LocalTime.now().inSleepRange()) { //TODO Ignore sleep range
             //    loop()
@@ -37,12 +37,12 @@ object Bootstrap {
             workMetrics.busy.set(1.0)
             // trysamplequeue()
             // investigateCache() // creates mismatch file - includes load gt and person cache
-            initLoadTest(listOf("2470420900194")) // TODO Tmp investigate run
+            initLoadTest(listOf("2972972891905")) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
             // initLoad() // Only publish to person/cache topic
-            // loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
+            loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
             loop()
             // }
         }
@@ -56,17 +56,17 @@ object Bootstrap {
             !stop -> {
                 workMetrics.busy.set(1.0)
                 val isOK: Boolean
-                if (LocalTime.now().inSleepRange()) {
-                    log.info { "SLEEP RANGE - In sleep period. LocalTime ${LocalTime.now()}" }
-                    sleepInvestigate()
-                    workMetrics.busy.set(0.0)
-                    conditionalWait(1800000) // Sleep an half hour then restart TODO remove this at some point
-                    isOK = false
-                } else {
+//                if (LocalTime.now().inSleepRange()) {
+//                    log.info { "SLEEP RANGE - In sleep period. LocalTime ${LocalTime.now()}" }
+//                    sleepInvestigate()
+//                    workMetrics.busy.set(0.0)
+//                    conditionalWait(1800000) // Sleep an half hour then restart TODO remove this at some point
+//                    isOK = false
+//                } else {
                     isOK = work().isOK()
                     workMetrics.busy.set(0.0)
                     conditionalWait()
-                }
+//                }
 
                 if (isOK) loop() else log.info { "Terminate signal  (Work exit reason NOK)" }.also { conditionalWait() }
             }
