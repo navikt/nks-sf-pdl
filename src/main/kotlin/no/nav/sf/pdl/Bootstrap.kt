@@ -50,7 +50,7 @@ object Bootstrap {
             // val lines = listOf("2268170288677")
             // offsetLookGt(listOf(133952843L, 135712966L))
             // offsetLookPerson(listOf(318185145L))
-            // initLoadTest(listOf("1000101208235", "10078520561")) // TODO Tmp investigate run
+            initLoadTest(listOf("2972972891905")) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
             loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
@@ -69,17 +69,18 @@ object Bootstrap {
             !stop -> {
                 workMetrics.busy.set(1.0)
                 val isOK: Boolean
+                /*
                 if (LocalTime.now().inSleepRange()) {
                     log.info { "SLEEP RANGE - In sleep period. LocalTime ${LocalTime.now()}" }
                     sleepInvestigate()
                     workMetrics.busy.set(0.0)
                     conditionalWait(1800000) // Sleep an half hour then restart TODO remove this at some point
                     isOK = false
-                } else {
+                } else {*/
                     isOK = work().isOK()
                     workMetrics.busy.set(0.0)
                     conditionalWait()
-                }
+                // }
 
                 if (isOK) loop() else log.info { "Terminate signal  (Work exit reason NOK)" }.also { conditionalWait() }
             }
