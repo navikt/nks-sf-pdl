@@ -1,23 +1,23 @@
 package no.nav.sf.pdl
 
-import io.confluent.kafka.serializers.KafkaAvroDeserializer
 import java.io.File
 import mu.KotlinLogging
 import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.KafkaConsumerStates
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.serialization.StringDeserializer
 
 private val log = KotlinLogging.logger {}
 
 fun checkLatestFeed() {
     var retries = 5
     val kafkaConsumerGcpMigration: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
-        // ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
-        // ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java,
-        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
-        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
-        "schema.registry.url" to kafkaSchemaReg,
+        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+        // ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
+        // ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
+        // "schema.registry.url" to kafkaSchemaReg,
         "security.protocol" to "SSL",
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaKeystorePath),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
