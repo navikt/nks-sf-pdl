@@ -1,6 +1,5 @@
 package no.nav.sf.pdl
 
-import java.io.File
 import mu.KotlinLogging
 import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.KafkaConsumerStates
@@ -11,6 +10,8 @@ import org.apache.kafka.common.serialization.StringDeserializer
 private val log = KotlinLogging.logger {}
 
 fun checkLatestFeedPerson() {
+    var processed = 0
+    var areOK: Boolean? = null
     log.info { "Migration perform latest feed check" }
     var retries = 5
     val kafkaConsumerGcpMigration: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
@@ -23,15 +24,15 @@ fun checkLatestFeedPerson() {
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaKeystorePath),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword)
     )
+
     AKafkaConsumer<String, String?>(
         config = kafkaConsumerGcpMigration,
         topics = listOf("pdl.pdl-persondokument-v1"),
-        fromBeginning = true
+        fromBeginning = false
     ).consume { cRecords ->
-        log.info { "Inside Migration Consumer" }
+//        log.info { "Inside Migration Consumer" }
         if (cRecords.isEmpty) {
             if (workMetrics.recordsParsed.get().toInt() == 0 && retries > 0) {
                 log.info { "Migration: No records found $retries retries left, wait 60 w" }
@@ -44,9 +45,9 @@ fun checkLatestFeedPerson() {
             }
         }
 
-        log.info { "Migration consumed batch of ${cRecords.count()}" }
-
-        log.info { "Migration first key ${cRecords.first().key()}" }
+//        log.info { "Migration consumed batch of ${cRecords.count()}" }
+//
+//        log.info { "Migration first key ${cRecords.first().key()}" }
 
         val results = cRecords.map { cr ->
             if (cr.value() == null) {
@@ -83,24 +84,27 @@ fun checkLatestFeedPerson() {
                 }
             }
         }
-        val areOk = results.map { it.first }.filterIsInstance<KafkaConsumerStates.HasIssues>().isEmpty()
-        log.info {
-            "Migration check finished with ok flag $areOk count ${results.size} offsets ${
-                cRecords.first().offset()
-            } to ${cRecords.last().offset()}"
-        }
-        File("/tmp/migrationcheck").writeText(
-            "ok $areOk count ${results.size} offsets ${
-                cRecords.first().offset()
-            } to ${cRecords.last().offset()}\nKeys processed:\n${cRecords.map { it.key() }.joinToString("\n")}"
-        )
-        KafkaConsumerStates.IsFinished
+        processed += results.size
+        areOK = results.map { it.first }.filterIsInstance<KafkaConsumerStates.HasIssues>().isEmpty()
+//        log.info {
+//            "Migration check finished with ok flag $areOk count ${results.size} offsets ${
+//                cRecords.first().offset()
+//            } to ${cRecords.last().offset()}"
+//        }
+//        File("/tmp/migrationcheck").writeText(
+//            "ok $areOk count ${results.size} offsets ${
+//                cRecords.first().offset()
+//            } to ${cRecords.last().offset()}\nKeys processed:\n${cRecords.map { it.key() }.joinToString("\n")}"
+//        )
+        KafkaConsumerStates.IsOk
     }
 
-    log.info { "Migration check exit" }
+    log.info { "Migration check exit areOK $areOK processed $processed" }
 }
 
 fun checkLatestFeedGT() {
+    var processed = 0
+    var areOK: Boolean? = null
     log.info { "Migration GT perform latest feed check" }
     var retries = 5
     val kafkaConsumerGcpMigration: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
@@ -113,16 +117,15 @@ fun checkLatestFeedGT() {
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaKeystorePath),
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
-        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword)
     )
 
     AKafkaConsumer<String, String?>(
         config = kafkaConsumerGcpMigration,
         topics = listOf("pdl.geografisktilknytning-v1"),
-        fromBeginning = true
+        fromBeginning = false
     ).consume { cRecords ->
-        log.info { "Inside Migration Consumer GT" }
+//        log.info { "Inside Migration Consumer GT" }
         if (cRecords.isEmpty) {
             if (workMetrics.recordsParsed.get().toInt() == 0 && retries > 0) {
                 log.info { "Migration GT : No records found $retries retries left, wait 60 w " }
@@ -135,9 +138,9 @@ fun checkLatestFeedGT() {
             }
         }
 
-        log.info { "Migration GT consumed batch of ${cRecords.count()}" }
-
-        log.info { "Migration GT first key ${cRecords.first().key()}" }
+//        log.info { "Migration GT consumed batch of ${cRecords.count()}" }
+//
+//        log.info { "Migration GT first key ${cRecords.first().key()}" }
 
         val results = cRecords.map { cr ->
             if (cr.value() == null) {
@@ -153,19 +156,19 @@ fun checkLatestFeedGT() {
                 }
             }
         }
-
-        val areOk = results.map { it.first }.filterIsInstance<KafkaConsumerStates.HasIssues>().isEmpty()
-        log.info {
-            "Migration GT check finished with ok flag $areOk count ${results.size} offsets ${
-                cRecords.first().offset()
-            } to ${cRecords.last().offset()}"
-        }
-        File("/tmp/migrationcheckGT").writeText(
-            "ok $areOk count ${results.size} offsets ${
-                cRecords.first().offset()
-            } to ${cRecords.last().offset()}\nKeys processed:\n${cRecords.map { it.key() }.joinToString("\n")}"
-        )
-        KafkaConsumerStates.IsFinished
+        processed += results.size
+        areOK = results.map { it.first }.filterIsInstance<KafkaConsumerStates.HasIssues>().isEmpty()
+//        log.info {
+//            "Migration GT check finished with ok flag $areOk count ${results.size} offsets ${
+//                cRecords.first().offset()
+//            } to ${cRecords.last().offset()}"
+//        }
+//        File("/tmp/migrationcheckGT").writeText(
+//            "ok $areOk count ${results.size} offsets ${
+//                cRecords.first().offset()
+//            } to ${cRecords.last().offset()}\nKeys processed:\n${cRecords.map { it.key() }.joinToString("\n")}"
+//        )
+        KafkaConsumerStates.IsOk
     }
-    log.info { "Migration GT check exit" }
+    log.info { "Migration GT check exit areOK $areOK processed $processed" }
 }
