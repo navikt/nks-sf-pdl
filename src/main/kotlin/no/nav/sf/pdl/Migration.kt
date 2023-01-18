@@ -104,6 +104,8 @@ fun checkLatestFeed() {
         KafkaConsumerStates.IsFinished
     }
 
+    log.info { "Migration Attempt Consumer GT" }
+
     AKafkaConsumer<String, String?>(
         config = kafkaConsumerGcpMigration,
         topics = listOf("pdl.geografisktilknytning-v1"),
