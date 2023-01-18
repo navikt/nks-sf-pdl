@@ -33,9 +33,10 @@ fun checkLatestFeed() {
 
     AKafkaConsumer<String, String?>(
         config = kafkaConsumerGcpMigration,
-        topics = listOf("pdl-persondokument-v1"),
+        topics = listOf("pdl.pdl-persondokument-v1"),
         fromBeginning = true
     ).consume { cRecords ->
+        log.info { "Inside Migration Consumer" }
         if (cRecords.isEmpty) {
             if (workMetrics.recordsParsed.get().toInt() == 0 && retries > 0) {
                 log.info { "Migration: No records found $retries retries left, wait 60 w" }
@@ -82,7 +83,7 @@ fun checkLatestFeed() {
             }
         }
         val areOk = results.map { it.first }.filterIsInstance<KafkaConsumerStates.HasIssues>().isEmpty()
-        log.info { "Migration check finished with ok flag $areOk" }
+        log.info { "Migration check finished with ok flag $areOk count ${results.size} offsets ${cRecords.first().offset()} to ${cRecords.last().offset()}" }
         File("/tmp/migrationcheck").writeText("ok $areOk count ${results.size} offsets ${cRecords.first().offset()} to ${cRecords.last().offset()}\nKeys processed:\n${cRecords.map{it.key()}.joinToString("\n")}")
         KafkaConsumerStates.IsFinished
     }
