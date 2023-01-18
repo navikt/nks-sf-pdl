@@ -52,7 +52,10 @@ fun checkLatestFeed() {
                     return@consume KafkaConsumerStates.IsFinished
                 }
             }
-            workMetrics.recordsParsed.inc(cRecords.count().toDouble())
+
+            log.info { "Migration consumed batch of ${cRecords.count()}" }
+
+            log.info { "Migration first ket ${cRecords.first().key()}" }
 
             val results = cRecords.map { cr ->
                 if (cr.value() == null) {
