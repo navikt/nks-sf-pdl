@@ -284,6 +284,9 @@ internal fun work(): ExitReason {
         return ExitReason.NoCache
     }
 
+    log.info { "Migration sniff GT lifetime ${++lifetime}" }
+    checkLatestFeedGT()
+
     log.info { "Commence updateGtCacheAndAffectedPersons" }
     var exitReason = updateGtCacheAndAffectedPersons()
     log.info { "done updateGtCacheAndAffectedPersons" }
@@ -292,6 +295,9 @@ internal fun work(): ExitReason {
         log.warn { "Aborting work session since update of gt cache and affected persons returned NOK" }
         return exitReason
     }
+
+    log.info { "Migration sniff Personlifetime ${++lifetime}" }
+    checkLatestFeedPerson()
 
     log.info { "Work session - gt update done successfully, person update starting" }
     var retries = 5

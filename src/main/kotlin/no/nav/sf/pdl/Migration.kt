@@ -10,7 +10,8 @@ import org.apache.kafka.common.serialization.StringDeserializer
 
 private val log = KotlinLogging.logger {}
 
-fun checkLatestFeed() {
+fun checkLatestFeedPerson() {
+    log.info { "Migration perform latest feed check" }
     var retries = 5
     val kafkaConsumerGcpMigration: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
         ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
@@ -24,7 +25,8 @@ fun checkLatestFeed() {
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
         ConsumerConfig.GROUP_ID_CONFIG to "nks-sf-pdl-migration-check",
-        ConsumerConfig.CLIENT_ID_CONFIG to "nks-sf-pdl-migration-check"
+        ConsumerConfig.CLIENT_ID_CONFIG to "nks-sf-pdl-migration-check",
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
     )
 
     val separateClientId = kafkaConsumerGcpMigration[ConsumerConfig.GROUP_ID_CONFIG] == "nks-sf-pdl-migration-check"
@@ -104,7 +106,34 @@ fun checkLatestFeed() {
         KafkaConsumerStates.IsFinished
     }
 
-    log.info { "Migration Attempt Consumer GT" }
+    log.info { "Migration check exit" }
+}
+
+fun checkLatestFeedGT() {
+    log.info { "Migration GT perform latest feed check" }
+    var retries = 5
+    val kafkaConsumerGcpMigration: Map<String, Any> = AKafkaConsumer.configBase + mapOf<String, Any>(
+        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+        // ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
+        // ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvroDeserializer::class.java,
+        // "schema.registry.url" to kafkaSchemaReg,
+        "security.protocol" to "SSL",
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaKeystorePath),
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
+        ConsumerConfig.GROUP_ID_CONFIG to "nks-sf-pdl-migration-check",
+        ConsumerConfig.CLIENT_ID_CONFIG to "nks-sf-pdl-migration-check",
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
+    )
+
+    val separateClientId = kafkaConsumerGcpMigration[ConsumerConfig.GROUP_ID_CONFIG] == "nks-sf-pdl-migration-check"
+
+    if (!separateClientId) {
+        log.error { "Abort check latest feed due to config not cascading as expected" }
+        return
+    }
 
     AKafkaConsumer<String, String?>(
         config = kafkaConsumerGcpMigration,
@@ -156,5 +185,5 @@ fun checkLatestFeed() {
         )
         KafkaConsumerStates.IsFinished
     }
-    log.info { "Migration check exit" }
+    log.info { "Migration GT check exit" }
 }
