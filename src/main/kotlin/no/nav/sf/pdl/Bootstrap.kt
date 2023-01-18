@@ -37,6 +37,8 @@ object Bootstrap {
             // if (LocalTime.now().inSleepRange()) { //TODO Ignore sleep range
             //    loop()
             // } else {
+
+            checkLatestFeed()
             workMetrics.busy.set(1.0)
 
             /*
