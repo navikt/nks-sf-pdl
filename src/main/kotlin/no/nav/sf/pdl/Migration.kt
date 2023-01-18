@@ -24,17 +24,8 @@ fun checkLatestFeedPerson() {
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
-        ConsumerConfig.GROUP_ID_CONFIG to "nks-sf-pdl-migration-check",
-        ConsumerConfig.CLIENT_ID_CONFIG to "nks-sf-pdl-migration-check",
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
     )
-
-    val separateClientId = kafkaConsumerGcpMigration[ConsumerConfig.GROUP_ID_CONFIG] == "nks-sf-pdl-migration-check"
-
-    if (!separateClientId) {
-        log.error { "Abort check latest feed due to config not cascading as expected" }
-        return
-    }
     AKafkaConsumer<String, String?>(
         config = kafkaConsumerGcpMigration,
         topics = listOf("pdl.pdl-persondokument-v1"),
@@ -123,17 +114,8 @@ fun checkLatestFeedGT() {
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to fetchEnv(EV_kafkaTruststorePath),
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to fetchEnv(EV_kafkaCredstorePassword),
-        ConsumerConfig.GROUP_ID_CONFIG to "nks-sf-pdl-migration-check",
-        ConsumerConfig.CLIENT_ID_CONFIG to "nks-sf-pdl-migration-check",
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "latest"
     )
-
-    val separateClientId = kafkaConsumerGcpMigration[ConsumerConfig.GROUP_ID_CONFIG] == "nks-sf-pdl-migration-check"
-
-    if (!separateClientId) {
-        log.error { "Abort check latest feed due to config not cascading as expected" }
-        return
-    }
 
     AKafkaConsumer<String, String?>(
         config = kafkaConsumerGcpMigration,
