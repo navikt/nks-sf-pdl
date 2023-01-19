@@ -69,7 +69,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     currentConsumerMessageHost = "GT_ONPREM"
     AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerOnPremReducedPollSize,
+            config = ws.kafkaConsumerGcp,
             fromBeginning = false,
             topics = listOf(kafkaGTTopic)
     ).consume { consumerRecords ->
@@ -569,7 +569,7 @@ internal fun sleepInvestigate() {
     log.info { "SLEEP GT Cache - load" }
     currentConsumerMessageHost = "SLEEP_GT_CACHE"
     AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerGcp,
+            config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
     ).consume { consumerRecords ->
@@ -588,7 +588,7 @@ internal fun sleepInvestigate() {
     log.info { "SLEEP Person Cache - load" }
     currentConsumerMessageHost = "SLEEP_PERSON_CACHE"
     AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerGcp,
+            config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
     ).consume { consumerRecords ->

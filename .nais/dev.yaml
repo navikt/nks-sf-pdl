@@ -56,9 +56,9 @@ spec:
     - name: KAFKA_SASLMEC
       value: PLAIN
     - name: KAFKA_TOPIC
-      value: privat-person-pdl-dokument-tagged-v1
+      value: pdl.pdl-persondokument-v1 #privat-person-pdl-dokument-tagged-v1
     - name: KAFKA_TOPIC_GT
-      value: aapen-pdl-geografisktilknytning-v1
+      value: pdl.geografisktilknytning-v1 #aapen-pdl-geografisktilknytning-v1
     - name: KAFKA_PRODUCER_TOPIC
       value: teamnks.nks-sf-pdl-v2
     - name: KAFKA_PRODUCER_TOPIC_GT

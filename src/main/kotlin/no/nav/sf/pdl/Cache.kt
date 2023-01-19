@@ -25,7 +25,7 @@ fun gtInitLoad(ws: WorkSettings) {
 
     log.info { "GT - test" }
     val kafkaConsumer = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerOnPrem,
+            config = ws.kafkaConsumerGcp,
             fromBeginning = true,
             topics = listOf(kafkaGTTopic)
     )
@@ -103,7 +103,7 @@ fun loadGtCache(): ExitReason {
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     currentConsumerMessageHost = "GT_CACHE"
     AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerGcp,
+            config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
     ).consume { consumerRecords ->
@@ -156,7 +156,7 @@ fun loadPersonCache(): ExitReason {
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     currentConsumerMessageHost = "PERSON_CACHE"
     AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerGcp,
+            config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaPersonTopic)
     ).consume { consumerRecords ->
