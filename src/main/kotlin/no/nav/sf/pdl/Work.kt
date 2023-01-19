@@ -274,6 +274,12 @@ var lifetime = 0
 var limitPersonOffset = 318141130L
 
 internal fun work(): ExitReason {
+    if (lifetime > 0) {
+        log.info {
+            log.info { "One rerun done. Will Pause" }
+        }
+        return ExitReason.Work
+    }
     // var sampleTakenThisWorkSession = false
     log.info { "bootstrap work session starting lifetime ${++lifetime}" }
     // return ExitReason.NoEvents
