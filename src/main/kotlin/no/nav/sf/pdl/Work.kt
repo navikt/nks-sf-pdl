@@ -66,9 +66,9 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
 
-    currentConsumerMessageHost = "GT_ONPREM"
+    currentConsumerMessageHost = "GT_GCP_SOURCE"
     AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerOnPremReducedPollSize,
+            config = ws.kafkaConsumerGcp,
             fromBeginning = false,
             topics = listOf(kafkaGTTopic)
     ).consume { consumerRecords ->
@@ -274,14 +274,8 @@ var lifetime = 0
 var limitPersonOffset = 318141130L
 
 internal fun work(): ExitReason {
-    if (lifetime > 0) {
-        log.info {
-            log.info { "One rerun done. Will Pause" }
-        }
-        return ExitReason.Work
-    }
     // var sampleTakenThisWorkSession = false
-    log.info { "bootstrap work session starting lifetime ${++lifetime}" }
+    log.info { "bootstrap new work session starting lifetime ${++lifetime}" }
     // return ExitReason.NoEvents
     workMetrics.clearAll()
 
@@ -289,9 +283,6 @@ internal fun work(): ExitReason {
         log.warn { "Aborting work session since a cache is lacking content. Have person and gt cache been initialized?" }
         return ExitReason.NoCache
     }
-
-    log.info { "Migration sniff GT lifetime ${++lifetime}" }
-    checkLatestFeedGT()
 
     log.info { "Commence updateGtCacheAndAffectedPersons" }
     var exitReason = updateGtCacheAndAffectedPersons()
@@ -302,9 +293,6 @@ internal fun work(): ExitReason {
         return exitReason
     }
 
-    log.info { "Migration sniff Personlifetime ${++lifetime}" }
-    checkLatestFeedPerson()
-
     log.info { "Work session - gt update done successfully, person update starting" }
     var retries = 5
 
@@ -314,9 +302,9 @@ internal fun work(): ExitReason {
             config = ws.kafkaProducerGcp
     ).produce {
         exitReason = ExitReason.NoKafkaConsumer
-        currentConsumerMessageHost = "PERSON_ONPREM"
+        currentConsumerMessageHost = "PERSON_GCP_SOURCE"
         AKafkaConsumer<String, String?>(
-                config = ws.kafkaConsumerOnPrem,
+                config = ws.kafkaConsumerGcp,
                 fromBeginning = false
         ).consume { cRecords ->
             exitReason = ExitReason.NoEvents
@@ -529,7 +517,7 @@ internal fun sleepInvestigate() {
     log.info { "SLEEP GT Cache - load" }
     currentConsumerMessageHost = "SLEEP_GT_CACHE"
     AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerGcp,
+            config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
     ).consume { consumerRecords ->
@@ -548,7 +536,7 @@ internal fun sleepInvestigate() {
     log.info { "SLEEP Person Cache - load" }
     currentConsumerMessageHost = "SLEEP_PERSON_CACHE"
     AKafkaConsumer<ByteArray, ByteArray?>(
-            config = ws.kafkaConsumerGcp,
+            config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
     ).consume { consumerRecords ->
