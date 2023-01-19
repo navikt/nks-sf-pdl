@@ -84,11 +84,11 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
         }
         exitReason = ExitReason.Work
 
-        if (consumerRecords.last().offset() < firstOffsetLimitGt) {
-            log.error { "Gt attempting consuming offset last ${consumerRecords.last().offset()} before limit $firstOffsetLimitGt. Failed to fetch offset commit from kafka? abort" }
-            exitReason = ExitReason.KafkaIssues
-            return@consume KafkaConsumerStates.HasIssues
-        }
+//        if (consumerRecords.last().offset() < firstOffsetLimitGt) {
+//            log.error { "Gt attempting consuming offset last ${consumerRecords.last().offset()} before limit $firstOffsetLimitGt. Failed to fetch offset commit from kafka? abort" }
+//            exitReason = ExitReason.KafkaIssues
+//            return@consume KafkaConsumerStates.HasIssues
+//        }
 
         workMetrics.gtRecordsParsed.inc(consumerRecords.count().toDouble())
         consumerRecords.forEach {
@@ -271,7 +271,7 @@ var presampleLeft = 3
 
 var lifetime = 0
 
-var limitPersonOffset = 318141130L
+var limitPersonOffset = 0L
 
 internal fun work(): ExitReason {
     // var sampleTakenThisWorkSession = false
