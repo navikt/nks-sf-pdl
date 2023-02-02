@@ -219,7 +219,7 @@ internal fun initLoad(): ExitReason {
 
     log.info { "Defining Consumer for pdl read" }
     val kafkaConsumerPdl = AKafkaConsumer<String, String?>(
-            config = ws.kafkaConsumerOnPrem,
+            config = ws.kafkaConsumerGcp,
             topics = listOf(kafkaPDLTopic),
             fromBeginning = true
     )

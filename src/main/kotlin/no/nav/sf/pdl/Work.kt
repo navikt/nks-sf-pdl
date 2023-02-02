@@ -67,7 +67,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
 
-    currentConsumerMessageHost = "GT_ONPREM"
+    currentConsumerMessageHost = "GT_GCP_SOURCE"
     AKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerGcp,
             fromBeginning = false,
@@ -279,7 +279,7 @@ fun trysamplequeue() {
     var retries = 5
     val topic = "privat-person-pdl-dokument-tagged-v1"
     AKafkaConsumer<String, String?>(
-        config = ws.kafkaConsumerOnPrem,
+        config = ws.kafkaConsumerGcp,
         fromBeginning = false,
         topics = listOf(topic)
     ).consume { cRecords ->
@@ -343,9 +343,9 @@ internal fun work(): ExitReason {
             config = ws.kafkaProducerGcp
     ).produce {
         exitReason = ExitReason.NoKafkaConsumer
-        currentConsumerMessageHost = "PERSON_ONPREM"
+        currentConsumerMessageHost = "PERSON_GCP_SOURCE"
         AKafkaConsumer<String, String?>(
-                config = ws.kafkaConsumerOnPrem,
+                config = ws.kafkaConsumerGcp,
                 fromBeginning = false
         ).consume { cRecordsPreFilter ->
             exitReason = ExitReason.NoEvents
