@@ -296,6 +296,7 @@ fun trysamplequeue() {
                 return@consume KafkaConsumerStates.IsFinished
             }
         }
+
         val result = cRecords.filter { it.value() != null && it.value()!!.contains("SALESFORCE") }
         if (result.count() > 0) {
             log.info { "SAMPLEQUEUE - Found ${result.count()} w SF tag on a batch from topic $topic" }
@@ -370,6 +371,13 @@ internal fun work(): ExitReason {
             }
 
             val cRecords = cRecordsPreFilter.filter { it.value() == null || it.value()?.contains("SALESFORCE") == true }
+
+            val rejected = cRecordsPreFilter.count() - cRecords.count()
+
+            if (rejected > 0) {
+                log.info { "Rejected $rejected records without SALESFORCE tag" }
+                workMetrics.recordsRejected.inc(rejected.toDouble())
+            }
 
             if (cRecords.isEmpty()) { // No tombstones or records with SALESFORCE found
                 return@consume KafkaConsumerStates.IsOk

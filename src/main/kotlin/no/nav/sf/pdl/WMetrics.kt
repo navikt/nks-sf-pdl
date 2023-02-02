@@ -59,6 +59,7 @@ data class WMetrics(
     val tombstones: Gauge = registerGauge("tombstones"), // distinct at init and work
 
     val recordsParsed: Gauge = registerGauge("records_parsed"), // Undistinct at work
+    val recordsRejected: Gauge = registerGauge("records_rejected"), // Undistinct at work
 
     val publishedPersons: Gauge = registerGauge("published_persons"),
     val latestPublishedPersonsOffset: Gauge = registerGauge("latest_published_person_offest"),
