@@ -7,7 +7,7 @@ metadata:
     team: teamnks
 spec:
   webproxy: true
-  image: {{ image }}
+  image: '{{ image }}'
   port: 8080
   replicas:
     min: 1

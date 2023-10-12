@@ -19,3 +19,9 @@ out/
 #Scratch
 Scratch*.kt
 msg*.txt
+
+# misc
+.*.sw?
+*.vim
+TAGS
+tags
