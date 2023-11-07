@@ -53,7 +53,7 @@ sealed class ExitReason {
 
 var firstOffsetLimitGt = 128891680L
 
-internal fun updateGtCacheAndAffectedPersons(): ExitReason {
+internal fun updateGtCacheAndAffectedPersons(env: SystemEnvironment): ExitReason {
     var gtRetries = 5
 
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
@@ -273,7 +273,7 @@ var lifetime = 0
 
 var limitPersonOffset = 0L
 
-internal fun work(): ExitReason {
+internal fun work(env: SystemEnvironment): ExitReason {
     // var sampleTakenThisWorkSession = false
     log.info { "bootstrap new work session starting lifetime ${++lifetime}" }
     // return ExitReason.NoEvents
@@ -285,7 +285,7 @@ internal fun work(): ExitReason {
     }
 
     log.info { "Commence updateGtCacheAndAffectedPersons" }
-    var exitReason = updateGtCacheAndAffectedPersons()
+    var exitReason = updateGtCacheAndAffectedPersons(env)
     log.info { "done updateGtCacheAndAffectedPersons" }
 
     if (!exitReason.isOK()) {

@@ -29,7 +29,7 @@ object Bootstrap {
 
     private val log = KotlinLogging.logger { }
 
-    fun start() {
+    fun start(env: SystemEnvironment) {
         enableNAISAPI {
             log.info { "Starting - grace period 5 m after enableNAISAPI" }
             conditionalWait(300000)
@@ -52,17 +52,17 @@ object Bootstrap {
             // offsetLookPerson(listOf(318185145L))
             // initLoadTest(listOf("01118429768")) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
-            loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
+            loadGtCache(env) // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
             // initLoad() // Only publish to person/cache topic
-            loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
-            loop()
+            loadPersonCache(env) // TODO Disabled for dev  Will carry cache in memory after this point
+            loop(env)
             // }
         }
         log.info { "Finished!" }
     }
 
-    private tailrec fun loop() {
+    private tailrec fun loop(env: SystemEnvironment) {
         val stop = ShutdownHook.isActive() || PrestopHook.isActive()
         when {
             stop -> Unit
@@ -77,12 +77,12 @@ object Bootstrap {
                     conditionalWait(1800000) // Sleep an half hour then restart TODO remove this at some point
                     isOK = false
                 } else {*/
-                    isOK = work().isOK()
+                    isOK = work(env).isOK()
                     workMetrics.busy.set(0.0)
                     conditionalWait()
                 // }
 
-                if (isOK) loop() else log.info { "Terminate signal  (Work exit reason NOK)" }.also { conditionalWait() }
+                if (isOK) loop(env) else log.info { "Terminate signal  (Work exit reason NOK)" }.also { conditionalWait() }
             }
         }
     }
