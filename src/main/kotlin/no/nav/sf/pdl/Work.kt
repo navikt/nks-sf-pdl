@@ -67,7 +67,7 @@ internal fun updateGtCacheAndAffectedPersons(env: SystemEnvironment): ExitReason
     val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
 
     currentConsumerMessageHost = "GT_GCP_SOURCE"
-    AKafkaConsumer<String, String?>(
+    env.aKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerGcp,
             fromBeginning = false,
             topics = listOf(kafkaGTTopic)
@@ -303,7 +303,7 @@ internal fun work(env: SystemEnvironment): ExitReason {
     ).produce {
         exitReason = ExitReason.NoKafkaConsumer
         currentConsumerMessageHost = "PERSON_GCP_SOURCE"
-        AKafkaConsumer<String, String?>(
+        env.aKafkaConsumer<String, String?>(
                 config = ws.kafkaConsumerGcp,
                 fromBeginning = false
         ).consume { cRecords ->
