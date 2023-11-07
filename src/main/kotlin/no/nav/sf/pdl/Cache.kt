@@ -102,7 +102,7 @@ fun loadGtCache(env: SystemEnvironment): ExitReason {
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     currentConsumerMessageHost = "GT_CACHE"
-    AKafkaConsumer<ByteArray, ByteArray?>(
+    env.aKafkaConsumer<ByteArray, ByteArray?>(
             config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
@@ -155,7 +155,7 @@ fun loadPersonCache(env: SystemEnvironment): ExitReason {
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     currentConsumerMessageHost = "PERSON_CACHE"
-    AKafkaConsumer<ByteArray, ByteArray?>(
+    env.aKafkaConsumer<ByteArray, ByteArray?>(
             config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaPersonTopic)
