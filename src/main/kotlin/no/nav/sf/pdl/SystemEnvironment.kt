@@ -3,7 +3,7 @@ package no.nav.sf.pdl
 import no.nav.sf.library.AKafkaConsumer
 import no.nav.sf.library.AKafkaProducer
 
-class SystemEnvironment {
+open class SystemEnvironment {
 
     open fun consumeRecordRetryDelay() = 60_000L
     open fun bootstrapWaitTime() = bootstrapWaitTime
