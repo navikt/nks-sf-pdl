@@ -3,7 +3,6 @@ package no.nav.sf.pdl
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
-import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.AnEnvironment
 import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.library.PROGNAME
@@ -167,7 +166,7 @@ internal fun updateGtCacheAndAffectedPersons(env: SystemEnvironment): ExitReason
     log.info { "Work Gt Read of gt done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $lastOffset " }
 
     if (resultListChangesToGTCache.size > 0) {
-        AKafkaProducer<ByteArray, ByteArray>(
+        env.aKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
             resultListChangesToGTCache.fold(true) { acc, pair ->
@@ -196,7 +195,7 @@ internal fun updateGtCacheAndAffectedPersons(env: SystemEnvironment): ExitReason
 
     // log.info { "Work Commence produce resultListChangesToGTGache of size ${resultListChangesToGTCache.size}" }
 
-    AKafkaProducer<ByteArray, ByteArray>(
+    env.aKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerGcp
     ).produce {
         resultListChangesToGTCache.asSequence().filter { !skipUpdate.contains(it.first) }.map { Pair(it.first, personCache[it.first]) }.filter {
@@ -298,7 +297,7 @@ internal fun work(env: SystemEnvironment): ExitReason {
 
     exitReason = ExitReason.NoKafkaProducer
 
-    AKafkaProducer<ByteArray, ByteArray>(
+    env.aKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerGcp
     ).produce {
         exitReason = ExitReason.NoKafkaConsumer
