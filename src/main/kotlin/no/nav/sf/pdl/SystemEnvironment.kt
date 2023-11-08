@@ -7,6 +7,7 @@ class SystemEnvironment {
 
     open fun consumeRecordRetryDelay() = 60_000L
     open fun bootstrapWaitTime() = bootstrapWaitTime
+    open fun workloopHook() {}
 
     open fun <K, V> aKafkaConsumer(
         config: Map<String, Any>,
