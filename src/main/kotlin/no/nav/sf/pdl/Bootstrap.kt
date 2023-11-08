@@ -25,7 +25,7 @@ object Bootstrap {
     fun start(env: SystemEnvironment) {
         enableNAISAPI {
             log.info { "Starting - grace period 0.3 m after enableNAISAPI" }
-            conditionalWait(18000)
+            conditionalWait(env.enableNAISAPIDelay())
             log.info { "Starting - post grace period enableNAISAPI" }
             // if (LocalTime.now().inSleepRange()) { //TODO Ignore sleep range
             //    loop()
