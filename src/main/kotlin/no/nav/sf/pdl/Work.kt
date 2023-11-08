@@ -76,7 +76,7 @@ internal fun updateGtCacheAndAffectedPersons(env: SystemEnvironment): ExitReason
                 exitReason = ExitReason.NoEvents
                 gtRetries--
                 log.info { "Work Gt - retry connection after waiting 60 s. Retries left: $gtRetries" }
-                Bootstrap.conditionalWait(60000)
+                Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                 return@consume KafkaConsumerStates.IsOk
             }
             return@consume KafkaConsumerStates.IsFinished
@@ -312,7 +312,7 @@ internal fun work(env: SystemEnvironment): ExitReason {
                     exitReason = ExitReason.NoEvents
                     log.info { "Work: No records found $retries retries left, wait 60 w" }
                     retries--
-                    Bootstrap.conditionalWait(60000)
+                    Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                     return@consume KafkaConsumerStates.IsOk
                 } else {
                     log.info { "Work: No more records found (or given up) - end consume session" }
