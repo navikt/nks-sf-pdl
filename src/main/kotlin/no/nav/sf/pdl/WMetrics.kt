@@ -65,8 +65,8 @@ data class WMetrics(
     val latestPublishedPersonsOffset: Gauge = registerGauge("latest_published_person_offest"),
     val publishedTombstones: Gauge = registerGauge("published_tombstones"),
 
-    val consumerIssues: Gauge = registerGauge("consumer_issues"),
-    val producerIssues: Gauge = registerGauge("producer_issues"),
+    val consumerIssues: Gauge = registerGauge("consumer_issues_key"),
+    val producerIssues: Gauge = registerGauge("producer_issues_key"),
 
     val kommunenummerMissing: Gauge = registerGauge("kommunenummer_missing"),
     val kommunenummerOnlyFromAdresse: Gauge = registerGauge("kommunenummer_only_from_adresse"),
