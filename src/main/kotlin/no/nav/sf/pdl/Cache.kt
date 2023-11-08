@@ -111,7 +111,7 @@ fun loadGtCache(env: SystemEnvironment): ExitReason {
         if (consumerRecords.isEmpty) {
             if (workMetrics.gtCacheRecordsParsed.get().toInt() == 0) {
                 log.info { "GT Cache - retry connection after waiting 60 s" }
-                Bootstrap.conditionalWait(60000)
+                Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                 return@consume KafkaConsumerStates.IsOk
             }
             return@consume KafkaConsumerStates.IsFinished
@@ -164,7 +164,7 @@ fun loadPersonCache(env: SystemEnvironment): ExitReason {
         if (consumerRecords.isEmpty) {
             if (workMetrics.cacheRecordsParsed.get().toInt() == 0) {
                 log.info { "Cache - retry connection after waiting 60 s " }
-                Bootstrap.conditionalWait(60000)
+                Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                 return@consume KafkaConsumerStates.IsOk
             }
             return@consume KafkaConsumerStates.IsFinished
