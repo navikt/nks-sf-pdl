@@ -6,6 +6,7 @@ import no.nav.sf.library.AKafkaProducer
 class SystemEnvironment {
 
     open fun consumeRecordRetryDelay() = 60_000L
+    open fun bootstrapWaitTime() = bootstrapWaitTime
 
     open fun <K, V> aKafkaConsumer(
         config: Map<String, Any>,
