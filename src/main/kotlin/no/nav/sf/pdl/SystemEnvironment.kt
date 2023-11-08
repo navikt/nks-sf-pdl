@@ -5,6 +5,7 @@ import no.nav.sf.library.AKafkaProducer
 
 open class SystemEnvironment {
 
+    open fun enableNAISAPIDelay() = 300_000L
     open fun consumeRecordRetryDelay() = 60_000L
     open fun bootstrapWaitTime() = bootstrapWaitTime
     open fun workloopHook() {}
