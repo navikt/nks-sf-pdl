@@ -1,6 +1,7 @@
 package no.nav.sf.pdl
 
 import no.nav.sf.library.AKafkaConsumer
+import no.nav.sf.library.AKafkaProducer
 
 class SystemEnvironment {
     open fun <K, V> aKafkaConsumer(
@@ -15,4 +16,7 @@ class SystemEnvironment {
         fromBeginning: Boolean
     ) =
         AKafkaConsumer<K, V>(config = config, fromBeginning = fromBeginning)
+
+    open fun <K, V> aKafkaProducer(config: Map<String, Any>) =
+        AKafkaProducer<K, V>(config = config)
 }
