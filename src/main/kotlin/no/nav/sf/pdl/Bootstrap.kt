@@ -5,13 +5,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import no.nav.sf.library.AnEnvironment
 import no.nav.sf.library.PrestopHook
 import no.nav.sf.library.ShutdownHook
 import no.nav.sf.library.enableNAISAPI
-
-private const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
-private val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
 
 private val sleepRangeStart = LocalTime.parse("04:00:00")
 private val sleepRangeStop = LocalTime.parse("07:00:00")
@@ -65,10 +61,14 @@ object Bootstrap {
 //                } else {
                     isOK = work(env).isOK()
                     workMetrics.busy.set(0.0)
-                    conditionalWait()
+                    conditionalWait(env.bootstrapWaitTime())
 //                }
 
-                if (isOK) loop(env) else log.info { "Terminate signal  (Work exit reason NOK)" }.also { conditionalWait() }
+                if (isOK)
+                    loop(env)
+                else
+                    log.info { "Terminate signal  (Work exit reason NOK)" }
+                        .also { conditionalWait(env.bootstrapWaitTime()) }
             }
         }
     }

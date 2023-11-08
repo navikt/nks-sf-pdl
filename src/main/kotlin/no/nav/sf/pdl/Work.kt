@@ -20,6 +20,7 @@ const val EV_kafkaConsumerTopicGt = "KAFKA_TOPIC_GT"
 const val EV_kafkaProducerTopicGt = "KAFKA_PRODUCER_TOPIC_GT"
 const val EV_kafkaSchemaReg = "KAFKA_SCREG"
 const val EV_kafkaBrokersOnPrem = "KAFKA_BROKERS_ON_PREM"
+const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
 
 // Environment dependencies injected in pod by kafka solution
 const val EV_kafkaKeystorePath = "KAFKA_KEYSTORE_PATH"
@@ -31,6 +32,7 @@ val kafkaPersonTopic = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopic, "$PR
 val kafkaPDLTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopic, "$PROGNAME-consumer")
 val kafkaGTTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopicGt, "$PROGNAME-consumer-gt")
 val kafkaProducerTopicGt = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopicGt, "$PROGNAME-producer-gt")
+val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
 
 fun fetchEnv(env: String): String {
     return AnEnvironment.getEnvOrDefault(env, "$env missing")
