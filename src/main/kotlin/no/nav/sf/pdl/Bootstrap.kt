@@ -74,6 +74,7 @@ object Bootstrap {
                     isOK = false
                 } else {*/
                     isOK = work(env).isOK()
+                    env.workloopHook()
                     workMetrics.busy.set(0.0)
                     conditionalWait(env.bootstrapWaitTime())
                 // }
