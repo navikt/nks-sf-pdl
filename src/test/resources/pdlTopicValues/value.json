@@ -1,5 +1,11 @@
 {
   "hentPerson": {
+    "geografiskTilknytning":{
+      "gtType":"KOMMUNE",
+      "gtKommune":"0301",
+      "gtBydel":"bydelsnummerFraGt",
+      "gtLand":"gtLand"
+    },
     "adressebeskyttelse": [
 
     ],
@@ -25,7 +31,7 @@
           "sekvens": null
         },
         "metadata": {
-          "opplysningsId": "cf49c44f-46ea-45f9-b150-0cdef0c8abe7",
+          "opplysningsId": "a1d38b36-0b12-46d5-9f45-33792d2cb8a1",
           "master": "Freg",
           "endringer": [
             {
@@ -272,7 +278,7 @@
     "oppholdsadresse": [
       {
         "vegadresse": {
-          "kommunenummer": "",
+          "kommunenummer": "0001",
           "adressenavn": "",
           "husnummer": "",
           "husbokstav": "",
@@ -289,6 +295,7 @@
           "landkode": "GB"
         },
         "metadata": {
+          "opplysningsId": "8421fd5e-19c9-41cc-aec8-31975bf364dc",
           "historisk": false,
           "master": "Freg"
         }
@@ -403,6 +410,7 @@
         "fraflyttingsland": "SWE",
         "fraflyttingsstedIUtlandet": "",
         "metadata": {
+          "opplysningsId": "cf49c44f-46ea-45f9-b150-0cdef0c8abe7",
           "master": "Freg"
         }
       }
