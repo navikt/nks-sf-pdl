@@ -1,0 +1,94 @@
+{
+  "hentPerson": {
+    "adressebeskyttelse": [],
+    "bostedsadresse": [
+      {
+        "vegadresse": null,
+        "matrikkeladresse": null,
+        "ukjentBosted": null,
+        "metadata": {
+          "opplysningsId": "bda68d90-dd3f-4f2d-8881-07d8084d093b",
+          "historisk": false,
+          "master": "Freg"
+        }
+      }
+    ],
+    "oppholdsadresse": [
+      {
+        "vegadresse": null,
+        "utenlandsAdresse": {
+          "adressenavnNummer": null,
+          "bygningEtasjeLeilighet": null,
+          "postboksNummerNavn": null,
+          "postkode": null,
+          "bySted": null,
+          "regionDistriktOmraade": null,
+          "adresse": null,
+          "landkode": "GB"
+        },
+        "metadata": {
+          "opplysningsId": "9e497769-3e70-4de3-b35d-dbfd523d7240",
+          "historisk": false,
+          "master": "Freg"
+        }
+      }
+    ],
+    "kjoenn": [
+      {
+        "kjoenn": "KVINNE",
+        "metadata": {
+          "opplysningsId": "2d595a77-08a4-4f68-83dd-4fdbe4b0e2d3",
+          "master": "Freg",
+          "endringer": [
+            {
+              "type": "OPPRETT",
+              "registrert": "2019-10-25T08:36:59.237",
+              "registrertAv": "Folkeregisteret",
+              "systemkilde": "FREG",
+              "kilde": "skatteetaten"
+            }
+          ]
+        }
+      }
+    ],
+    "statsborgerskap": [],
+    "familieRelasjoner": [
+
+    ],
+    "doedsfall": [],
+    "sikkerhetstiltak": [],
+    "folkeregisterpersonstatus": [
+    ],
+    "telefonnummer": [],
+    "sivilstand": [],
+    "innflyttingTilNorge": [],
+    "utflyttingFraNorge": [{
+      "tilflyttingsland": "",
+      "tilflyttingsstedIUtlandet": "",
+      "metadata": {
+        "opplysningsId": "bad82f6d-d222-446e-99b9-fe13b8b4f952",
+        "historisk": false,
+        "master": "PDL"
+      }
+    }],
+    "navn": [
+
+    ]
+  },
+  "hentIdenter": {
+    "identer": [
+      {
+        "ident": "21047902360",
+        "historisk": false,
+        "gruppe": "FOLKEREGISTERIDENT",
+        "metadata": null
+      },
+      {
+        "ident": "2686258122191",
+        "historisk": false,
+        "gruppe": "AKTORID",
+        "metadata": null
+      }
+    ]
+  }
+}

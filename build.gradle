@@ -116,15 +116,15 @@ dependencies {
     implementation "io.prometheus:simpleclient_common:$prometheus_version"
     implementation "io.prometheus:simpleclient_hotspot:$prometheus_version"
 
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
     testImplementation "io.kotest:kotest-runner-junit5-jvm:$kotest_version"
-    testImplementation "io.kotest:kotest-assertions-core-jvm:$kotest_version"
-    testImplementation "io.findify:s3mock_2.12:0.2.5"
-
-    testImplementation "no.nav:kafka-embedded-env:$embedded_kafka"
 }
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
 
 sourceSets {
@@ -149,4 +149,5 @@ compileKotlin {
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "11"
+    kotlinOptions.freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
 }
