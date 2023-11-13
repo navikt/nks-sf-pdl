@@ -96,13 +96,13 @@ fun gtInitLoad(ws: WorkSettings) {
     log.info { "Done with gt load. Published gt: ${workMetrics.gtPublished.get().toInt()}, tombstones: ${workMetrics.gtPublishedTombstone.get().toInt()} p Issues: ${workMetrics.producerIssues.get().toInt()}" }
 }
 
-fun loadGtCache(): ExitReason {
+fun loadGtCache(env: SystemEnvironment): ExitReason {
     workMetrics.clearAll()
     log.info { "GT Cache - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     currentConsumerMessageHost = "GT_CACHE"
-    AKafkaConsumer<ByteArray, ByteArray?>(
+    env.aKafkaConsumer<ByteArray, ByteArray?>(
             config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaProducerTopicGt)
@@ -111,7 +111,7 @@ fun loadGtCache(): ExitReason {
         if (consumerRecords.isEmpty) {
             if (workMetrics.gtCacheRecordsParsed.get().toInt() == 0) {
                 log.info { "GT Cache - retry connection after waiting 60 s" }
-                Bootstrap.conditionalWait(60000)
+                Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                 return@consume KafkaConsumerStates.IsOk
             }
             return@consume KafkaConsumerStates.IsFinished
@@ -149,13 +149,13 @@ fun loadGtCache(): ExitReason {
     return exitReason
 }
 
-fun loadPersonCache(): ExitReason {
+fun loadPersonCache(env: SystemEnvironment): ExitReason {
     workMetrics.clearAll()
     log.info { "Cache Person - load" }
     val resultList: MutableList<Pair<String, ByteArray?>> = mutableListOf()
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
     currentConsumerMessageHost = "PERSON_CACHE"
-    AKafkaConsumer<ByteArray, ByteArray?>(
+    env.aKafkaConsumer<ByteArray, ByteArray?>(
             config = ws.kafkaConsumerGcpProto,
             fromBeginning = true,
             topics = listOf(kafkaPersonTopic)
@@ -164,7 +164,7 @@ fun loadPersonCache(): ExitReason {
         if (consumerRecords.isEmpty) {
             if (workMetrics.cacheRecordsParsed.get().toInt() == 0) {
                 log.info { "Cache - retry connection after waiting 60 s " }
-                Bootstrap.conditionalWait(60000)
+                Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                 return@consume KafkaConsumerStates.IsOk
             }
             return@consume KafkaConsumerStates.IsFinished

@@ -3,7 +3,6 @@ package no.nav.sf.pdl
 import mu.KotlinLogging
 import no.nav.pdlsf.proto.PersonProto
 import no.nav.sf.library.AKafkaConsumer
-import no.nav.sf.library.AKafkaProducer
 import no.nav.sf.library.AnEnvironment
 import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.library.PROGNAME
@@ -20,6 +19,7 @@ const val EV_kafkaConsumerTopicGt = "KAFKA_TOPIC_GT"
 const val EV_kafkaProducerTopicGt = "KAFKA_PRODUCER_TOPIC_GT"
 const val EV_kafkaSchemaReg = "KAFKA_SCREG"
 const val EV_kafkaBrokersOnPrem = "KAFKA_BROKERS_ON_PREM"
+const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
 
 // Environment dependencies injected in pod by kafka solution
 const val EV_kafkaKeystorePath = "KAFKA_KEYSTORE_PATH"
@@ -31,6 +31,7 @@ val kafkaPersonTopic = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopic, "$PR
 val kafkaPDLTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopic, "$PROGNAME-consumer")
 val kafkaGTTopic = AnEnvironment.getEnvOrDefault(EV_kafkaConsumerTopicGt, "$PROGNAME-consumer-gt")
 val kafkaProducerTopicGt = AnEnvironment.getEnvOrDefault(EV_kafkaProducerTopicGt, "$PROGNAME-producer-gt")
+val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
 
 fun fetchEnv(env: String): String {
     return AnEnvironment.getEnvOrDefault(env, "$env missing")
@@ -53,7 +54,7 @@ sealed class ExitReason {
 
 var firstOffsetLimitGt = 128891680L
 
-internal fun updateGtCacheAndAffectedPersons(): ExitReason {
+internal fun updateGtCacheAndAffectedPersons(env: SystemEnvironment): ExitReason {
     var gtRetries = 5
 
     var exitReason: ExitReason = ExitReason.NoKafkaConsumer
@@ -67,7 +68,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
     val resultListChangesToGTCache: MutableList<Pair<String, ByteArray?>> = mutableListOf()
 
     currentConsumerMessageHost = "GT_GCP_SOURCE"
-    AKafkaConsumer<String, String?>(
+    env.aKafkaConsumer<String, String?>(
             config = ws.kafkaConsumerGcp,
             fromBeginning = false,
             topics = listOf(kafkaGTTopic)
@@ -77,7 +78,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
                 exitReason = ExitReason.NoEvents
                 gtRetries--
                 log.info { "Work Gt - retry connection after waiting 60 s. Retries left: $gtRetries" }
-                Bootstrap.conditionalWait(60000)
+                Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                 return@consume KafkaConsumerStates.IsOk
             }
             return@consume KafkaConsumerStates.IsFinished
@@ -167,7 +168,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
     log.info { "Work Gt Read of gt done. resultListChangesToGTCache size ${resultListChangesToGTCache.size} processed offset from gt queue $first to $lastOffset " }
 
     if (resultListChangesToGTCache.size > 0) {
-        AKafkaProducer<ByteArray, ByteArray>(
+        env.aKafkaProducer<ByteArray, ByteArray>(
                 config = ws.kafkaProducerGcp
         ).produce {
             resultListChangesToGTCache.fold(true) { acc, pair ->
@@ -196,7 +197,7 @@ internal fun updateGtCacheAndAffectedPersons(): ExitReason {
 
     // log.info { "Work Commence produce resultListChangesToGTGache of size ${resultListChangesToGTCache.size}" }
 
-    AKafkaProducer<ByteArray, ByteArray>(
+    env.aKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerGcp
     ).produce {
         resultListChangesToGTCache.asSequence().filter { !skipUpdate.contains(it.first) }.map { Pair(it.first, personCache[it.first]) }.filter {
@@ -273,7 +274,7 @@ var lifetime = 0
 
 var limitPersonOffset = 0L
 
-internal fun work(): ExitReason {
+internal fun work(env: SystemEnvironment): ExitReason {
     // var sampleTakenThisWorkSession = false
     log.info { "bootstrap new work session starting lifetime ${++lifetime}" }
     // return ExitReason.NoEvents
@@ -285,7 +286,7 @@ internal fun work(): ExitReason {
     }
 
     log.info { "Commence updateGtCacheAndAffectedPersons" }
-    var exitReason = updateGtCacheAndAffectedPersons()
+    var exitReason = updateGtCacheAndAffectedPersons(env)
     log.info { "done updateGtCacheAndAffectedPersons" }
 
     if (!exitReason.isOK()) {
@@ -298,12 +299,12 @@ internal fun work(): ExitReason {
 
     exitReason = ExitReason.NoKafkaProducer
 
-    AKafkaProducer<ByteArray, ByteArray>(
+    env.aKafkaProducer<ByteArray, ByteArray>(
             config = ws.kafkaProducerGcp
     ).produce {
         exitReason = ExitReason.NoKafkaConsumer
         currentConsumerMessageHost = "PERSON_GCP_SOURCE"
-        AKafkaConsumer<String, String?>(
+        env.aKafkaConsumer<String, String?>(
                 config = ws.kafkaConsumerGcp,
                 fromBeginning = false
         ).consume { cRecords ->
@@ -313,7 +314,7 @@ internal fun work(): ExitReason {
                     exitReason = ExitReason.NoEvents
                     log.info { "Work: No records found $retries retries left, wait 60 w" }
                     retries--
-                    Bootstrap.conditionalWait(60000)
+                    Bootstrap.conditionalWait(env.consumeRecordRetryDelay())
                     return@consume KafkaConsumerStates.IsOk
                 } else {
                     log.info { "Work: No more records found (or given up) - end consume session" }

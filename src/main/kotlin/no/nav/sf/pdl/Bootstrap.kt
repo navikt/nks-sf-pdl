@@ -8,13 +8,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import no.nav.sf.library.AnEnvironment
 import no.nav.sf.library.PrestopHook
 import no.nav.sf.library.ShutdownHook
 import no.nav.sf.library.enableNAISAPI
-
-private const val EV_bootstrapWaitTime = "MS_BETWEEN_WORK" // default to 10 minutes
-private val bootstrapWaitTime = AnEnvironment.getEnvOrDefault(EV_bootstrapWaitTime, "60000").toLong()
 
 private val sleepRangeStart = LocalTime.parse("04:00:00")
 private val sleepRangeStop = LocalTime.parse("07:00:00")
@@ -29,10 +25,10 @@ object Bootstrap {
 
     private val log = KotlinLogging.logger { }
 
-    fun start() {
+    fun start(env: SystemEnvironment) {
         enableNAISAPI {
             log.info { "Starting - grace period 5 m after enableNAISAPI" }
-            conditionalWait(300000)
+            conditionalWait(env.enableNAISAPIDelay())
             log.info { "Starting - post grace period enableNAISAPI" }
             // if (LocalTime.now().inSleepRange()) { //TODO Ignore sleep range
             //    loop()
@@ -52,17 +48,17 @@ object Bootstrap {
             // offsetLookPerson(listOf(318185145L))
             // initLoadTest(listOf("01118429768")) // TODO Tmp investigate run
             // gtInitLoad() // Publish to cache topic also load cache in app (no need to to do loadGtCache)
-            loadGtCache() // TODO Disabled for dev run Use this if not gt init load is used
+            loadGtCache(env) // TODO Disabled for dev run Use this if not gt init load is used
             // initLoadTest() // Investigate run of number of records on topic if suspecting drop of records in init run
             // initLoad() // Only publish to person/cache topic
-            loadPersonCache() // TODO Disabled for dev  Will carry cache in memory after this point
-            loop()
+            loadPersonCache(env) // TODO Disabled for dev  Will carry cache in memory after this point
+            loop(env)
             // }
         }
         log.info { "Finished!" }
     }
 
-    private tailrec fun loop() {
+    private tailrec fun loop(env: SystemEnvironment) {
         val stop = ShutdownHook.isActive() || PrestopHook.isActive()
         when {
             stop -> Unit
@@ -77,12 +73,17 @@ object Bootstrap {
                     conditionalWait(1800000) // Sleep an half hour then restart TODO remove this at some point
                     isOK = false
                 } else {*/
-                    isOK = work().isOK()
+                    isOK = work(env).isOK()
+                    env.workloopHook()
                     workMetrics.busy.set(0.0)
-                    conditionalWait()
+                    conditionalWait(env.bootstrapWaitTime())
                 // }
 
-                if (isOK) loop() else log.info { "Terminate signal  (Work exit reason NOK)" }.also { conditionalWait() }
+                if (isOK)
+                    loop(env)
+                else
+                    log.info { "Terminate signal  (Work exit reason NOK)" }
+                        .also { conditionalWait(env.bootstrapWaitTime()) }
             }
         }
     }

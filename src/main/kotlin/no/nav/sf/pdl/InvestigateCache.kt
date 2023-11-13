@@ -5,6 +5,7 @@ import no.nav.sf.library.KafkaConsumerStates
 import no.nav.sf.pdl.Bootstrap
 import no.nav.sf.pdl.PersonProtobufIssue
 import no.nav.sf.pdl.PersonSf
+import no.nav.sf.pdl.SystemEnvironment
 import no.nav.sf.pdl.kafkaPDLTopic
 import no.nav.sf.pdl.loadGtCache
 import no.nav.sf.pdl.loadPersonCache
@@ -23,11 +24,11 @@ internal fun investigateCache() {
 
     log.info { "INVESTIGATE - Will load gt Cache" }
 
-    loadGtCache() // For processing old queue to cache equivalent
+    loadGtCache(SystemEnvironment()) // For processing old queue to cache equivalent
 
     log.info { "INVESTIGATE - Will load person Cache" }
 
-    loadPersonCache()
+    loadPersonCache(SystemEnvironment())
 
     workMetrics.testRunRecordsParsed.clear()
     val kafkaConsumerPdlTest = AKafkaConsumer<String, String?>(
