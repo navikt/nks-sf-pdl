@@ -241,6 +241,18 @@ class BootstrapTest {
     }
 
     @Test
+    fun `Workloop consuming PERSON value without SALESFORCE tag should not cache Person`() {
+        // arrange
+        setupDefaultCache()
+        val id = "myId"
+        setupConsumerOnKeyAndValue(personConsumer, key = id, value = hentPerson(id, hasSalesforceTag = false))
+        // act
+        main(env)
+        // assert
+        assertFalse(`that`(personCache).hasCacheOnKey(id))
+    }
+
+    @Test
     fun `Workloop consuming PERSON value that is cached should not produce value`() {
         // arrange
         val id = "myId"
@@ -357,9 +369,14 @@ class BootstrapTest {
                 (this as Query).toPersonSf()
             }
 
-    private fun hentPerson(aktoerId: String, isHollow: Boolean = false) =
+    private fun hentPerson(
+        aktoerId: String,
+        isHollow: Boolean = false,
+        hasSalesforceTag: Boolean = true
+    ) =
         resourceAsText(personPath(isHollow))
             ?.replace(""""ident": "AKTORID"""", """"ident": "$aktoerId"""")
+            ?.run { if (!hasSalesforceTag) this.replace("SALESFORCE", "TAG") else this }
 
     private fun personPath(isHollow: Boolean) =
         if (isHollow) "/pdlTopicValues/hollow.json" else "/pdlTopicValues/value.json"
