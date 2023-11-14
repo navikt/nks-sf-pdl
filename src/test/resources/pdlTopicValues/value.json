@@ -191,7 +191,7 @@
               "registrert": "2019-10-25T08:36:59.237",
               "registrertAv": "Folkeregisteret",
               "systemkilde": "FREG",
-              "kilde": "SKATTEETATEN"
+              "kilde": "SKATTEETATEN "
             }
           ]
         }
@@ -237,7 +237,7 @@
     ],
     "navn": [
       {
-        "fornavn": "MUNTER",
+        "fornavn": "SALESFORCE",
         "mellomnavn": null,
         "etternavn": "LOMME",
         "forkortetNavn": null,
@@ -425,19 +425,22 @@
         "ident": "FOLKEREGISTERIDENT",
         "historisk": false,
         "gruppe": "FOLKEREGISTERIDENT",
-        "metadata": null
+        "metadata": null,
+        "folkeregistermetadata": null
       },
       {
         "ident": "FOLKEREGISTERIDENT_OLD",
         "historisk": true,
         "gruppe": "FOLKEREGISTERIDENT",
-        "metadata": null
+        "metadata": null,
+        "folkeregistermetadata": null
       },
       {
         "ident": "AKTORID",
         "historisk": false,
         "gruppe": "AKTORID",
-        "metadata": null
+        "metadata": null,
+        "folkeregistermetadata": null
       }
     ]
   }
