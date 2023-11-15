@@ -237,7 +237,7 @@
     ],
     "navn": [
       {
-        "fornavn": "SALESFORCE",
+        "fornavn": "MUNTER",
         "mellomnavn": null,
         "etternavn": "LOMME",
         "forkortetNavn": null,
@@ -318,7 +318,7 @@
           "ajourholdstidspunkt": "2019-10-25T08:36:55.507",
           "gyldighetstidspunkt": "2019-10-25T08:36:55.507",
           "opphoerstidspunkt": null,
-          "kilde": "skatteetaten",
+          "kilde": "SALESFORCE",
           "aarsak": "SyntheticDataGen",
           "sekvens": null
         },
@@ -425,22 +425,19 @@
         "ident": "FOLKEREGISTERIDENT",
         "historisk": false,
         "gruppe": "FOLKEREGISTERIDENT",
-        "metadata": null,
-        "folkeregistermetadata": null
+        "metadata": null
       },
       {
         "ident": "FOLKEREGISTERIDENT_OLD",
         "historisk": true,
         "gruppe": "FOLKEREGISTERIDENT",
-        "metadata": null,
-        "folkeregistermetadata": null
+        "metadata": null
       },
       {
         "ident": "AKTORID",
         "historisk": false,
         "gruppe": "AKTORID",
-        "metadata": null,
-        "folkeregistermetadata": null
+        "metadata": null
       }
     ]
   }
